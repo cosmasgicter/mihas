@@ -127,7 +127,7 @@ const DashboardPage: React.FC = () => {
           Welcome back, {user?.name?.split(' ')[0]}!
         </h1>
         <p className="text-blue-100 text-lg">
-          Mukuba Institute of Health and Applied Sciences - Student Portal
+          MIHAS Application Management System
         </p>
         <p className="text-blue-200 mt-2">
           Manage your nursing diploma application and academic journey

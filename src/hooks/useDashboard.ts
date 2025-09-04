@@ -18,13 +18,18 @@ export const useDashboard = () => {
     
     if (appsError) throw appsError
     
-    // Get user's payments
-    const { data: payments, error: paymentsError } = await supabase
-      .from('payments')
-      .select('*')
-      .in('application_id', applications?.map(app => app.id) || [])
-    
-    if (paymentsError) throw paymentsError
+    // Get user's payments (skip query if no applications)
+    let payments: any[] = []
+    const applicationIds = applications?.map(app => app.id) || []
+    if (applicationIds.length > 0) {
+      const { data: paymentData, error: paymentsError } = await supabase
+        .from('payments')
+        .select('*')
+        .in('application_id', applicationIds)
+
+      if (paymentsError) throw paymentsError
+      payments = paymentData || []
+    }
     
     // Calculate stats
     const stats = {
