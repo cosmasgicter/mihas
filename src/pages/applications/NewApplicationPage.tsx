@@ -208,15 +208,26 @@ const NewApplicationPage: React.FC = () => {
     switch (step) {
       case 1: // Program Selection
         return formData.academicInfo.programId
-      case 2: // Personal Info
+      case 2: { // Personal Info
         const { personalInfo } = formData
-        return personalInfo.firstName && personalInfo.lastName && 
-               personalInfo.dateOfBirth && personalInfo.gender &&
-               personalInfo.email && personalInfo.phone && personalInfo.address
-      case 3: // Academic Info
+        return (
+          personalInfo.firstName &&
+          personalInfo.lastName &&
+          personalInfo.dateOfBirth &&
+          personalInfo.gender &&
+          personalInfo.email &&
+          personalInfo.phone &&
+          personalInfo.address
+        )
+      }
+      case 3: { // Academic Info
         const { academicInfo } = formData
-        return academicInfo.previousSchool && academicInfo.graduationYear &&
-               academicInfo.grades.every(g => g.subject && g.score && g.grade)
+        return (
+          academicInfo.previousSchool &&
+          academicInfo.graduationYear &&
+          academicInfo.grades.every(g => g.subject && g.score && g.grade)
+        )
+      }
       case 4: // Documents
         return documents.filter(doc => doc.file).length >= 3
       default:
@@ -760,7 +771,7 @@ const NewApplicationPage: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">MIHAS Application Portal</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">MIHAS Application Management System</h1>
           <p className="text-gray-600">Mukuba Institute of Health and Applied Sciences - Apply for 2025-2026 Academic Year</p>
         </div>
         

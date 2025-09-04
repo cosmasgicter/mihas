@@ -76,7 +76,7 @@ const AuthCallback: React.FC = () => {
         ) : (
           <div>
             <h1 className="text-2xl font-bold text-green-600 mb-2">Account Verified</h1>
-            <p className="text-gray-600 mb-4">Welcome to MIHAS! Redirecting to your dashboard...</p>
+            <p className="text-gray-600 mb-4">Welcome to the MIHAS Application Management System! Redirecting to your dashboard...</p>
           </div>
         )}
       </div>
