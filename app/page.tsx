@@ -11,7 +11,7 @@ export default function HomePage() {
       icon: GraduationCap,
       title: "Quality Education",
       description:
-        "Access world-class programs at Mukuba University and Kasisi Agricultural Training Centre (KATC) with experienced faculty and modern facilities.",
+        "Access world-class health programs at MIHAS and Kalulushi Training Centre with experienced faculty and modern medical facilities.",
     },
     {
       icon: Users,
@@ -42,8 +42,8 @@ export default function HomePage() {
               Your Future Starts Here
             </h1>
             <p className="mt-8 text-xl leading-8 text-white/95 max-w-3xl mx-auto text-pretty drop-shadow">
-              Apply to Mukuba University and Kasisi Agricultural Training Centre (KATC) through our secure online
-              platform.
+              Apply to Mukuba Institute of Health and Applied Sciences (MIHAS) and Kalulushi Training Centre through our
+              secure online platform.
             </p>
             <div className="mt-12 flex items-center justify-center gap-x-8">
               <Link href="/apply">
@@ -71,38 +71,40 @@ export default function HomePage() {
             <h2 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl gradient-text">
               Choose Your Institution
             </h2>
-            <p className="mt-6 text-xl text-muted-foreground">Two prestigious institutions, one application platform</p>
+            <p className="mt-6 text-xl text-muted-foreground">
+              Two prestigious health institutions, one application platform
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             <Card className="border-2 hover:border-primary transition-all duration-500 hover-lift hover:shadow-2xl animate-slide-in-left">
               <CardHeader className="pb-6">
-                <CardTitle className="text-3xl gradient-text">Mukuba University</CardTitle>
+                <CardTitle className="text-3xl gradient-text">MIHAS</CardTitle>
                 <CardDescription className="text-lg text-muted-foreground">
-                  Science, Technology, Engineering & Mathematics
+                  Mukuba Institute of Health and Applied Sciences
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-8 text-lg leading-relaxed">
-                  Leading STEM-focused university in Kitwe with state-of-the-art facilities and experienced faculty
-                  preparing the next generation of scientists, engineers, and technology professionals.
+                  Leading health sciences institution offering comprehensive diploma programs with modern facilities and
+                  experienced faculty preparing the next generation of healthcare professionals.
                 </p>
                 <ul className="space-y-3 text-base text-muted-foreground">
                   <li className="flex items-center">
                     <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
-                    Nutritional Science (MSc)
+                    Registered Nursing (Diploma)
                   </li>
                   <li className="flex items-center">
                     <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
-                    Engineering Programs
+                    Health Sciences Programs
                   </li>
                   <li className="flex items-center">
                     <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
-                    Technology Studies
+                    Applied Health Studies
                   </li>
                   <li className="flex items-center">
                     <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
-                    Applied Sciences
+                    Clinical Training
                   </li>
                 </ul>
               </CardContent>
@@ -113,32 +115,32 @@ export default function HomePage() {
               style={{ animationDelay: "0.2s" }}
             >
               <CardHeader className="pb-6">
-                <CardTitle className="text-3xl gradient-text">KATC</CardTitle>
+                <CardTitle className="text-3xl gradient-text">Kalulushi Training Centre</CardTitle>
                 <CardDescription className="text-lg text-muted-foreground">
-                  Kasisi Agricultural Training Centre
+                  Health and Environmental Sciences
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-8 text-lg leading-relaxed">
-                  Premier agricultural training institution near Lusaka specializing in sustainable organic agriculture
-                  with hands-on training and modern farming techniques.
+                  Specialized training institution offering diploma programs in clinical medicine and environmental
+                  health with hands-on training and modern healthcare facilities.
                 </p>
                 <ul className="space-y-3 text-base text-muted-foreground">
                   <li className="flex items-center">
                     <div className="w-2 h-2 bg-secondary rounded-full mr-3"></div>
-                    Organic Agriculture
+                    Clinical Medicine (Diploma)
                   </li>
                   <li className="flex items-center">
                     <div className="w-2 h-2 bg-secondary rounded-full mr-3"></div>
-                    Agroforestry
+                    Environmental Health (Diploma)
                   </li>
                   <li className="flex items-center">
                     <div className="w-2 h-2 bg-secondary rounded-full mr-3"></div>
-                    Beekeeping & Apiculture
+                    Healthcare Training
                   </li>
                   <li className="flex items-center">
                     <div className="w-2 h-2 bg-secondary rounded-full mr-3"></div>
-                    Farm Management
+                    Public Health Studies
                   </li>
                 </ul>
               </CardContent>

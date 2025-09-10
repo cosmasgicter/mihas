@@ -33,5 +33,5 @@ CREATE POLICY "institutions_admin_write" ON institutions
 
 -- Insert default institutions
 INSERT INTO institutions (id, slug, name, contact_email) VALUES
-  ('11111111-1111-1111-1111-111111111111', 'mukuba', 'Mukuba University', 'admissions@mukuba.edu.zm'),
-  ('22222222-2222-2222-2222-222222222222', 'katc', 'Kasisi Agricultural Training Centre', 'admissions@katc.org.zm');
+  ('11111111-1111-1111-1111-111111111111', 'mihas', 'Mukuba Institute of Health and Applied Sciences (MIHAS)', 'admissions@mihas.edu.zm'),
+  ('22222222-2222-2222-2222-222222222222', 'katc', 'Kalulushi Training Centre', 'admissions@katc.edu.zm');
