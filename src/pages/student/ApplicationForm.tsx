@@ -12,6 +12,36 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { ArrowLeft, Upload, X, FileText, CheckCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+const DEFAULT_PROGRAMS: Program[] = [
+  {
+    id: 'diploma-clinical-medicine',
+    name: 'Diploma in Clinical Medicine',
+    description: '',
+    duration_years: 3,
+    is_active: true,
+    created_at: '',
+    updated_at: ''
+  },
+  {
+    id: 'diploma-environmental-health',
+    name: 'Diploma in Environmental Health',
+    description: '',
+    duration_years: 3,
+    is_active: true,
+    created_at: '',
+    updated_at: ''
+  },
+  {
+    id: 'diploma-registered-nursing',
+    name: 'Diploma in Registered Nursing',
+    description: '',
+    duration_years: 3,
+    is_active: true,
+    created_at: '',
+    updated_at: ''
+  }
+]
+
 const applicationSchema = z.object({
   program_id: z.string().min(1, 'Please select a program'),
   intake_id: z.string().min(1, 'Please select an intake'),
@@ -84,9 +114,15 @@ export default function ApplicationFormPage() {
         .order('name')
 
       if (error) throw error
-      setPrograms(data || [])
+
+      if (data && data.length > 0) {
+        setPrograms(data)
+      } else {
+        setPrograms(DEFAULT_PROGRAMS)
+      }
     } catch (error: any) {
       console.error('Error loading programs:', error)
+      setPrograms(DEFAULT_PROGRAMS)
       setError('Failed to load programs')
     } finally {
       setProgramsLoading(false)
@@ -270,7 +306,7 @@ export default function ApplicationFormPage() {
             Application Form
           </h1>
           <p className="text-gray-600">
-            Complete all sections to submit your application to MIHAS or KATC programs.
+            Complete all sections to submit your application to programs at Kalulushi Training Centre or Mukuba Institute of Health and Applied Sciences.
           </p>
         </div>
 
