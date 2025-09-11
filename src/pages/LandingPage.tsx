@@ -38,7 +38,7 @@ export default function LandingPage() {
               Your Future Starts Here
             </h1>
             <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-              Join MIHAS and KATC - Leading institutions in health sciences and technical education in Zambia
+              Join Mukuba Institute of Health and Applied Sciences and Kalulushi Training Centre – Leading institutions in health sciences education in Zambia
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/auth/signup">
@@ -115,27 +115,20 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-2 gap-8">
             <div className="bg-white p-6 rounded-lg shadow-md border">
               <h3 className="text-2xl font-bold text-blue-900 mb-4">
-                MIHAS - Health Sciences
+                Kalulushi Training Centre
               </h3>
               <ul className="space-y-2 text-gray-600">
-                <li>• Certificate in Nursing</li>
                 <li>• Diploma in Clinical Medicine</li>
-                <li>• Certificate in Pharmacy Technology</li>
-                <li>• Diploma in Medical Laboratory Technology</li>
-                <li>• Certificate in Community Health</li>
+                <li>• Diploma in Environmental Health</li>
               </ul>
             </div>
-            
+
             <div className="bg-white p-6 rounded-lg shadow-md border">
               <h3 className="text-2xl font-bold text-blue-900 mb-4">
-                KATC - Technical Training
+                Mukuba Institute of Health and Applied Sciences
               </h3>
               <ul className="space-y-2 text-gray-600">
-                <li>• Certificate in Information Technology</li>
-                <li>• Diploma in Electrical Engineering</li>
-                <li>• Certificate in Automotive Technology</li>
-                <li>• Diploma in Business Administration</li>
-                <li>• Certificate in Welding and Fabrication</li>
+                <li>• Diploma in Registered Nursing</li>
               </ul>
             </div>
           </div>

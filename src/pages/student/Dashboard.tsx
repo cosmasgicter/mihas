@@ -149,7 +149,7 @@ export default function StudentDashboard() {
                   Ready to Apply?
                 </h2>
                 <p className="text-blue-700">
-                  Start your application to join MIHAS or KATC programs
+                  Start your application to join programs at Kalulushi Training Centre or Mukuba Institute of Health and Applied Sciences
                 </p>
               </div>
               <Link to="/apply">
