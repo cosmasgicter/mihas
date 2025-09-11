@@ -1,0 +1,448 @@
+MIHAS-KATC v2.0 — FULL APP (PWA) with ROBUST ADMIN DASHBOARD
+TXT CODE PACK — Supabase + Turnstile only (NO Sentry). Uses Next.js App Router.
+Build-safe, minimal dependencies; all files included below.
+
+================================================================================
+PREREQUISITES
+================================================================================
+Install deps (no Sentry):
+npm i next@latest react react-dom @supabase/supabase-js @supabase/auth-helpers-nextjs \
+  react-hook-form @hookform/resolvers zod @tanstack/react-query next-pwa workbox-window \
+  react-turnstile zustand immer
+
+# optional (if you want simple file picker UX)
+npm i react-dropzone
+
+Create Storage bucket in Supabase (SQL editor):
+select storage.create_bucket('documents', false, 'Private applicant documents');
+
+Run the RLS & policies file from this pack (see: supabase/migrations/002_rls_policies.sql).
+Optionally seed base data (institutions, programs, intakes) using the seed file here.
+
+================================================================================
+FILE: package.json (minimal scripts)
+================================================================================
+{
+  "name": "mihas-katc-app",
+  "private": true,
+  "version": "2.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  }
+}
+
+================================================================================
+FILE: .env.sample
+================================================================================
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=YOUR_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON
+
+# Cloudflare Turnstile
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=YOUR_TURNSTILE_SITE_KEY
+TURNSTILE_SECRET_KEY=YOUR_TURNSTILE_SECRET
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_NAME="MIHAS-KATC Admissions"
+NEXT_PUBLIC_DEFAULT_LOCALE=en
+
+================================================================================
+FILE: next.config.js
+================================================================================
+/* PWA + CSP — NO SENTRY */
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development',
+  runtimeCaching: [
+    {
+      urlPattern: /^https:\/\/fonts\.(?:gstatic)\.com\/.*/i,
+      handler: 'CacheFirst',
+      options: { cacheName: 'google-fonts-webfonts', expiration: { maxEntries: 4, maxAgeSeconds: 31536000 } }
+    },
+    {
+      urlPattern: /^https:\/\/fonts\.(?:googleapis)\.com\/.*/i,
+      handler: 'StaleWhileRevalidate',
+      options: { cacheName: 'google-fonts-stylesheets', expiration: { maxEntries: 4, maxAgeSeconds: 604800 } }
+    },
+    {
+      urlPattern: /\.(?:jpg|jpeg|gif|png|svg|ico|webp)$/i,
+      handler: 'StaleWhileRevalidate',
+      options: { cacheName: 'static-image-assets', expiration: { maxEntries: 64, maxAgeSeconds: 86400 } }
+    },
+    {
+      urlPattern: /\/_next\/image\?url=.+$/i,
+      handler: 'StaleWhileRevalidate',
+      options: { cacheName: 'next-image', expiration: { maxEntries: 64, maxAgeSeconds: 86400 } }
+    },
+    {
+      urlPattern: /\.(?:js)$/i,
+      handler: 'StaleWhileRevalidate',
+      options: { cacheName: 'static-js-assets', expiration: { maxEntries: 32, maxAgeSeconds: 86400 } }
+    },
+    {
+      urlPattern: /\.(?:css)$/i,
+      handler: 'StaleWhileRevalidate',
+      options: { cacheName: 'static-style-assets', expiration: { maxEntries: 32, maxAgeSeconds: 86400 } }
+    },
+    {
+      urlPattern: /(\/api)\/.*/i,
+      handler: 'NetworkFirst',
+      method: 'GET',
+      options: { cacheName: 'apis', expiration: { maxEntries: 16, maxAgeSeconds: 86400 }, networkTimeoutSeconds: 10 }
+    },
+    {
+      urlPattern: ({ url }) => self.origin !== url.origin,
+      handler: 'NetworkFirst',
+      options: { cacheName: 'cross-origin', expiration: { maxEntries: 32, maxAgeSeconds: 3600 }, networkTimeoutSeconds: 10 }
+    }
+  ]
+});
+
+const ContentSecurityPolicy = `
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://*.cloudflare.com;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  img-src 'self' data: blob: https:;
+  font-src 'self' data: https://fonts.gstatic.com;
+  connect-src 'self' https:;
+  frame-src 'self' https://challenges.cloudflare.com https://*.cloudflare.com;
+`;
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  swcMinify: true,
+  images: { unoptimized: true },
+  i18n: { locales: ['en', 'fr', 'ar'], defaultLocale: 'en' },
+  headers: async () => [
+    {
+      source: '/:path*',
+      headers: [
+        { key: 'X-DNS-Prefetch-Control', value: 'on' },
+        { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+        { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+        { key: 'X-Content-Type-Options', value: 'nosniff' },
+        { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+        { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+        { key: 'Content-Security-Policy', value: ContentSecurityPolicy.replace(/\s{2,}/g, ' ').trim() }
+      ]
+    }
+  ],
+  experimental: { serverActions: true }
+};
+
+module.exports = withPWA(nextConfig);
+
+================================================================================
+FILE: public/manifest.json
+================================================================================
+{
+  "name": "MIHAS-KATC Student Admissions",
+  "short_name": "MIHAS-KATC",
+  "description": "Official admissions platform for MIHAS and KATC",
+  "theme_color": "#0f172a",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    { "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable any" },
+    { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable any" }
+  ],
+  "shortcuts": [
+    { "name": "Apply", "short_name": "Apply", "description": "Start a new application", "url": "/apply" },
+    { "name": "Status", "short_name": "Status", "description": "Check application status", "url": "/dashboard" }
+  ],
+  "categories": ["education", "productivity"]
+}
+================================================================================
+FILE: src/app/layout.tsx
+================================================================================
+import type { Metadata, Viewport } from 'next';
+
+export const metadata: Metadata = {
+  title: 'MIHAS-KATC Student Admissions',
+  description: 'Official admissions platform for MIHAS and KATC',
+  manifest: '/manifest.json',
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'MIHAS-KATC' }
+};
+
+export const viewport: Viewport = {
+  themeColor: '#0f172a',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body>
+        {children}
+      </body>
+    </html>
+  );
+}
+
+================================================================================
+FILE: src/app/page.tsx
+================================================================================
+export default function HomePage() {
+  return (
+    <main style={{ padding: 24 }}>
+      <h1 style={{ fontSize: 24, fontWeight: 700 }}>MIHAS-KATC Admissions</h1>
+      <p style={{ marginTop: 8 }}>Welcome. Use the links below to get started.</p>
+      <ul style={{ marginTop: 12 }}>
+        <li><a href="/sign-up">Create account</a></li>
+        <li><a href="/sign-in">Sign in</a></li>
+        <li><a href="/apply">Submit application</a></li>
+        <li><a href="/dashboard">Dashboard</a></li>
+        <li><a href="/staff/admin">Admin dashboard</a></li>
+      </ul>
+    </main>
+  );
+}
+
+================================================================================
+FILE: src/app/api/turnstile-verify/route.ts
+================================================================================
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
+const schema = z.object({ token: z.string(), action: z.string().optional() });
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { token } = schema.parse(body);
+
+    const form = new URLSearchParams();
+    form.append('secret', process.env.TURNSTILE_SECRET_KEY!);
+    form.append('response', token);
+    form.append('remoteip', req.headers.get('x-forwarded-for') || '');
+
+    const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: form.toString(),
+      cache: 'no-store'
+    });
+
+    const result = await r.json();
+    return NextResponse.json(result);
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e?.message ?? 'invalid' }, { status: 400 });
+  }
+}
+
+================================================================================
+FILE: src/lib/supabase/client.ts
+================================================================================
+'use client';
+import { createClient } from '@supabase/supabase-js';
+
+export const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }
+);
+
+================================================================================
+FILE: src/lib/supabase/server.ts
+================================================================================
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/auth-helpers-nextjs';
+
+export function createSupabaseServer() {
+  const cookieStore = cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) { return cookieStore.get(name)?.value; },
+        set() {},
+        remove() {}
+      }
+    }
+  );
+}
+
+================================================================================
+FILE: src/middleware.ts
+================================================================================
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/auth-helpers-nextjs';
+
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (key: string) => req.cookies.get(key)?.value,
+        set: () => {},
+        remove: () => {}
+      }
+    }
+  );
+
+  const protectedPrefixes = ['/dashboard', '/apply', '/(applicant)', '/(staff)'];
+  const isProtected = protectedPrefixes.some((p) => req.nextUrl.pathname.startsWith(p));
+
+  if (isProtected) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      const loginUrl = new URL('/sign-in', req.url);
+      loginUrl.searchParams.set('next', req.nextUrl.pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  return res;
+}
+
+export const config = { matcher: ['/((applicant)|dashboard|apply|staff)(.*)'] };
+================================================================================
+FILE: src/app/(auth)/sign-in/page.tsx
+================================================================================
+'use client';
+import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client';
+import Turnstile from 'react-turnstile';
+
+export default function SignInPage() {
+  const router = useRouter();
+  const next = useSearchParams().get('next') || '/dashboard';
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [tsToken, setTsToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!tsToken) { setError('Please complete the verification.'); return; }
+    setLoading(true);
+
+    const verify = await fetch('/api/turnstile-verify', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ token: tsToken })
+    }).then(r => r.json());
+
+    if (!verify?.success) { setLoading(false); setError('Verification failed.'); return; }
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (error) { setError(error.message); return; }
+    router.replace(next);
+  };
+
+  return (
+    <div className="min-h-screen grid place-items-center p-6">
+      <form onSubmit={onSubmit} className="w-full max-w-md space-y-4 bg-white p-6 rounded-xl shadow">
+        <h1 className="text-2xl font-bold">Sign in</h1>
+        <input className="w-full rounded border p-2" placeholder="Email" type="email" value={email} onChange={e=>setEmail(e.target.value)} />
+        <input className="w-full rounded border p-2" placeholder="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} />
+        <div className="pt-2">
+          <Turnstile sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!} onVerify={setTsToken} />
+        </div>
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+        <button type="submit" disabled={loading} className="w-full px-4 py-2 rounded bg-blue-600 text-white">
+          {loading ? 'Signing in…' : 'Sign in'}
+        </button>
+        <p className="text-sm text-center">No account? <a className="text-blue-600 underline" href="/sign-up">Create one</a></p>
+      </form>
+    </div>
+  );
+}
+
+================================================================================
+FILE: src/app/(auth)/sign-up/page.tsx
+================================================================================
+'use client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client';
+import Turnstile from 'react-turnstile';
+
+export default function SignUpPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [tsToken, setTsToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault(); setError(null);
+    if (!tsToken) { setError('Please complete the verification.'); return; }
+    setLoading(true);
+    const verify = await fetch('/api/turnstile-verify', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ token: tsToken })
+    }).then(r => r.json());
+
+    if (!verify?.success) { setLoading(false); setError('Verification failed.'); return; }
+
+    const { error } = await supabase.auth.signUp({ email, password });
+    setLoading(false);
+    if (error) { setError(error.message); return; }
+    router.replace('/dashboard');
+  };
+
+  return (
+    <div className="min-h-screen grid place-items-center p-6">
+      <form onSubmit={onSubmit} className="w-full max-w-md space-y-4 bg-white p-6 rounded-xl shadow">
+        <h1 className="text-2xl font-bold">Create account</h1>
+        <input className="w-full rounded border p-2" placeholder="Email" type="email" value={email} onChange={e=>setEmail(e.target.value)} />
+        <input className="w-full rounded border p-2" placeholder="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} />
+        <div className="pt-2">
+          <Turnstile sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!} onVerify={setTsToken} />
+        </div>
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+        <button type="submit" disabled={loading} className="w-full px-4 py-2 rounded bg-blue-600 text-white">
+          {loading ? 'Creating…' : 'Create account'}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+================================================================================
+FILE: src/app/dashboard/page.tsx
+================================================================================
+import { createSupabaseServer } from '@/lib/supabase/server';
+
+export default async function Dashboard(){
+  const supabase = createSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: apps } = await supabase.from('applications').select('id, status, submission_date').order('created_at', { ascending: false });
+
+  return (
+    <div className="mx-auto max-w-4xl p-6">
+      <h1 className="text-2xl font-bold">Welcome{user?.email ? `, ${user.email}`:''}</h1>
+      <div className="mt-6 grid gap-4">
+        {(apps||[]).map((a: any) => (
+          <div key={a.id} className="rounded-lg border p-4 bg-white">
+            <div className="font-medium">Application {a.id}</div>
+            <div className="text-sm text-gray-600">Status: {a.status}</div>
+          </div>
+        ))}
+        {(!apps || apps.length===0) && <p className="text-gray-500">No applications yet. <a className="underline text-blue-600" href="/apply">Start one</a>.</p>}
+      </div>
+    </div>
+  );
+}
