@@ -128,11 +128,11 @@ export default function AdminApplications() {
       case 'rejected':
         return <XCircle className="h-4 w-4 text-red-500" />
       case 'under_review':
-        return <Clock className="h-4 w-4 text-blue-500" />
+        return <Clock className="h-4 w-4 text-primary" />
       case 'submitted':
         return <AlertTriangle className="h-4 w-4 text-yellow-500" />
       default:
-        return <Clock className="h-4 w-4 text-gray-400" />
+        return <Clock className="h-4 w-4 text-secondary" />
     }
   }
 
@@ -175,20 +175,20 @@ export default function AdminApplications() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
-              <Link to="/admin" className="inline-flex items-center text-blue-600 hover:text-blue-700">
+              <Link to="/admin" className="inline-flex items-center text-primary hover:text-primary">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-secondary">
                   Application Management
                 </h1>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-secondary">
                   Review and manage student applications
                 </p>
               </div>
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-secondary">
               {filteredApplications.length} of {applications.length} applications
             </div>
           </div>
@@ -208,13 +208,13 @@ export default function AdminApplications() {
             {/* Search */}
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-secondary" />
                 <input
                   type="text"
                   placeholder="Search applications..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
               </div>
             </div>
@@ -224,7 +224,7 @@ export default function AdminApplications() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
               >
                 <option value="all">All Status ({statusCounts.all})</option>
                 <option value="submitted">Submitted ({statusCounts.submitted})</option>
@@ -240,11 +240,11 @@ export default function AdminApplications() {
         <div className="bg-white rounded-lg shadow overflow-hidden">
           {filteredApplications.length === 0 ? (
             <div className="text-center py-12">
-              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <FileText className="h-12 w-12 text-secondary mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-secondary mb-2">
                 No Applications Found
               </h3>
-              <p className="text-gray-500">
+              <p className="text-secondary">
                 {searchTerm || statusFilter !== 'all' 
                   ? 'Try adjusting your filters'
                   : 'No applications have been submitted yet'
@@ -256,22 +256,22 @@ export default function AdminApplications() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">
                       Applicant
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">
                       Program
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">
                       Submitted
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">
                       Documents
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-right text-xs font-medium text-secondary uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -281,22 +281,22 @@ export default function AdminApplications() {
                     <tr key={application.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-secondary">
                             {application.user_profiles?.full_name}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-secondary">
                             {application.user_profiles?.email}
                           </div>
-                          <div className="text-xs text-gray-400">
+                          <div className="text-xs text-secondary">
                             #{application.application_number}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-secondary">
                           {application.programs?.name}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-secondary">
                           {application.intakes?.name}
                         </div>
                       </td>
@@ -310,10 +310,10 @@ export default function AdminApplications() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary">
                         {formatDate(application.submitted_at)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary">
                         {application.document_count || 0} files
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -379,7 +379,7 @@ export default function AdminApplications() {
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">
+                <h2 className="text-xl font-bold text-secondary">
                   Application #{selectedApplication.application_number}
                 </h2>
                 <Button
@@ -395,22 +395,22 @@ export default function AdminApplications() {
             <div className="p-6 space-y-6">
               {/* Applicant Info */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-3">Applicant Information</h3>
+                <h3 className="text-lg font-medium text-secondary mb-3">Applicant Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500">Name:</span>
+                    <span className="text-secondary">Name:</span>
                     <span className="ml-2 font-medium">{selectedApplication.user_profiles?.full_name}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Email:</span>
+                    <span className="text-secondary">Email:</span>
                     <span className="ml-2 font-medium">{selectedApplication.user_profiles?.email}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Phone:</span>
+                    <span className="text-secondary">Phone:</span>
                     <span className="ml-2 font-medium">{selectedApplication.user_profiles?.phone || 'Not provided'}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Application Date:</span>
+                    <span className="text-secondary">Application Date:</span>
                     <span className="ml-2 font-medium">{formatDate(selectedApplication.submitted_at)}</span>
                   </div>
                 </div>
@@ -418,14 +418,14 @@ export default function AdminApplications() {
 
               {/* Program Info */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-3">Program Details</h3>
+                <h3 className="text-lg font-medium text-secondary mb-3">Program Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500">Program:</span>
+                    <span className="text-secondary">Program:</span>
                     <span className="ml-2 font-medium">{selectedApplication.programs?.name}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Intake:</span>
+                    <span className="text-secondary">Intake:</span>
                     <span className="ml-2 font-medium">{selectedApplication.intakes?.name}</span>
                   </div>
                 </div>
@@ -433,40 +433,40 @@ export default function AdminApplications() {
 
               {/* Application Content */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-3">Application Content</h3>
+                <h3 className="text-lg font-medium text-secondary mb-3">Application Content</h3>
                 <div className="space-y-4">
                   <div>
-                    <h4 className="text-sm font-medium text-gray-700">Personal Statement</h4>
-                    <p className="text-sm text-gray-600 mt-1">{selectedApplication.personal_statement}</p>
+                    <h4 className="text-sm font-medium text-secondary">Personal Statement</h4>
+                    <p className="text-sm text-secondary mt-1">{selectedApplication.personal_statement}</p>
                   </div>
                   <div>
-                    <h4 className="text-sm font-medium text-gray-700">Educational Background</h4>
-                    <p className="text-sm text-gray-600 mt-1">{selectedApplication.previous_education}</p>
+                    <h4 className="text-sm font-medium text-secondary">Educational Background</h4>
+                    <p className="text-sm text-secondary mt-1">{selectedApplication.previous_education}</p>
                   </div>
                   {selectedApplication.work_experience && (
                     <div>
-                      <h4 className="text-sm font-medium text-gray-700">Work Experience</h4>
-                      <p className="text-sm text-gray-600 mt-1">{selectedApplication.work_experience}</p>
+                      <h4 className="text-sm font-medium text-secondary">Work Experience</h4>
+                      <p className="text-sm text-secondary mt-1">{selectedApplication.work_experience}</p>
                     </div>
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <h4 className="text-sm font-medium text-gray-700">English Proficiency</h4>
-                      <p className="text-sm text-gray-600 mt-1">{selectedApplication.english_proficiency}</p>
+                      <h4 className="text-sm font-medium text-secondary">English Proficiency</h4>
+                      <p className="text-sm text-secondary mt-1">{selectedApplication.english_proficiency}</p>
                     </div>
                     <div>
-                      <h4 className="text-sm font-medium text-gray-700">Computer Skills</h4>
-                      <p className="text-sm text-gray-600 mt-1">{selectedApplication.computer_skills}</p>
+                      <h4 className="text-sm font-medium text-secondary">Computer Skills</h4>
+                      <p className="text-sm text-secondary mt-1">{selectedApplication.computer_skills}</p>
                     </div>
                   </div>
                   <div>
-                    <h4 className="text-sm font-medium text-gray-700">References</h4>
-                    <p className="text-sm text-gray-600 mt-1">{selectedApplication.references}</p>
+                    <h4 className="text-sm font-medium text-secondary">References</h4>
+                    <p className="text-sm text-secondary mt-1">{selectedApplication.references}</p>
                   </div>
                   {selectedApplication.additional_info && (
                     <div>
-                      <h4 className="text-sm font-medium text-gray-700">Additional Information</h4>
-                      <p className="text-sm text-gray-600 mt-1">{selectedApplication.additional_info}</p>
+                      <h4 className="text-sm font-medium text-secondary">Additional Information</h4>
+                      <p className="text-sm text-secondary mt-1">{selectedApplication.additional_info}</p>
                     </div>
                   )}
                 </div>

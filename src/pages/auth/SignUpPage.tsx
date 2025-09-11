@@ -77,8 +77,8 @@ export default function SignUpPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Account Created Successfully!</h3>
-              <p className="text-sm text-gray-600 mb-6">{success}</p>
+              <h3 className="text-lg font-medium text-secondary mb-2">Account Created Successfully!</h3>
+              <p className="text-sm text-secondary mb-6">{success}</p>
               <div className="space-y-3">
                 <Link to="/auth/signin">
                   <Button className="w-full">
@@ -101,23 +101,23 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-2xl">
-        <Link to="/" className="flex items-center justify-center text-blue-600 hover:text-blue-700 mb-6">
+        <Link to="/" className="flex items-center justify-center text-primary hover:text-primary mb-6">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Home
         </Link>
         
         <div className="flex items-center justify-center mb-6">
-          <GraduationCap className="h-12 w-12 text-blue-600" />
+          <GraduationCap className="h-12 w-12 text-primary" />
         </div>
         
-        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
+        <h2 className="mt-6 text-center text-3xl font-bold text-secondary">
           Create your account
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p className="mt-2 text-center text-sm text-secondary">
           Already have an account?{' '}
           <Link
             to="/auth/signin"
-            className="font-medium text-blue-600 hover:text-blue-500"
+            className="font-medium text-primary hover:text-primary"
           >
             Sign in here
           </Link>
@@ -185,12 +185,12 @@ export default function SignUpPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-secondary mb-1">
                   Gender <span className="text-red-500">*</span>
                 </label>
                 <select
                   {...register('gender')}
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 >
                   <option value="">Select Gender</option>
                   <option value="Male">Male</option>
@@ -242,7 +242,7 @@ export default function SignUpPage() {
             </div>
 
             <div className="border-t pt-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Emergency Contact</h3>
+              <h3 className="text-lg font-medium text-secondary mb-4">Emergency Contact</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input
                   {...register('emergency_contact_name')}
@@ -263,7 +263,7 @@ export default function SignUpPage() {
             </div>
 
             {/* Turnstile placeholder - disabled for development */}
-            <div className="text-center text-sm text-gray-500">
+            <div className="text-center text-sm text-secondary">
               Security verification temporarily disabled for development
             </div>
 

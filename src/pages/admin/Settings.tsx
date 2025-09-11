@@ -82,7 +82,7 @@ export default function AdminSettings() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow p-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">System Settings</h1>
+        <h1 className="text-2xl font-bold text-secondary mb-6">System Settings</h1>
 
         {error && (
           <div className="rounded-md bg-red-50 p-4 mb-6">
@@ -103,7 +103,7 @@ export default function AdminSettings() {
         ) : (
           <form onSubmit={saveSettings} className="space-y-8">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Site Branding</h2>
+              <h2 className="text-lg font-semibold text-secondary mb-4">Site Branding</h2>
               <div className="grid grid-cols-1 gap-6">
                 <Input
                   label="Site Name"
@@ -131,7 +131,7 @@ export default function AdminSettings() {
             </div>
 
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h2>
+              <h2 className="text-lg font-semibold text-secondary mb-4">Contact Information</h2>
               <div className="grid grid-cols-1 gap-6">
                 <Input
                   label="Contact Email"

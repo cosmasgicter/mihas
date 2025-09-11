@@ -269,10 +269,10 @@ export default function ApplicationFormPage() {
             <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            <h2 className="text-2xl font-bold text-secondary mb-4">
               Application Submitted Successfully!
             </h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-secondary mb-6">
               Your application has been submitted and is now under review. You will receive email updates about the status of your application.
             </p>
             <div className="space-y-3">
@@ -298,14 +298,14 @@ export default function ApplicationFormPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <Link to="/student/dashboard" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
+          <Link to="/student/dashboard" className="inline-flex items-center text-primary hover:text-primary mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-secondary mb-2">
             Application Form
           </h1>
-          <p className="text-gray-600">
+          <p className="text-secondary">
             Complete all sections to submit your application to programs at Kalulushi Training Centre or Mukuba Institute of Health and Applied Sciences.
           </p>
         </div>
@@ -319,13 +319,13 @@ export default function ApplicationFormPage() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
           {/* Program Selection */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="text-lg font-semibold text-secondary mb-4">
               Program Selection
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-secondary mb-1">
                   Program <span className="text-red-500">*</span>
                 </label>
                 {programsLoading ? (
@@ -335,7 +335,7 @@ export default function ApplicationFormPage() {
                 ) : (
                   <select
                     {...register('program_id')}
-                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                   >
                     <option value="">Select a program</option>
                     {programs.map((program) => (
@@ -351,12 +351,12 @@ export default function ApplicationFormPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-secondary mb-1">
                   Intake <span className="text-red-500">*</span>
                 </label>
                 <select
                   {...register('intake_id')}
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                   disabled={!selectedProgramId}
                 >
                   <option value="">Select an intake</option>
@@ -375,7 +375,7 @@ export default function ApplicationFormPage() {
 
           {/* Personal Statement */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="text-lg font-semibold text-secondary mb-4">
               Personal Statement
             </h2>
             <TextArea
@@ -391,7 +391,7 @@ export default function ApplicationFormPage() {
 
           {/* Educational Background */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="text-lg font-semibold text-secondary mb-4">
               Educational Background
             </h2>
             <div className="space-y-6">
@@ -416,17 +416,17 @@ export default function ApplicationFormPage() {
 
           {/* Skills Assessment */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="text-lg font-semibold text-secondary mb-4">
               Skills Assessment
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-secondary mb-1">
                   English Proficiency <span className="text-red-500">*</span>
                 </label>
                 <select
                   {...register('english_proficiency')}
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 >
                   <option value="">Select proficiency level</option>
                   <option value="Beginner">Beginner</option>
@@ -440,12 +440,12 @@ export default function ApplicationFormPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-secondary mb-1">
                   Computer Skills <span className="text-red-500">*</span>
                 </label>
                 <select
                   {...register('computer_skills')}
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary"
                 >
                   <option value="">Select skill level</option>
                   <option value="Beginner">Beginner</option>
@@ -461,7 +461,7 @@ export default function ApplicationFormPage() {
 
           {/* References */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="text-lg font-semibold text-secondary mb-4">
               References
             </h2>
             <TextArea
@@ -476,10 +476,10 @@ export default function ApplicationFormPage() {
 
           {/* Document Upload */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="text-lg font-semibold text-secondary mb-4">
               Supporting Documents
             </h2>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-secondary mb-4">
               Upload supporting documents such as certificates, transcripts, ID copy, etc. (Optional but recommended)
             </p>
             
@@ -492,12 +492,12 @@ export default function ApplicationFormPage() {
                   onChange={handleFileUpload}
                   className="hidden"
                 />
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 cursor-pointer transition-colors">
-                  <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary/40 cursor-pointer transition-colors">
+                  <Upload className="h-8 w-8 text-secondary mx-auto mb-2" />
+                  <p className="text-sm text-secondary">
                     Click to upload files or drag and drop
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-secondary">
                     PDF, DOC, DOCX, JPG, JPEG, PNG up to 10MB each
                   </p>
                 </div>
@@ -509,10 +509,10 @@ export default function ApplicationFormPage() {
                 {uploadedFiles.map((file) => (
                   <div key={file.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center space-x-3">
-                      <FileText className="h-5 w-5 text-blue-500" />
+                      <FileText className="h-5 w-5 text-primary" />
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                        <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                        <p className="text-sm font-medium text-secondary">{file.name}</p>
+                        <p className="text-xs text-secondary">{formatFileSize(file.size)}</p>
                       </div>
                     </div>
                     <Button
@@ -530,14 +530,14 @@ export default function ApplicationFormPage() {
 
             {uploadingFiles.length > 0 && (
               <div className="mt-2">
-                <p className="text-sm text-blue-600">Uploading {uploadingFiles.length} file(s)...</p>
+                <p className="text-sm text-primary">Uploading {uploadingFiles.length} file(s)...</p>
               </div>
             )}
           </div>
 
           {/* Additional Information */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="text-lg font-semibold text-secondary mb-4">
               Additional Information
             </h2>
             <TextArea
@@ -551,20 +551,20 @@ export default function ApplicationFormPage() {
 
           {/* Declaration */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="text-lg font-semibold text-secondary mb-4">
               Declaration
             </h2>
             <div className="flex items-start space-x-3">
               <input
                 type="checkbox"
                 {...register('declaration')}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="mt-1 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
               />
-              <div className="text-sm text-gray-700">
+              <div className="text-sm text-secondary">
                 <p className="mb-2">
                   I declare that the information provided in this application is true and complete to the best of my knowledge. I understand that:
                 </p>
-                <ul className="list-disc list-inside space-y-1 text-xs text-gray-600">
+                <ul className="list-disc list-inside space-y-1 text-xs text-secondary">
                   <li>False information may result in rejection of my application</li>
                   <li>I must provide original documents upon request</li>
                   <li>The institution reserves the right to verify all information</li>

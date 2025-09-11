@@ -22,18 +22,18 @@ module.exports = {
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
-				primary: {
-					DEFAULT: '#2B5D3A',
-					foreground: 'hsl(var(--primary-foreground))',
-				},
-				secondary: {
-					DEFAULT: '#4A90E2',
-					foreground: 'hsl(var(--secondary-foreground))',
-				},
-				accent: {
-					DEFAULT: '#F5A623',
-					foreground: 'hsl(var(--accent-foreground))',
-				},
+                                primary: {
+                                        DEFAULT: '#14B8A6',
+                                        foreground: 'hsl(var(--primary-foreground))',
+                                },
+                                secondary: {
+                                        DEFAULT: '#9333EA',
+                                        foreground: 'hsl(var(--secondary-foreground))',
+                                },
+                                accent: {
+                                        DEFAULT: '#F97316',
+                                        foreground: 'hsl(var(--accent-foreground))',
+                                },
 				destructive: {
 					DEFAULT: 'hsl(var(--destructive))',
 					foreground: 'hsl(var(--destructive-foreground))',
