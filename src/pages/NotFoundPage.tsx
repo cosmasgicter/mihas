@@ -12,8 +12,8 @@ export default function NotFoundPage() {
             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
               <span className="text-2xl font-bold text-red-600">404</span>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Page Not Found</h3>
-            <p className="text-sm text-gray-600 mb-6">
+            <h3 className="text-lg font-medium text-secondary mb-2">Page Not Found</h3>
+            <p className="text-sm text-secondary mb-6">
               The page you're looking for doesn't exist or has been moved.
             </p>
             <div className="space-y-3">

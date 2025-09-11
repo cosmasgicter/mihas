@@ -17,13 +17,13 @@ export function Button({
   disabled,
   ...props
 }: ButtonProps) {
-  const baseClasses = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50'
+  const baseClasses = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-50'
   
   const variantClasses = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700',
-    secondary: 'bg-gray-600 text-white hover:bg-gray-700',
-    outline: 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50',
-    ghost: 'text-gray-700 hover:bg-gray-100',
+    primary: 'bg-primary text-white hover:bg-primary/80',
+    secondary: 'bg-secondary text-white hover:bg-secondary/80',
+    outline: 'border border-secondary bg-white text-secondary hover:bg-secondary/5',
+    ghost: 'text-secondary hover:bg-secondary/10',
     danger: 'bg-red-600 text-white hover:bg-red-700'
   }
   
@@ -45,7 +45,7 @@ export function Button({
       {...props}
     >
       {loading && (
-        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-current" />
+        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-secondary border-t-current" />
       )}
       {children}
     </button>

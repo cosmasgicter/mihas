@@ -71,14 +71,14 @@ export default function StudentSettings() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <Link to="/student/dashboard" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
+          <Link to="/student/dashboard" className="inline-flex items-center text-primary hover:text-primary mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-secondary mb-2">
             Profile Settings
           </h1>
-          <p className="text-gray-600">
+          <p className="text-secondary">
             Update your personal information and contact details.
           </p>
         </div>
@@ -99,8 +99,8 @@ export default function StudentSettings() {
           {/* Basic Information */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center space-x-3 mb-6">
-              <User className="h-5 w-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-900">
+              <User className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold text-secondary">
                 Basic Information
               </h2>
             </div>
@@ -115,19 +115,19 @@ export default function StudentSettings() {
               />
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-secondary mb-1">
                   Email Address
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-secondary" />
                   <input
                     type="email"
                     value={profile?.email || ''}
                     disabled
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 cursor-not-allowed"
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-secondary cursor-not-allowed"
                   />
                 </div>
-                <p className="mt-1 text-xs text-gray-500">Email cannot be changed</p>
+                <p className="mt-1 text-xs text-secondary">Email cannot be changed</p>
               </div>
             </div>
 
@@ -148,12 +148,12 @@ export default function StudentSettings() {
               />
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-secondary mb-1">
                   Gender
                 </label>
                 <select
                   {...register('gender')}
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 >
                   <option value="">Select Gender</option>
                   <option value="Male">Male</option>
@@ -170,8 +170,8 @@ export default function StudentSettings() {
           {/* Address Information */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center space-x-3 mb-6">
-              <MapPin className="h-5 w-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-900">
+              <MapPin className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold text-secondary">
                 Address Information
               </h2>
             </div>
@@ -196,14 +196,14 @@ export default function StudentSettings() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-secondary mb-1">
                   Address
                 </label>
                 <textarea
                   {...register('address')}
                   rows={3}
                   placeholder="House number, street, area"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
                 {errors.address && (
                   <p className="mt-1 text-sm text-red-600">{errors.address.message}</p>
@@ -223,8 +223,8 @@ export default function StudentSettings() {
           {/* Emergency Contact */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center space-x-3 mb-6">
-              <Phone className="h-5 w-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-900">
+              <Phone className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold text-secondary">
                 Emergency Contact
               </h2>
             </div>

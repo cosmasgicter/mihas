@@ -142,7 +142,7 @@ export default function AdminDashboard() {
 
   const getColorClasses = (color: string) => {
     switch (color) {
-      case 'blue': return 'bg-blue-500 text-white'
+      case 'blue': return 'bg-primary text-white'
       case 'yellow': return 'bg-yellow-500 text-white'
       case 'green': return 'bg-green-500 text-white'
       case 'red': return 'bg-red-500 text-white'
@@ -160,14 +160,14 @@ export default function AdminDashboard() {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
+                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
                   <Settings className="h-4 w-4 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-lg font-semibold text-gray-900">
+                  <h1 className="text-lg font-semibold text-secondary">
                     Admin Dashboard
                   </h1>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-secondary">
                     Welcome back, {profile?.full_name}
                   </p>
                 </div>
@@ -175,7 +175,7 @@ export default function AdminDashboard() {
             </div>
             
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-500 capitalize">
+              <span className="text-sm text-secondary capitalize">
                 Role: {profile?.role?.replace('_', ' ')}
               </span>
               <Button variant="outline" size="sm" onClick={signOut}>
@@ -202,8 +202,8 @@ export default function AdminDashboard() {
               <div key={index} className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                    <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+                    <p className="text-sm font-medium text-secondary">{stat.title}</p>
+                    <p className="text-3xl font-bold text-secondary">{stat.value}</p>
                   </div>
                   <div className={`p-3 rounded-full ${getColorClasses(stat.color)}`}>
                     <Icon className="h-6 w-6" />
@@ -212,7 +212,7 @@ export default function AdminDashboard() {
                 <div className="mt-4 flex items-center text-sm">
                   <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
                   <span className="text-green-600 font-medium">{stat.change}</span>
-                  <span className="text-gray-500 ml-1">from last month</span>
+                  <span className="text-secondary ml-1">from last month</span>
                 </div>
               </div>
             )
@@ -224,7 +224,7 @@ export default function AdminDashboard() {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow">
               <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">Quick Actions</h3>
+                <h3 className="text-lg font-medium text-secondary">Quick Actions</h3>
               </div>
               
               <div className="p-6">
@@ -266,7 +266,7 @@ export default function AdminDashboard() {
             {/* Alerts */}
             <div className="bg-white rounded-lg shadow">
               <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">Alerts</h3>
+                <h3 className="text-lg font-medium text-secondary">Alerts</h3>
               </div>
               
               <div className="p-6 space-y-4">
@@ -282,13 +282,13 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 
-                <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
-                  <Calendar className="h-5 w-5 text-blue-600 mt-0.5" />
+                <div className="flex items-start space-x-3 p-3 bg-primary rounded-lg">
+                  <Calendar className="h-5 w-5 text-primary mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-blue-800">
+                    <p className="text-sm font-medium text-primary">
                       Upcoming Deadline
                     </p>
-                    <p className="text-xs text-blue-600">
+                    <p className="text-xs text-primary">
                       May 2025 application deadline in 30 days
                     </p>
                   </div>
@@ -299,26 +299,26 @@ export default function AdminDashboard() {
             {/* System Status */}
             <div className="bg-white rounded-lg shadow">
               <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">System Status</h3>
+                <h3 className="text-lg font-medium text-secondary">System Status</h3>
               </div>
               
               <div className="p-6 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Application System</span>
+                  <span className="text-sm text-secondary">Application System</span>
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                     Online
                   </span>
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Document Upload</span>
+                  <span className="text-sm text-secondary">Document Upload</span>
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                     Online
                   </span>
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Email Notifications</span>
+                  <span className="text-sm text-secondary">Email Notifications</span>
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                     Active
                   </span>
@@ -329,7 +329,7 @@ export default function AdminDashboard() {
             {/* Quick Settings */}
             <div className="bg-white rounded-lg shadow">
               <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">Quick Settings</h3>
+                <h3 className="text-lg font-medium text-secondary">Quick Settings</h3>
               </div>
               
               <div className="p-6">

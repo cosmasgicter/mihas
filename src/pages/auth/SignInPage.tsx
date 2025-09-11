@@ -75,23 +75,23 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <Link to="/" className="flex items-center justify-center text-blue-600 hover:text-blue-700 mb-6">
+        <Link to="/" className="flex items-center justify-center text-primary hover:text-primary mb-6">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Home
         </Link>
         
         <div className="flex items-center justify-center mb-6">
-          <GraduationCap className="h-12 w-12 text-blue-600" />
+          <GraduationCap className="h-12 w-12 text-primary" />
         </div>
         
-        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
+        <h2 className="mt-6 text-center text-3xl font-bold text-secondary">
           Sign in to your account
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p className="mt-2 text-center text-sm text-secondary">
           Or{' '}
           <Link
             to="/auth/signup"
-            className="font-medium text-blue-600 hover:text-blue-500"
+            className="font-medium text-primary hover:text-primary"
           >
             create a new account
           </Link>
@@ -100,19 +100,19 @@ export default function SignInPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         {/* Test Credentials Section */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="bg-primary border border-primary/20 rounded-lg p-4 mb-6">
           <div className="text-center mb-4">
-            <h3 className="text-lg font-semibold text-blue-900 mb-2">🧪 Test Credentials for Quick Access</h3>
-            <p className="text-sm text-blue-700">Use these accounts for testing purposes</p>
+            <h3 className="text-lg font-semibold text-primary mb-2">🧪 Test Credentials for Quick Access</h3>
+            <p className="text-sm text-primary">Use these accounts for testing purposes</p>
           </div>
           
           <div className="space-y-3">
             {/* Student Account */}
-            <div className="bg-white rounded-md p-3 border border-blue-200">
+            <div className="bg-white rounded-md p-3 border border-primary/20">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center">
-                  <User className="h-4 w-4 text-blue-600 mr-2" />
-                  <span className="font-medium text-blue-900">Student Account</span>
+                  <User className="h-4 w-4 text-primary mr-2" />
+                  <span className="font-medium text-primary">Student Account</span>
                 </div>
                 <Button
                   type="button"
@@ -124,18 +124,18 @@ export default function SignInPage() {
                   Auto-fill
                 </Button>
               </div>
-              <div className="text-xs text-gray-600 space-y-1">
+              <div className="text-xs text-secondary space-y-1">
                 <p><strong>Email:</strong> {testCredentials.student.email}</p>
                 <p><strong>Password:</strong> {testCredentials.student.password}</p>
               </div>
             </div>
             
             {/* Admin Account */}
-            <div className="bg-white rounded-md p-3 border border-blue-200">
+            <div className="bg-white rounded-md p-3 border border-primary/20">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center">
-                  <Shield className="h-4 w-4 text-purple-600 mr-2" />
-                  <span className="font-medium text-purple-900">Admin Account</span>
+                  <Shield className="h-4 w-4 text-secondary mr-2" />
+                  <span className="font-medium text-secondary">Admin Account</span>
                 </div>
                 <Button
                   type="button"
@@ -147,14 +147,14 @@ export default function SignInPage() {
                   Auto-fill
                 </Button>
               </div>
-              <div className="text-xs text-gray-600 space-y-1">
+              <div className="text-xs text-secondary space-y-1">
                 <p><strong>Email:</strong> {testCredentials.admin.email}</p>
                 <p><strong>Password:</strong> {testCredentials.admin.password}</p>
               </div>
             </div>
           </div>
           
-          <p className="text-xs text-blue-600 mt-3 text-center">
+          <p className="text-xs text-primary mt-3 text-center">
             Note: These are test accounts for demonstration purposes.
           </p>
         </div>
@@ -178,7 +178,7 @@ export default function SignInPage() {
             />
 
             {/* Turnstile placeholder - to be enabled with proper site key */}
-            <div className="text-center text-sm text-gray-500">
+            <div className="text-center text-sm text-secondary">
               Security verification temporarily disabled for development
             </div>
 
@@ -203,14 +203,14 @@ export default function SignInPage() {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Need help?</span>
+                <span className="px-2 bg-white text-secondary">Need help?</span>
               </div>
             </div>
 
             <div className="mt-6 text-center">
               <Link
                 to="/auth/forgot-password"
-                className="text-sm text-blue-600 hover:text-blue-500"
+                className="text-sm text-primary hover:text-primary"
               >
                 Forgot your password?
               </Link>
