@@ -193,6 +193,15 @@ export default function LandingPage() {
           
           <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-300">
             <p>&copy; 2025 MIHAS-KATC. All rights reserved.</p>
+            <p className="mt-2 text-gray-300">
+              Developed by{' '}
+              <a
+                href="https://beanola.com"
+                className="underline text-gray-300 hover:text-white"
+              >
+                Beanola Technologies
+              </a>
+            </p>
           </div>
         </div>
       </footer>
