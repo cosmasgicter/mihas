@@ -32,6 +32,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error('Error loading user:', error)
+        setUser(null)
+        setProfile(null)
       } finally {
         setLoading(false)
       }
@@ -41,9 +43,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set up auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email)
         setUser(session?.user || null)
         
-        if (session?.user) {
+        if (session?.user && event === 'SIGNED_IN') {
           await loadUserProfile(session.user.id)
         } else {
           setProfile(null)
@@ -57,6 +60,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function loadUserProfile(userId: string) {
     try {
+      // Add a small delay to ensure auth state is fully established
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -64,11 +70,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single()
 
       if (error) {
-        console.error('Error loading user profile:', error)
+        console.error('Error loading user profile:', error.message, error.code)
         setProfile(null)
         return
       }
 
+      console.log('Profile loaded:', data)
       setProfile(data)
     } catch (error) {
       console.error('Error loading user profile:', error)
