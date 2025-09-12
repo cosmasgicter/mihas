@@ -23,7 +23,12 @@ export function Button({
   onClick,
   ...props
 }: ButtonProps) {
-  const baseClasses = 'relative inline-flex items-center justify-center rounded-xl font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-50 overflow-hidden group'
+  const baseClasses = [
+    'relative inline-flex items-center justify-center rounded-xl font-semibold',
+    'transition-all duration-300 focus-visible:outline-none focus-visible:ring-2',
+    'focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-50',
+    'overflow-hidden group'
+  ].join(' ')
   
   const variantClasses = {
     primary: 'bg-primary text-white hover:bg-primary/80 border border-primary hover:border-primary/80',

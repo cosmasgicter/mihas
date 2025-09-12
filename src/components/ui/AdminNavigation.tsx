@@ -24,7 +24,7 @@ interface AdminNavigationProps {
 }
 
 export function AdminNavigation({ className }: AdminNavigationProps) {
-  const { user, profile, signOut } = useAuth()
+  const { profile, signOut } = useAuth()
   const isMobile = useIsMobile()
   const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false)

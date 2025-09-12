@@ -9,7 +9,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, label, error, helperText, ...props }, ref) => {
-    const id = props.id || props.name
+    const id = props.id || props.name || React.useId()
     
     return (
       <div className="w-full">

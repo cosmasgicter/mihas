@@ -25,7 +25,13 @@ export function formatDateTime(date: string | Date) {
 
 export function generateApplicationNumber() {
   const year = new Date().getFullYear()
-  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
+  // Use crypto.randomUUID for better uniqueness, fallback to larger random range
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase()
+    return `MIHAS-${year}-${uuid}`
+  }
+  // Fallback: larger random range (1M combinations)
+  const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0')
   return `MIHAS-${year}-${random}`
 }
 

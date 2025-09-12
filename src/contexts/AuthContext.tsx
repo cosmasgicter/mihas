@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase, UserProfile } from '@/lib/supabase'
+import { sanitizeForLog } from '@/lib/sanitize'
 
 interface AuthContextType {
   user: User | null
@@ -43,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set up auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email)
+        console.log('Auth state change:', event, session?.user?.email ? sanitizeForLog(session.user.email) : 'no email')
         setUser(session?.user || null)
         
         if (session?.user) {
@@ -78,10 +79,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data) {
-        console.log('Profile loaded:', data)
+        console.log('Profile loaded for user:', sanitizeForLog(userId))
         setProfile(data)
       } else {
-        console.log('No profile found for user:', userId)
+        console.log('No profile found for user:', sanitizeForLog(userId))
         setProfile(null)
       }
     } catch (error) {

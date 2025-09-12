@@ -28,7 +28,7 @@ export function TypewriterText({
     } else {
       setStarted(true)
     }
-    return undefined
+
   }, [delay])
 
   useEffect(() => {

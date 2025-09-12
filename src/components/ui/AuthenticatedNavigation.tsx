@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import * as NavigationMenu from '@radix-ui/react-navigation-menu'
@@ -32,11 +32,17 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
   const closeMenu = () => setIsOpen(false)
 
   const handleSignOut = async () => {
-    await signOut()
-    navigate('/')
+    try {
+      await signOut()
+      navigate('/')
+    } catch (error) {
+      console.error('Sign out failed:', error)
+      // Fallback: navigate anyway to prevent user being stuck
+      navigate('/')
+    }
   }
 
-  const menuVariants = {
+  const menuVariants = useMemo(() => ({
     closed: {
       opacity: 0,
       x: '100%',
@@ -53,9 +59,9 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
         ease: [0.25, 0.25, 0, 1]
       }
     }
-  }
+  }), [])
 
-  const itemVariants = {
+  const itemVariants = useMemo(() => ({
     closed: { opacity: 0, x: 20 },
     open: (i: number) => ({
       opacity: 1,
@@ -65,7 +71,7 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
         duration: 0.3
       }
     })
-  }
+  }), [])
 
   const navigationItems = [
     { href: '/student/dashboard', label: 'Dashboard', icon: Home },
