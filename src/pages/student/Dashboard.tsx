@@ -35,11 +35,11 @@ export default function StudentDashboard() {
     try {
       setLoading(true)
       
-      // Load user's applications
+      // Load user's applications using profile user_id
       const { data: applicationsData, error: applicationsError } = await supabase
         .from('applications')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', profile?.user_id || user?.id)
         .order('created_at', { ascending: false })
 
       if (applicationsError) throw applicationsError

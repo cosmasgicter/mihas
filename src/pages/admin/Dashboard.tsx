@@ -50,35 +50,30 @@ export default function AdminDashboard() {
     try {
       setLoading(true)
       
-      // Use admin operations edge function to get statistics
-      const { data, error } = await supabase.functions.invoke('admin-operations', {
-        body: {
-          operation: 'GET_STATISTICS'
-        }
-      })
-
-      if (error) throw error
-
-      if (data?.data) {
-        setStats(prevStats => ({
-          ...prevStats,
-          ...data.data
-        }))
-      }
-
-      // Get additional stats directly from database
-      const [programsResponse, intakesResponse, profilesResponse] = await Promise.all([
+      // Get all stats directly from database
+      const [applicationsResponse, programsResponse, intakesResponse, profilesResponse] = await Promise.all([
+        supabase.from('applications').select('status', { count: 'exact' }),
         supabase.from('programs').select('count', { count: 'exact' }).eq('is_active', true),
         supabase.from('intakes').select('count', { count: 'exact' }).eq('is_active', true),
         supabase.from('user_profiles').select('count', { count: 'exact' }).eq('role', 'student')
       ])
 
-      setStats(prevStats => ({
-        ...prevStats,
+      // Calculate application stats
+      const applications = applicationsResponse.data || []
+      const totalApplications = applications.length
+      const pendingApplications = applications.filter(app => app.status === 'pending').length
+      const approvedApplications = applications.filter(app => app.status === 'approved').length
+      const rejectedApplications = applications.filter(app => app.status === 'rejected').length
+
+      setStats({
+        totalApplications,
+        pendingApplications,
+        approvedApplications,
+        rejectedApplications,
         totalPrograms: programsResponse.count || 0,
         activeIntakes: intakesResponse.count || 0,
         totalStudents: profilesResponse.count || 0
-      }))
+      })
     } catch (error: any) {
       console.error('Error loading dashboard stats:', error)
       setError(error.message)

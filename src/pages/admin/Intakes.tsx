@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase, Intake } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -11,7 +12,7 @@ import {
   DialogFooter,
 } from '@/components/ui/Dialog'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { Pencil, Trash2, Plus } from 'lucide-react'
+import { Pencil, Trash2, Plus, ArrowLeft } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -196,7 +197,15 @@ export default function AdminIntakes() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-secondary">Intakes</h1>
+          <div className="flex items-center space-x-4">
+            <Link to="/admin/dashboard">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Button>
+            </Link>
+            <h1 className="text-2xl font-bold text-secondary">Intakes</h1>
+          </div>
           <Button onClick={openCreate}>
             <Plus className="h-4 w-4 mr-2" /> Add Intake
           </Button>
