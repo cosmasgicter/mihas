@@ -61,23 +61,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function loadUserProfile(userId: string) {
     try {
-      // Add a small delay to ensure auth state is fully established
       await new Promise(resolve => setTimeout(resolve, 100))
       
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('user_id', userId)
-        .single()
+        .maybeSingle()
 
-      if (error) {
+      if (error && error.code !== 'PGRST116') {
         console.error('Error loading user profile:', error.message, error.code)
         setProfile(null)
         return
       }
 
-      console.log('Profile loaded:', data)
-      setProfile(data)
+      if (data) {
+        console.log('Profile loaded:', data)
+        setProfile(data)
+      } else {
+        console.log('No profile found for user:', userId)
+        setProfile(null)
+      }
     } catch (error) {
       console.error('Error loading user profile:', error)
       setProfile(null)
