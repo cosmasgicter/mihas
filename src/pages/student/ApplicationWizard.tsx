@@ -71,6 +71,8 @@ export default function ApplicationWizard() {
   const [resultSlipFile, setResultSlipFile] = useState<File | null>(null)
   const [extraKycFile, setExtraKycFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<{[key: string]: number}>({})
+  const [uploadedFiles, setUploadedFiles] = useState<{[key: string]: boolean}>({})
   
   // Step 3: Payment
   const [popFile, setPopFile] = useState<File | null>(null)
@@ -133,14 +135,80 @@ export default function ApplicationWizard() {
     setSelectedGrades(updated)
   }
 
+  const uploadFileWithProgress = async (file: File, path: string): Promise<string> => {
+    const fileName = `applications/${user?.id}/${applicationId}/${path}/${Date.now()}-${file.name}`
+    
+    // Simulate progress for better UX
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        const current = prev[path] || 0
+        if (current < 90) {
+          return { ...prev, [path]: current + 10 }
+        }
+        return prev
+      })
+    }, 200)
+    
+    try {
+      // First, ensure the bucket exists
+      const { data: buckets } = await supabase.storage.listBuckets()
+      const bucketExists = buckets?.some(bucket => bucket.name === 'app_docs')
+      
+      if (!bucketExists) {
+        const { error: createError } = await supabase.storage.createBucket('app_docs', {
+          public: true,
+          allowedMimeTypes: ['image/jpeg', 'image/png', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+        })
+        if (createError) throw new Error(`Failed to create storage bucket: ${createError.message}`)
+      }
+
+      const { error: uploadError } = await supabase.storage
+        .from('app_docs')
+        .upload(fileName, file)
+
+      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`)
+
+      // Complete progress
+      setUploadProgress(prev => ({ ...prev, [path]: 100 }))
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('app_docs')
+        .getPublicUrl(fileName)
+
+      return publicUrl
+    } finally {
+      clearInterval(progressInterval)
+      // Clear progress after 2 seconds
+      setTimeout(() => {
+        setUploadProgress(prev => {
+          const newProgress = { ...prev }
+          delete newProgress[path]
+          return newProgress
+        })
+      }, 2000)
+    }
+  }
+
   const uploadFile = async (file: File, path: string): Promise<string> => {
     const fileName = `applications/${user?.id}/${applicationId}/${path}/${Date.now()}-${file.name}`
     
+    // First, ensure the bucket exists
+    const { data: buckets } = await supabase.storage.listBuckets()
+    const bucketExists = buckets?.some(bucket => bucket.name === 'app_docs')
+    
+    if (!bucketExists) {
+      const { error: createError } = await supabase.storage.createBucket('app_docs', {
+        public: true,
+        allowedMimeTypes: ['image/jpeg', 'image/png', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+      })
+      if (createError) throw new Error(`Failed to create storage bucket: ${createError.message}`)
+    }
+
     const { error: uploadError } = await supabase.storage
       .from('app_docs')
       .upload(fileName, file)
 
-    if (uploadError) throw uploadError
+    if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`)
 
     const { data: { publicUrl } } = supabase.storage
       .from('app_docs')
@@ -208,11 +276,16 @@ export default function ApplicationWizard() {
         setUploading(true)
         setError('')
         
-        // Upload files
-        const resultSlipUrl = await uploadFile(resultSlipFile, 'result_slip')
+        // Upload files with progress tracking
+        setUploadProgress({ result_slip: 0 })
+        const resultSlipUrl = await uploadFileWithProgress(resultSlipFile, 'result_slip')
+        setUploadedFiles(prev => ({ ...prev, result_slip: true }))
+        
         let extraKycUrl = null
         if (extraKycFile) {
-          extraKycUrl = await uploadFile(extraKycFile, 'extra_kyc')
+          setUploadProgress(prev => ({ ...prev, extra_kyc: 0 }))
+          extraKycUrl = await uploadFileWithProgress(extraKycFile, 'extra_kyc')
+          setUploadedFiles(prev => ({ ...prev, extra_kyc: true }))
         }
         
         // Save grades
@@ -261,8 +334,10 @@ export default function ApplicationWizard() {
       setLoading(true)
       setError('')
       
-      // Upload POP
-      const popUrl = await uploadFile(popFile, 'proof_of_payment')
+      // Upload POP with progress
+      setUploadProgress({ proof_of_payment: 0 })
+      const popUrl = await uploadFileWithProgress(popFile, 'proof_of_payment')
+      setUploadedFiles(prev => ({ ...prev, proof_of_payment: true }))
       
       // Update application with payment info and submit
       await supabase
@@ -583,24 +658,78 @@ export default function ApplicationWizard() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Result Slip <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={(e) => setResultSlipFile(e.target.files?.[0] || null)}
-                      className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                    />
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => setResultSlipFile(e.target.files?.[0] || null)}
+                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      />
+                      {resultSlipFile && (
+                        <div className="mt-2 flex items-center text-sm text-green-600">
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          {resultSlipFile.name}
+                        </div>
+                      )}
+                      {uploadProgress.result_slip !== undefined && (
+                        <div className="mt-2">
+                          <div className="flex justify-between text-sm text-gray-600 mb-1">
+                            <span>Uploading...</span>
+                            <span>{uploadProgress.result_slip}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300 progress-pulse"
+                              style={{ width: `${uploadProgress.result_slip}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {uploadedFiles.result_slip && (
+                        <div className="mt-2 text-sm text-green-600 upload-success slide-in-up">
+                          ✓ Upload complete!
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Extra KYC Documents (Optional)
                     </label>
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={(e) => setExtraKycFile(e.target.files?.[0] || null)}
-                      className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                    />
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => setExtraKycFile(e.target.files?.[0] || null)}
+                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      />
+                      {extraKycFile && (
+                        <div className="mt-2 flex items-center text-sm text-green-600">
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          {extraKycFile.name}
+                        </div>
+                      )}
+                      {uploadProgress.extra_kyc !== undefined && (
+                        <div className="mt-2">
+                          <div className="flex justify-between text-sm text-gray-600 mb-1">
+                            <span>Uploading...</span>
+                            <span>{uploadProgress.extra_kyc}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300 progress-pulse"
+                              style={{ width: `${uploadProgress.extra_kyc}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {uploadedFiles.extra_kyc && (
+                        <div className="mt-2 text-sm text-green-600 upload-success slide-in-up">
+                          ✓ Upload complete!
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -683,12 +812,39 @@ export default function ApplicationWizard() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Proof of Payment <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => setPopFile(e.target.files?.[0] || null)}
-                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  />
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => setPopFile(e.target.files?.[0] || null)}
+                      className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                    {popFile && (
+                      <div className="mt-2 flex items-center text-sm text-green-600">
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        {popFile.name}
+                      </div>
+                    )}
+                    {uploadProgress.proof_of_payment !== undefined && (
+                      <div className="mt-2">
+                        <div className="flex justify-between text-sm text-gray-600 mb-1">
+                          <span>Uploading...</span>
+                          <span>{uploadProgress.proof_of_payment}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-300 progress-pulse"
+                            style={{ width: `${uploadProgress.proof_of_payment}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {uploadedFiles.proof_of_payment && (
+                      <div className="mt-2 text-sm text-green-600 upload-success slide-in-up">
+                        ✓ Upload complete!
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
