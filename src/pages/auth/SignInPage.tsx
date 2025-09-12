@@ -77,8 +77,6 @@ export default function SignInPage() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-
-
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <Input
@@ -96,8 +94,6 @@ export default function SignInPage() {
               error={errors.password?.message}
               required
             />
-
-
 
             {error && (
               <div className="rounded-md bg-red-50 p-4">
