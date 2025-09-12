@@ -44,6 +44,27 @@ const intakeSchema = z.object({
 
 export type IntakeForm = z.infer<typeof intakeSchema>
 
+const formatDate = (dateString: string | null): string => {
+  if (!dateString) return 'Invalid date'
+  try {
+    return new Date(dateString).toLocaleDateString()
+  } catch {
+    return 'Invalid date'
+  }
+}
+
+const IntakeFormFields = ({ register, errors }: { register: any; errors: any }) => (
+  <div className="space-y-4 py-4">
+    <Input label="Name" {...register('name')} error={errors.name?.message} required />
+    <Input label="Year" type="number" {...register('year')} error={errors.year?.message} required />
+    <Input label="Start Date" type="date" {...register('start_date')} error={errors.start_date?.message} required />
+    <Input label="End Date" type="date" {...register('end_date')} error={errors.end_date?.message} required />
+    <Input label="Application Deadline" type="date" {...register('application_deadline')} error={errors.application_deadline?.message} required />
+    <Input label="Total Capacity" type="number" {...register('total_capacity')} error={errors.total_capacity?.message} required />
+    <Input label="Available Spots" type="number" {...register('available_spots')} error={errors.available_spots?.message} required />
+  </div>
+)
+
 export default function AdminIntakes() {
   const [intakes, setIntakes] = useState<Intake[]>([])
   const [loading, setLoading] = useState(true)
@@ -231,13 +252,13 @@ export default function AdminIntakes() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary">{intake.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary">{intake.year}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary">
-                      {intake.start_date ? new Date(intake.start_date).toLocaleDateString() : 'Invalid date'}
+                      {formatDate(intake.start_date)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary">
-                      {intake.end_date ? new Date(intake.end_date).toLocaleDateString() : 'Invalid date'}
+                      {formatDate(intake.end_date)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary">
-                      {intake.application_deadline ? new Date(intake.application_deadline).toLocaleDateString() : 'Invalid date'}
+                      {formatDate(intake.application_deadline)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary">
                       {intake.total_capacity}
@@ -271,51 +292,7 @@ export default function AdminIntakes() {
             <DialogDescription>Enter intake details below.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit(createIntake)}>
-            <div className="space-y-4 py-4">
-              <Input label="Name" {...register('name')} error={errors.name?.message} required />
-              <Input
-                label="Year"
-                type="number"
-                {...register('year')}
-                error={errors.year?.message}
-                required
-              />
-              <Input
-                label="Start Date"
-                type="date"
-                {...register('start_date')}
-                error={errors.start_date?.message}
-                required
-              />
-              <Input
-                label="End Date"
-                type="date"
-                {...register('end_date')}
-                error={errors.end_date?.message}
-                required
-              />
-              <Input
-                label="Application Deadline"
-                type="date"
-                {...register('application_deadline')}
-                error={errors.application_deadline?.message}
-                required
-              />
-              <Input
-                label="Total Capacity"
-                type="number"
-                {...register('total_capacity')}
-                error={errors.total_capacity?.message}
-                required
-              />
-              <Input
-                label="Available Spots"
-                type="number"
-                {...register('available_spots')}
-                error={errors.available_spots?.message}
-                required
-              />
-            </div>
+            <IntakeFormFields register={register} errors={errors} />
             <DialogFooter>
               <Button
                 type="button"
@@ -341,51 +318,7 @@ export default function AdminIntakes() {
             <DialogDescription>Update intake details below.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit(updateIntake)}>
-            <div className="space-y-4 py-4">
-              <Input label="Name" {...register('name')} error={errors.name?.message} required />
-              <Input
-                label="Year"
-                type="number"
-                {...register('year')}
-                error={errors.year?.message}
-                required
-              />
-              <Input
-                label="Start Date"
-                type="date"
-                {...register('start_date')}
-                error={errors.start_date?.message}
-                required
-              />
-              <Input
-                label="End Date"
-                type="date"
-                {...register('end_date')}
-                error={errors.end_date?.message}
-                required
-              />
-              <Input
-                label="Application Deadline"
-                type="date"
-                {...register('application_deadline')}
-                error={errors.application_deadline?.message}
-                required
-              />
-              <Input
-                label="Total Capacity"
-                type="number"
-                {...register('total_capacity')}
-                error={errors.total_capacity?.message}
-                required
-              />
-              <Input
-                label="Available Spots"
-                type="number"
-                {...register('available_spots')}
-                error={errors.available_spots?.message}
-                required
-              />
-            </div>
+            <IntakeFormFields register={register} errors={errors} />
             <DialogFooter>
               <Button
                 type="button"

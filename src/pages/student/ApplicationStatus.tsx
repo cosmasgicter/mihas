@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase, Application, Program, Intake } from '@/lib/supabase'
@@ -40,13 +40,7 @@ export default function ApplicationStatus() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    if (id && user) {
-      loadApplicationDetails()
-    }
-  }, [id, user])
-
-  const loadApplicationDetails = async () => {
+  const loadApplicationDetails = useCallback(async () => {
     try {
       setLoading(true)
       
@@ -86,7 +80,13 @@ export default function ApplicationStatus() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, user])
+
+  useEffect(() => {
+    if (id && user) {
+      loadApplicationDetails()
+    }
+  }, [id, user, loadApplicationDetails])
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -168,8 +168,9 @@ export default function ApplicationStatus() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error downloading document:', error)
+      setError(`Failed to download ${fileName}: ${error.message || 'Unknown error'}`)
     }
   }
 

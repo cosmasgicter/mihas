@@ -8,23 +8,25 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { TextArea } from '@/components/ui/TextArea'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { ArrowLeft, Upload, X, FileText, CheckCircle, ArrowRight } from 'lucide-react'
+import { ArrowLeft, CheckCircle, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { DEFAULT_PROGRAMS, DEFAULT_INTAKES, applicationSchema, ApplicationFormData, UploadedFile } from '@/forms/applicationSchema'
+import { StepNavigation } from '@/components/application/StepNavigation'
+import { DocumentUpload } from '@/components/application/DocumentUpload'
+import { useApplicationSubmit } from '@/hooks/useApplicationSubmit'
 
 export default function ApplicationFormMultiStep() {
   const navigate = useNavigate()
   const { user, profile } = useAuth()
-  const [loading, setLoading] = useState(false)
   const [programsLoading, setProgramsLoading] = useState(true)
   const [programs, setPrograms] = useState<Program[]>([])
   const [intakes, setIntakes] = useState<Intake[]>([])
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [uploadingFiles, setUploadingFiles] = useState<string[]>([])
   const [uploadProgress, setUploadProgress] = useState<{[key: string]: number}>({})
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
+  
+  const { submitApplication, loading, error, success } = useApplicationSubmit(user, uploadedFiles)
   const totalSteps = 10
 
   const stepTitles = [
@@ -86,7 +88,7 @@ export default function ApplicationFormMultiStep() {
     } catch (error: any) {
       console.error('Error loading programs:', error)
       setPrograms(DEFAULT_PROGRAMS)
-      setError('Failed to load programs')
+      console.error('Failed to load programs')
     } finally {
       setProgramsLoading(false)
     }
@@ -149,7 +151,7 @@ export default function ApplicationFormMultiStep() {
         }
       } catch (error) {
         console.error('Error uploading file:', error)
-        setError(`Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Upload failed'}`)
+        console.error(`Failed to upload ${file.name}:`, error)
         setUploadingFiles(prev => prev.filter(id => id !== fileId))
         setUploadProgress(prev => {
           const { [fileId]: removed, ...rest } = prev
@@ -200,78 +202,12 @@ export default function ApplicationFormMultiStep() {
       .insert(documentInserts)
 
     if (documentsError) {
-      console.error('Error saving document records:', documentsError)
+      throw documentsError
     }
   }
 
-  const onSubmit = async (data: ApplicationFormData) => {
-    try {
-      setLoading(true)
-      setError('')
-
-      const applicationNumber = `MIHAS${Date.now().toString().slice(-6)}`
-      const trackingCode = `MIHAS${Math.random().toString(36).substr(2, 6).toUpperCase()}`
-      
-      const { data: application, error: applicationError } = await supabase
-        .from('applications')
-        .insert({
-          application_number: applicationNumber,
-          public_tracking_code: trackingCode,
-          user_id: user?.id,
-          program_id: data.program_id,
-          intake_id: data.intake_id,
-          nrc_number: data.nrc_number || null,
-          passport_number: data.passport_number || null,
-          date_of_birth: data.date_of_birth,
-          gender: data.gender,
-          marital_status: data.marital_status,
-          nationality: data.nationality,
-          province: data.province,
-          district: data.district,
-          postal_address: data.postal_address,
-          physical_address: data.physical_address,
-          guardian_name: data.guardian_name || null,
-          guardian_phone: data.guardian_phone || null,
-          guardian_relationship: data.guardian_relationship || null,
-          medical_conditions: data.medical_conditions || null,
-          disabilities: data.disabilities || null,
-          criminal_record: data.criminal_record || false,
-          criminal_record_details: data.criminal_record_details || null,
-          professional_registration_number: data.professional_registration_number || null,
-          professional_body: data.professional_body || null,
-          employment_status: data.employment_status,
-          employer_name: data.employer_name || null,
-          employer_address: data.employer_address || null,
-          years_of_experience: data.years_of_experience || 0,
-          previous_education: data.previous_education,
-          grades_or_gpa: data.grades_or_gpa,
-          motivation_letter: data.motivation_letter,
-          career_goals: data.career_goals,
-          english_proficiency: data.english_proficiency,
-          computer_skills: data.computer_skills,
-          references: data.references,
-          financial_sponsor: data.financial_sponsor,
-          sponsor_relationship: data.sponsor_relationship || null,
-          additional_info: data.additional_info || null,
-          status: 'submitted',
-          submitted_at: new Date().toISOString()
-        })
-        .select()
-        .single()
-
-      if (applicationError) throw applicationError
-
-      if (uploadedFiles.length > 0) {
-        await insertDocuments(application.id)
-      }
-
-      setSuccess(true)
-    } catch (error) {
-      console.error('Error submitting application:', error)
-      setError(error instanceof Error ? error.message : 'Failed to submit application')
-    } finally {
-      setLoading(false)
-    }
+  const onSubmit = (data: ApplicationFormData) => {
+    submitApplication(data)
   }
 
   if (success) {
@@ -337,53 +273,12 @@ export default function ApplicationFormMultiStep() {
           </div>
         )}
 
-        {/* Multi-Step Navigation */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-secondary">
-              Step {currentStep} of {totalSteps}: {stepTitles[currentStep - 1]}
-            </h2>
-            <div className="text-sm text-secondary">
-              {Math.round((currentStep / totalSteps) * 100)}% Complete
-            </div>
-          </div>
-          
-          {/* Progress Bar */}
-          <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
-            <div 
-              className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-            />
-          </div>
-          
-          {/* Step Indicators */}
-          <div className="flex justify-between items-center overflow-x-auto">
-            {stepTitles.map((title, index) => {
-              const stepNumber = index + 1
-              const isActive = stepNumber === currentStep
-              const isCompleted = stepNumber < currentStep
-              
-              return (
-                <div key={index} className="flex flex-col items-center cursor-pointer min-w-0 flex-1" onClick={() => goToStep(stepNumber)}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
-                    isCompleted 
-                      ? 'bg-green-500 text-white' 
-                      : isActive 
-                      ? 'bg-primary text-white' 
-                      : 'bg-gray-200 text-gray-600'
-                  }`}>
-                    {isCompleted ? '✓' : stepNumber}
-                  </div>
-                  <span className={`text-xs mt-1 text-center ${
-                    isActive ? 'text-primary font-medium' : 'text-gray-500'
-                  }`}>
-                    {title}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+        <StepNavigation 
+          currentStep={currentStep}
+          totalSteps={totalSteps}
+          stepTitles={stepTitles}
+          onStepClick={goToStep}
+        />
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
           {/* Step 1: Program Selection */}
@@ -589,78 +484,14 @@ export default function ApplicationFormMultiStep() {
 
           {/* Document Upload - Available on steps 3+ */}
           {currentStep >= 3 && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-secondary mb-4">
-                Supporting Documents
-              </h2>
-              
-              <div className="mb-4">
-                <label className="block">
-                  <input
-                    type="file"
-                    multiple
-                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary/40 cursor-pointer transition-colors">
-                    <Upload className="h-8 w-8 text-secondary mx-auto mb-2" />
-                    <p className="text-sm text-secondary">
-                      Click to upload files or drag and drop
-                    </p>
-                    <p className="text-xs text-secondary">
-                      PDF, DOC, DOCX, JPG, JPEG, PNG up to 10MB each
-                    </p>
-                  </div>
-                </label>
-              </div>
-
-              {Object.keys(uploadProgress).length > 0 && (
-                <div className="mt-4 space-y-2">
-                  {Object.entries(uploadProgress).map(([fileId, progress]) => {
-                    const fileName = uploadedFiles.find(f => f.id === fileId)?.name || fileId.split('-')[0]
-                    return (
-                      <div key={fileId} className="bg-gray-50 rounded-lg p-3">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-medium text-secondary">{fileName}</span>
-                          <span className="text-sm text-primary">{progress}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-
-              {uploadedFiles.length > 0 && (
-                <div className="space-y-2">
-                  {uploadedFiles.map((file) => (
-                    <div key={file.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <FileText className="h-5 w-5 text-primary" />
-                        <div>
-                          <p className="text-sm font-medium text-secondary">{file.name}</p>
-                          <p className="text-xs text-secondary">{formatFileSize(file.size)}</p>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeFile(file.id)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <DocumentUpload
+              uploadedFiles={uploadedFiles}
+              uploadingFiles={uploadingFiles}
+              uploadProgress={uploadProgress}
+              onFileUpload={handleFileUpload}
+              onRemoveFile={removeFile}
+              formatFileSize={formatFileSize}
+            />
           )}
 
           {/* Navigation Buttons */}

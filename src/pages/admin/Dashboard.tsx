@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
@@ -44,11 +44,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    loadDashboardStats()
-  }, [])
-
-  const loadDashboardStats = async () => {
+  const loadDashboardStats = useCallback(async () => {
     try {
       setLoading(true)
       
@@ -106,7 +102,11 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadDashboardStats()
+  }, [loadDashboardStats])
 
   if (loading) {
     return (
@@ -116,23 +116,23 @@ export default function AdminDashboard() {
     )
   }
 
-  const COLOR_CLASSES = {
+  const COLOR_CLASSES = useMemo(() => ({
     blue: 'bg-primary text-white',
     yellow: 'bg-yellow-500 text-white',
     green: 'bg-green-500 text-white',
     red: 'bg-red-500 text-white',
     purple: 'bg-purple-500 text-white',
     indigo: 'bg-indigo-500 text-white'
-  } as const
+  } as const), [])
 
-  const statCards = [
+  const statCards = useMemo(() => [
     { title: 'Total Applications', value: stats.totalApplications, icon: FileText, color: 'blue' as const },
     { title: 'Pending Reviews', value: stats.pendingApplications, icon: Clock, color: 'yellow' as const },
     { title: 'Approved', value: stats.approvedApplications, icon: CheckCircle, color: 'green' as const },
     { title: 'Rejected', value: stats.rejectedApplications, icon: XCircle, color: 'red' as const },
     { title: 'Active Programs', value: stats.totalPrograms, icon: GraduationCap, color: 'purple' as const },
     { title: 'Active Intakes', value: stats.activeIntakes, icon: Calendar, color: 'indigo' as const }
-  ]
+  ], [stats])
 
   const gridClasses = isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
 

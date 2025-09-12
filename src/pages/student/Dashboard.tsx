@@ -115,10 +115,16 @@ export default function StudentDashboard() {
     try {
       const savedDraft = localStorage.getItem('applicationDraft')
       if (!savedDraft) return 'Unknown'
+      
       const draft = JSON.parse(savedDraft)
+      if (!draft || typeof draft !== 'object') {
+        return 'Unknown'
+      }
+      
       return draft.savedAt ? formatDate(draft.savedAt) : 'Unknown'
     } catch (error) {
       console.error('Error parsing draft timestamp:', error)
+      localStorage.removeItem('applicationDraft')
       return 'Unknown'
     }
   }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase, Program } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
@@ -52,20 +52,20 @@ export default function AdminPrograms() {
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setForm((f) => ({
       ...f,
       [name]: name === 'duration_years' ? Number(value) : value
     }))
-  }
+  }, [])
 
-  const openCreate = () => {
+  const openCreate = useCallback(() => {
     setForm({ name: '', description: '', duration_years: 1 })
     setShowCreate(true)
-  }
+  }, [])
 
-  const openEdit = (program: Program) => {
+  const openEdit = useCallback((program: Program) => {
     setCurrentProgram(program)
     setForm({
       name: program.name,
@@ -73,12 +73,16 @@ export default function AdminPrograms() {
       duration_years: program.duration_years
     })
     setShowEdit(true)
-  }
+  }, [])
 
-  const openDelete = (program: Program) => {
+  const openDelete = useCallback((program: Program) => {
     setCurrentProgram(program)
     setShowDelete(true)
-  }
+  }, [])
+
+  const closeCreate = useCallback(() => setShowCreate(false), [])
+  const closeEdit = useCallback(() => setShowEdit(false), [])
+  const closeDelete = useCallback(() => setShowDelete(false), [])
 
   const handleOperation = async (operation: () => any, onSuccess: () => void) => {
     try {
@@ -225,7 +229,7 @@ export default function AdminPrograms() {
             <Input label="Duration (years)" type="number" name="duration_years" value={form.duration_years} onChange={handleChange} />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)} disabled={saving}>Cancel</Button>
+            <Button variant="outline" onClick={closeCreate} disabled={saving}>Cancel</Button>
             <Button onClick={createProgram} loading={saving}>Create</Button>
           </DialogFooter>
         </DialogContent>
@@ -244,7 +248,7 @@ export default function AdminPrograms() {
             <Input label="Duration (years)" type="number" name="duration_years" value={form.duration_years} onChange={handleChange} />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEdit(false)} disabled={saving}>Cancel</Button>
+            <Button variant="outline" onClick={closeEdit} disabled={saving}>Cancel</Button>
             <Button onClick={updateProgram} loading={saving}>Save</Button>
           </DialogFooter>
         </DialogContent>
@@ -260,7 +264,7 @@ export default function AdminPrograms() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDelete(false)} disabled={saving}>Cancel</Button>
+            <Button variant="outline" onClick={closeDelete} disabled={saving}>Cancel</Button>
             <Button variant="danger" onClick={deleteProgram} loading={saving}>Delete</Button>
           </DialogFooter>
         </DialogContent>

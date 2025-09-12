@@ -14,7 +14,7 @@ const optionalString = () => z.string().optional().or(z.literal(''))
 
 const profileSchema = z.object({
   full_name: z.string().min(2, 'Full name must be at least 2 characters'),
-  phone: z.string().min(10, 'Please enter a valid phone number').optional().or(z.literal('')),
+  phone: z.string().min(10, 'Please enter a valid phone number').or(z.literal('')).optional(),
   date_of_birth: optionalString(),
   gender: z.enum(['Male', 'Female', 'Other'], { required_error: 'Please select a gender' }).optional(),
   nationality: optionalString(),

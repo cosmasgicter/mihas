@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Input } from '@/components/ui/Input'
@@ -36,27 +36,34 @@ export default function AdminSettings() {
 
   useEffect(() => {
     loadSettings()
-  }, [])
+  }, [loadSettings])
 
-  const loadSettings = async () => {
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(''), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [success])
+
+  const loadSettings = useCallback(async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
+      const { data: settings, error } = await supabase
         .from('system_settings')
         .select('setting_key, setting_value')
         .in('setting_key', SETTING_KEYS)
       if (error) throw error
-      const values: Partial<SettingsForm> = {}
-      data?.forEach((setting: SystemSetting) => {
-        values[setting.setting_key as keyof SettingsForm] = setting.setting_value || ''
-      })
+      const values = settings?.reduce((acc: Partial<SettingsForm>, setting: SystemSetting) => {
+        acc[setting.setting_key as keyof SettingsForm] = setting.setting_value || ''
+        return acc
+      }, {}) || {}
       setForm((prevForm) => ({ ...prevForm, ...values }))
     } catch (error: any) {
       setError(error.message)
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -80,8 +87,6 @@ export default function AdminSettings() {
         .upsert(updates)
       if (error) throw error
       setSuccess('Settings updated successfully!')
-      // Auto-clear success message after 3 seconds
-      setTimeout(() => setSuccess(''), 3000)
     } catch (error: any) {
       setError(error.message)
     } finally {

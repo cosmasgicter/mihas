@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -90,9 +90,22 @@ export default function ApplicationForm() {
     }
   }, [selectedProgramId])
 
+  const validateCurrentStep = useCallback(async () => {
+    const stepFields = getStepFields(currentStep)
+    const isValid = await trigger(stepFields)
+    const stepErrors = stepFields
+      .filter(field => errors[field])
+      .map(field => errors[field]?.message || `${field} is required`)
+
+    setStepValidations(prev => ({
+      ...prev,
+      [currentStep]: { isValid, errors: stepErrors }
+    }))
+  }, [currentStep, errors, trigger])
+
   useEffect(() => {
     validateCurrentStep()
-  }, [currentStep])
+  }, [validateCurrentStep])
 
   const loadPrograms = async () => {
     try {
@@ -160,19 +173,6 @@ export default function ApplicationForm() {
       console.error('Error loading draft:', error)
       localStorage.removeItem('applicationDraft')
     }
-  }
-
-  const validateCurrentStep = async () => {
-    const stepFields = getStepFields(currentStep)
-    const isValid = await trigger(stepFields)
-    const stepErrors = stepFields
-      .filter(field => errors[field])
-      .map(field => errors[field]?.message || `${field} is required`)
-
-    setStepValidations(prev => ({
-      ...prev,
-      [currentStep]: { isValid, errors: stepErrors }
-    }))
   }
 
   const getStepFields = (step: number): (keyof ApplicationFormData)[] => {
@@ -283,26 +283,29 @@ export default function ApplicationForm() {
       setUploadingFiles(prev => [...prev, fileId])
       setUploadProgress(prev => ({ ...prev, [fileId]: 0 }))
 
+      let progressInterval: NodeJS.Timeout | null = null
+
       try {
         const fileName = `${user?.id}/${Date.now()}-${file.name}`
         
-        // Simulate progress
-        const progressInterval = setInterval(() => {
-          setUploadProgress(prev => {
-            const current = prev[fileId] || 0
-            if (current >= 90) {
-              clearInterval(progressInterval)
-              return prev
-            }
-            return { ...prev, [fileId]: current + 10 }
-          })
-        }, 100)
+        // Simulate progress with optimized intervals
+        let currentProgress = 0
+        const updateProgress = () => {
+          currentProgress += 15
+          if (currentProgress >= 90) {
+            setUploadProgress(prev => ({ ...prev, [fileId]: 90 }))
+            return
+          }
+          setUploadProgress(prev => ({ ...prev, [fileId]: currentProgress }))
+          setTimeout(updateProgress, 200)
+        }
+        updateProgress()
         
         const { error: uploadError } = await supabase.storage
           .from('application-documents')
           .upload(fileName, file)
 
-        clearInterval(progressInterval)
+        if (progressInterval) clearInterval(progressInterval)
         setUploadProgress(prev => ({ ...prev, [fileId]: 100 }))
 
         if (uploadError) throw uploadError

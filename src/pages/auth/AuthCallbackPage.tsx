@@ -40,11 +40,12 @@ export default function AuthCallbackPage() {
         timeoutId = setTimeout(() => {
           navigate('/auth/signin?error=No session found')
         }, 3000)
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Auth callback error:', error)
-        setError(error.message || 'Authentication failed')
+        const errorMessage = error instanceof Error ? error.message : 'Authentication failed'
+        setError(errorMessage)
         timeoutId = setTimeout(() => {
-          navigate('/auth/signin?error=' + encodeURIComponent(error.message || 'Authentication failed'))
+          navigate('/auth/signin?error=' + encodeURIComponent(errorMessage))
         }, 3000)
       }
     }

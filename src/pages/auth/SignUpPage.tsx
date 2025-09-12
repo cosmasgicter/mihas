@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -49,6 +49,15 @@ export default function SignUpPage() {
     resolver: zodResolver(signUpSchema),
   })
 
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        navigate('/auth/signin')
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [success, navigate])
+
   const onSubmit = async (data: SignUpForm) => {
     if (!turnstileToken) {
       setError('Please complete the security verification.')
@@ -65,10 +74,6 @@ export default function SignUpPage() {
       await signUp(data.email, data.password, userData)
       
       setSuccess('Account created successfully! You can now sign in with your credentials.')
-      // Redirect to sign in after 2 seconds
-      setTimeout(() => {
-        navigate('/auth/signin')
-      }, 2000)
     } catch (error) {
       console.error('Sign up error:', error)
       setError(error instanceof Error ? error.message : 'Failed to create account. Please try again.')

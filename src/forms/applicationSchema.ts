@@ -113,22 +113,25 @@ export const applicationSchema = z.object({
   professional_conduct: z.boolean().refine(val => val === true, {
     message: 'You must agree to professional conduct standards'
   })
-}).refine((data) => {
-  // Either NRC or passport number should be provided, but not both
-  const hasNrc = data.nrc_number && data.nrc_number.trim().length > 0
-  const hasPassport = data.passport_number && data.passport_number.trim().length > 0
-  return hasNrc || hasPassport
-}, {
-  message: "Either NRC number or passport number must be provided",
-  path: ["nrc_number"]
-}).refine((data) => {
-  // Ensure both are not provided simultaneously
-  const hasNrc = data.nrc_number && data.nrc_number.trim().length > 0
-  const hasPassport = data.passport_number && data.passport_number.trim().length > 0
-  return !(hasNrc && hasPassport)
-}, {
-  message: "Please provide either NRC number or passport number, not both",
-  path: ["passport_number"]
+}).superRefine((data, ctx) => {
+  const hasNrc = data.nrc_number?.trim().length > 0
+  const hasPassport = data.passport_number?.trim().length > 0
+  
+  if (!hasNrc && !hasPassport) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Either NRC number or passport number must be provided",
+      path: ["nrc_number"]
+    })
+  }
+  
+  if (hasNrc && hasPassport) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Please provide either NRC number or passport number, not both",
+      path: ["passport_number"]
+    })
+  }
 })
 
 export type ApplicationFormData = z.infer<typeof applicationSchema>

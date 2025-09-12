@@ -18,6 +18,7 @@ export default function AdminUsers() {
   const loadUsers = async () => {
     try {
       setLoading(true)
+      setError('') // Clear previous errors
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -25,7 +26,10 @@ export default function AdminUsers() {
       if (error) throw error
       setUsers(data || [])
     } catch (err: any) {
-      setError(err.message)
+      console.error('Failed to load users:', err)
+      const errorMessage = err.message || 'Failed to load users. Please try again.'
+      setError(errorMessage)
+      setUsers([]) // Reset users on error
     } finally {
       setLoading(false)
     }
