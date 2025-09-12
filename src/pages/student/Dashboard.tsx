@@ -18,7 +18,7 @@ import {
 
 export default function StudentDashboard() {
   const isMobile = useIsMobile()
-  const { user, profile, signOut } = useAuth()
+  const { user, profile } = useAuth()
   const [applications, setApplications] = useState<Application[]>([])
   const [programs, setPrograms] = useState<Program[]>([])
   const [intakes, setIntakes] = useState<Intake[]>([])
@@ -56,9 +56,9 @@ export default function StudentDashboard() {
 
       setPrograms(programsResponse.data || [])
       setIntakes(intakesResponse.data || [])
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading dashboard data:', error)
-      setError(error.message)
+      setError(error instanceof Error ? error.message : 'Failed to load dashboard data')
     } finally {
       setLoading(false)
     }

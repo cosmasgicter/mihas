@@ -79,62 +79,54 @@ export default function AdminPrograms() {
     setShowDelete(true)
   }
 
-  const createProgram = async () => {
+  const handleOperation = async (operation: () => Promise<any>, onSuccess: () => void) => {
     try {
       setSaving(true)
-      const { error } = await supabase.from('programs').insert({
+      const { error } = await operation()
+      if (error) throw error
+      onSuccess()
+      await loadPrograms()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const createProgram = () => handleOperation(
+    () => supabase.from('programs').insert({
+      name: form.name,
+      description: form.description,
+      duration_years: form.duration_years,
+      is_active: true
+    }),
+    () => setShowCreate(false)
+  )
+
+  const updateProgram = () => {
+    if (!currentProgram) return
+    handleOperation(
+      () => supabase.from('programs').update({
         name: form.name,
         description: form.description,
-        duration_years: form.duration_years,
-        is_active: true
-      })
-      if (error) throw error
-      setShowCreate(false)
-      await loadPrograms()
-    } catch (err: any) {
-      alert(err.message)
-    } finally {
-      setSaving(false)
-    }
+        duration_years: form.duration_years
+      }).eq('id', currentProgram.id),
+      () => {
+        setShowEdit(false)
+        setCurrentProgram(null)
+      }
+    )
   }
 
-  const updateProgram = async () => {
+  const deleteProgram = () => {
     if (!currentProgram) return
-    try {
-      setSaving(true)
-      const { error } = await supabase
-        .from('programs')
-        .update({
-          name: form.name,
-          description: form.description,
-          duration_years: form.duration_years
-        })
-        .eq('id', currentProgram.id)
-      if (error) throw error
-      setShowEdit(false)
-      setCurrentProgram(null)
-      await loadPrograms()
-    } catch (err: any) {
-      alert(err.message)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const deleteProgram = async () => {
-    if (!currentProgram) return
-    try {
-      setSaving(true)
-      const { error } = await supabase.from('programs').delete().eq('id', currentProgram.id)
-      if (error) throw error
-      setShowDelete(false)
-      setCurrentProgram(null)
-      await loadPrograms()
-    } catch (err: any) {
-      alert(err.message)
-    } finally {
-      setSaving(false)
-    }
+    handleOperation(
+      () => supabase.from('programs').delete().eq('id', currentProgram.id),
+      () => {
+        setShowDelete(false)
+        setCurrentProgram(null)
+      }
+    )
   }
 
   return (

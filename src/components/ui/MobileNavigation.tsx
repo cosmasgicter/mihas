@@ -53,8 +53,6 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
     })
   }
 
-
-
   return (
     <NavigationMenu.Root className={cn("relative", className)}>
       <div className="flex justify-between items-center py-4">

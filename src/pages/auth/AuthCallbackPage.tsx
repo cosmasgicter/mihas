@@ -8,6 +8,8 @@ export default function AuthCallbackPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout
+
     const handleAuthCallback = async () => {
       try {
         // Get the hash fragment from the URL
@@ -20,7 +22,7 @@ export default function AuthCallbackPage() {
           if (error) {
             console.error('Error exchanging code for session:', error.message)
             setError(error.message)
-            setTimeout(() => {
+            timeoutId = setTimeout(() => {
               navigate('/auth/signin?error=' + encodeURIComponent(error.message))
             }, 3000)
             return
@@ -35,19 +37,25 @@ export default function AuthCallbackPage() {
 
         // If we get here, something went wrong
         setError('No session found')
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           navigate('/auth/signin?error=No session found')
         }, 3000)
       } catch (error: any) {
         console.error('Auth callback error:', error)
         setError(error.message || 'Authentication failed')
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           navigate('/auth/signin?error=' + encodeURIComponent(error.message || 'Authentication failed'))
         }, 3000)
       }
     }
 
     handleAuthCallback()
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+    }
   }, [navigate])
 
   if (error) {

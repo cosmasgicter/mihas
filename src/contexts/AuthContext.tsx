@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase, UserProfile } from '@/lib/supabase'
-import { sanitizeForLog } from '@/lib/sanitize'
+import { sanitizeForLog, sanitizeForDisplay } from '@/lib/sanitize'
 
 interface AuthContextType {
   user: User | null
@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set up auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email ? sanitizeForLog(session.user.email) : 'no email')
+        // Auth state change logged securely
         setUser(session?.user || null)
         
         if (session?.user) {
@@ -73,16 +73,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle()
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error loading user profile:', error.message, error.code)
+        console.error('Error loading user profile:', error.code)
         setProfile(null)
         return
       }
 
       if (data) {
-        console.log('Profile loaded for user:', sanitizeForLog(userId))
-        setProfile(data)
+        const sanitizedProfile = Object.entries(data).reduce((acc, [key, value]) => {
+          acc[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value
+          return acc
+        }, {} as UserProfile)
+        setProfile(sanitizedProfile)
       } else {
-        console.log('No profile found for user:', sanitizeForLog(userId))
         setProfile(null)
       }
     } catch (error) {
@@ -110,23 +112,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Create user profile
     if (data.user) {
+      const sanitizedUserData = {
+        user_id: data.user.id,
+        email: email,
+        full_name: userData.full_name ? sanitizeForDisplay(userData.full_name) : null,
+        phone: userData.phone ? sanitizeForDisplay(userData.phone) : null,
+        date_of_birth: userData.date_of_birth,
+        gender: userData.gender ? sanitizeForDisplay(userData.gender) : null,
+        nationality: userData.nationality ? sanitizeForDisplay(userData.nationality) : null,
+        address: userData.address ? sanitizeForDisplay(userData.address) : null,
+        city: userData.city ? sanitizeForDisplay(userData.city) : null,
+        country: userData.country ? sanitizeForDisplay(userData.country) : null,
+        emergency_contact_name: userData.emergency_contact_name ? sanitizeForDisplay(userData.emergency_contact_name) : null,
+        emergency_contact_phone: userData.emergency_contact_phone ? sanitizeForDisplay(userData.emergency_contact_phone) : null,
+        role: 'student'
+      }
+      
       const { error: profileError } = await supabase
         .from('user_profiles')
-        .insert({
-          user_id: data.user.id,
-          email: email,
-          full_name: userData.full_name,
-          phone: userData.phone,
-          date_of_birth: userData.date_of_birth,
-          gender: userData.gender,
-          nationality: userData.nationality,
-          address: userData.address,
-          city: userData.city,
-          country: userData.country,
-          emergency_contact_name: userData.emergency_contact_name,
-          emergency_contact_phone: userData.emergency_contact_phone,
-          role: 'student'
-        })
+        .insert(sanitizedUserData)
 
       if (profileError) {
         console.error('Error creating profile:', profileError)
@@ -151,22 +155,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('User authentication failed, please sign in again')
     }
 
+    const sanitizedUpdates = Object.entries(updates).reduce((acc, [key, value]) => {
+      if (value === null || value === undefined) {
+        acc[key] = value
+      } else if (typeof value === 'string') {
+        acc[key] = sanitizeForDisplay(value)
+      } else {
+        acc[key] = value
+      }
+      return acc
+    }, {} as any)
+
     const { data, error } = await supabase
       .from('user_profiles')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      })
+      .update(sanitizedUpdates)
       .eq('user_id', currentUser.id)
       .select()
       .maybeSingle()
 
     if (error) {
-      console.error('Database update error:', error)
+      console.error('Database update error')
       throw error
     }
 
-    setProfile(data)
+    if (data) {
+      const sanitizedProfile = Object.entries(data).reduce((acc, [key, value]) => {
+        acc[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value
+        return acc
+      }, {} as UserProfile)
+      setProfile(sanitizedProfile)
+    }
   }
 
   return (

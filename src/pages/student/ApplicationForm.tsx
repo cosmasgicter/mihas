@@ -92,7 +92,7 @@ export default function ApplicationForm() {
 
   useEffect(() => {
     validateCurrentStep()
-  }, [currentStep, watch()])
+  }, [currentStep])
 
   const loadPrograms = async () => {
     try {
@@ -164,13 +164,9 @@ export default function ApplicationForm() {
   const validateCurrentStep = async () => {
     const stepFields = getStepFields(currentStep)
     const isValid = await trigger(stepFields)
-    const stepErrors: string[] = []
-    
-    stepFields.forEach(field => {
-      if (errors[field]) {
-        stepErrors.push(errors[field]?.message || `${field} is required`)
-      }
-    })
+    const stepErrors = stepFields
+      .filter(field => errors[field])
+      .map(field => errors[field]?.message || `${field} is required`)
 
     setStepValidations(prev => ({
       ...prev,
@@ -198,7 +194,6 @@ export default function ApplicationForm() {
   const canProceedToNextStep = () => {
     const stepFields = getStepFields(currentStep)
     
-    // Check if all required fields for current step are filled
     for (const field of stepFields) {
       const value = watch(field)
       if (!value || (typeof value === 'string' && value.trim() === '')) {
@@ -206,11 +201,7 @@ export default function ApplicationForm() {
       }
     }
     
-    // Additional validation for specific steps
-    if (currentStep === 1) {
-      return watch('program_id') && watch('intake_id')
-    }
-    
+    if (currentStep === 1) return watch('program_id') && watch('intake_id')
     if (currentStep === 10 && watch('payment_method') === 'pay_now') {
       return watch('payment_reference') && uploadedFiles.some(f => f.name.toLowerCase().includes('payment'))
     }
@@ -271,14 +262,14 @@ export default function ApplicationForm() {
     for (const file of Array.from(files)) {
       // Validate file size (10MB limit)
       if (file.size > 10 * 1024 * 1024) {
-        setError(`File ${file.name} is too large. Maximum size is 10MB.`)
+        setError(`File "${file.name.replace(/[<>"'&]/g, '')}" is too large. Maximum size is 10MB.`)
         continue
       }
 
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']
       if (!allowedTypes.includes(file.type)) {
-        setError(`File ${file.name} is not supported. Please upload JPG, PNG, or PDF files.`)
+        setError(`File "${file.name.replace(/[<>"'&]/g, '')}" is not supported. Please upload JPG, PNG, or PDF files.`)
         continue
       }
 
@@ -332,7 +323,7 @@ export default function ApplicationForm() {
         }, 2000)
       } catch (error: any) {
         console.error('Error uploading file:', error)
-        setError(`Failed to upload ${file.name}: ${error.message}`)
+        setError(`Failed to upload "${file.name.replace(/[<>"'&]/g, '')}": Upload failed`)
         setUploadProgress(prev => {
           const { [fileId]: removed, ...rest } = prev
           return rest
@@ -1314,7 +1305,7 @@ export default function ApplicationForm() {
                           <div className="flex items-center space-x-3">
                             <FileText className="h-5 w-5 text-gray-400" />
                             <div>
-                              <p className="text-sm font-medium text-secondary">{file.name}</p>
+                              <p className="text-sm font-medium text-secondary">{file.name.replace(/[<>"'&]/g, '')}</p>
                               <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
                             </div>
                           </div>

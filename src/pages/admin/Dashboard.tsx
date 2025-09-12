@@ -88,62 +88,25 @@ export default function AdminDashboard() {
     )
   }
 
+  const COLOR_CLASSES = {
+    blue: 'bg-primary text-white',
+    yellow: 'bg-yellow-500 text-white',
+    green: 'bg-green-500 text-white',
+    red: 'bg-red-500 text-white',
+    purple: 'bg-purple-500 text-white',
+    indigo: 'bg-indigo-500 text-white'
+  } as const
+
   const statCards = [
-    {
-      title: 'Total Applications',
-      value: stats.totalApplications,
-      icon: FileText,
-      color: 'blue',
-      change: '+12%'
-    },
-    {
-      title: 'Pending Reviews',
-      value: stats.pendingApplications,
-      icon: Clock,
-      color: 'yellow',
-      change: '+5%'
-    },
-    {
-      title: 'Approved',
-      value: stats.approvedApplications,
-      icon: CheckCircle,
-      color: 'green',
-      change: '+8%'
-    },
-    {
-      title: 'Rejected',
-      value: stats.rejectedApplications,
-      icon: XCircle,
-      color: 'red',
-      change: '-2%'
-    },
-    {
-      title: 'Active Programs',
-      value: stats.totalPrograms,
-      icon: GraduationCap,
-      color: 'purple',
-      change: '0%'
-    },
-    {
-      title: 'Active Intakes',
-      value: stats.activeIntakes,
-      icon: Calendar,
-      color: 'indigo',
-      change: '+1%'
-    }
+    { title: 'Total Applications', value: stats.totalApplications, icon: FileText, color: 'blue' as const },
+    { title: 'Pending Reviews', value: stats.pendingApplications, icon: Clock, color: 'yellow' as const },
+    { title: 'Approved', value: stats.approvedApplications, icon: CheckCircle, color: 'green' as const },
+    { title: 'Rejected', value: stats.rejectedApplications, icon: XCircle, color: 'red' as const },
+    { title: 'Active Programs', value: stats.totalPrograms, icon: GraduationCap, color: 'purple' as const },
+    { title: 'Active Intakes', value: stats.activeIntakes, icon: Calendar, color: 'indigo' as const }
   ]
 
-  const getColorClasses = (color: string) => {
-    switch (color) {
-      case 'blue': return 'bg-primary text-white'
-      case 'yellow': return 'bg-yellow-500 text-white'
-      case 'green': return 'bg-green-500 text-white'
-      case 'red': return 'bg-red-500 text-white'
-      case 'purple': return 'bg-purple-500 text-white'
-      case 'indigo': return 'bg-indigo-500 text-white'
-      default: return 'bg-gray-500 text-white'
-    }
-  }
+  const gridClasses = isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -158,7 +121,7 @@ export default function AdminDashboard() {
         )}
 
         {/* Stats Grid */}
-        <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'} mb-8`}>
+        <div className={`grid ${gridClasses} mb-8`}>
           {statCards.map((stat, index) => {
             const Icon = stat.icon
             return (
@@ -168,14 +131,9 @@ export default function AdminDashboard() {
                     <p className="text-sm font-medium text-secondary">{stat.title}</p>
                     <p className="text-3xl font-bold text-secondary">{stat.value}</p>
                   </div>
-                  <div className={`p-3 rounded-full ${getColorClasses(stat.color)}`}>
+                  <div className={`p-3 rounded-full ${COLOR_CLASSES[stat.color]}`}>
                     <Icon className="h-6 w-6" />
                   </div>
-                </div>
-                <div className="mt-4 flex items-center text-sm">
-                  <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-                  <span className="text-green-600 font-medium">{stat.change}</span>
-                  <span className="text-secondary ml-1">from last month</span>
                 </div>
               </div>
             )

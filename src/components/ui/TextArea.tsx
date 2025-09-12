@@ -9,7 +9,7 @@ interface TextAreaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement
 
 const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
   ({ className, label, error, helperText, ...props }, ref) => {
-    const id = props.id || props.name || React.useId()
+    const id = props.id ?? props.name ?? React.useId()
     
     return (
       <div className="w-full">

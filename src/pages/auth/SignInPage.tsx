@@ -42,9 +42,9 @@ export default function SignInPage() {
       }
 
       navigate('/dashboard')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Sign in error:', error)
-      setError(error.message || 'Failed to sign in. Please try again.')
+      setError(error instanceof Error ? error.message : 'Failed to sign in. Please try again.')
     } finally {
       setLoading(false)
     }

@@ -28,12 +28,12 @@ export function TypewriterText({
     } else {
       setStarted(true)
     }
-
   }, [delay])
 
   useEffect(() => {
     if (!started) return
 
+    setDisplayedText('')
     let i = 0
     const timer = setInterval(() => {
       if (i < text.length) {

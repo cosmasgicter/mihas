@@ -124,10 +124,39 @@ export default function AdminIntakes() {
     setShowDelete(true)
   }
 
-  const createIntake = async (data: IntakeForm) => {
+  const handleOperation = async (operation: () => Promise<any>, onSuccess: () => void) => {
     try {
       setSaving(true)
-      const { error } = await supabase.from('intakes').insert({
+      setError('')
+      const { error } = await operation()
+      if (error) throw error
+      onSuccess()
+      await loadIntakes()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const createIntake = (data: IntakeForm) => handleOperation(
+    () => supabase.from('intakes').insert({
+      name: data.name,
+      year: data.year,
+      start_date: data.start_date,
+      end_date: data.end_date,
+      application_deadline: data.application_deadline,
+      total_capacity: data.total_capacity,
+      available_spots: data.available_spots,
+      is_active: true,
+    }),
+    () => setShowCreate(false)
+  )
+
+  const updateIntake = (data: IntakeForm) => {
+    if (!currentIntake) return
+    handleOperation(
+      () => supabase.from('intakes').update({
         name: data.name,
         year: data.year,
         start_date: data.start_date,
@@ -135,62 +164,23 @@ export default function AdminIntakes() {
         application_deadline: data.application_deadline,
         total_capacity: data.total_capacity,
         available_spots: data.available_spots,
-        is_active: true,
-      })
-      if (error) throw error
-      setShowCreate(false)
-      await loadIntakes()
-    } catch (err: any) {
-      alert(err.message)
-    } finally {
-      setSaving(false)
-    }
+      }).eq('id', currentIntake.id),
+      () => {
+        setShowEdit(false)
+        setCurrentIntake(null)
+      }
+    )
   }
 
-  const updateIntake = async (data: IntakeForm) => {
+  const deleteIntake = () => {
     if (!currentIntake) return
-    try {
-      setSaving(true)
-      const { error } = await supabase
-        .from('intakes')
-        .update({
-          name: data.name,
-          year: data.year,
-          start_date: data.start_date,
-          end_date: data.end_date,
-          application_deadline: data.application_deadline,
-          total_capacity: data.total_capacity,
-          available_spots: data.available_spots,
-        })
-        .eq('id', currentIntake.id)
-      if (error) throw error
-      setShowEdit(false)
-      setCurrentIntake(null)
-      await loadIntakes()
-    } catch (err: any) {
-      alert(err.message)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const deleteIntake = async () => {
-    if (!currentIntake) return
-    try {
-      setSaving(true)
-      const { error } = await supabase
-        .from('intakes')
-        .delete()
-        .eq('id', currentIntake.id)
-      if (error) throw error
-      setShowDelete(false)
-      setCurrentIntake(null)
-      await loadIntakes()
-    } catch (err: any) {
-      alert(err.message)
-    } finally {
-      setSaving(false)
-    }
+    handleOperation(
+      () => supabase.from('intakes').delete().eq('id', currentIntake.id),
+      () => {
+        setShowDelete(false)
+        setCurrentIntake(null)
+      }
+    )
   }
 
   return (

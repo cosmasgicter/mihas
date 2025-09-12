@@ -168,7 +168,7 @@ export default function ApplicationStatus() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error downloading document:', error)
     }
   }
@@ -261,9 +261,7 @@ export default function ApplicationStatus() {
                       )}
                     </div>
                     <div className="flex-grow">
-                      <div className={`font-medium ${
-                        step.completed ? 'text-secondary' : 'text-secondary'
-                      }`}>
+                      <div className="font-medium text-secondary">
                         {step.description}
                       </div>
                       {step.date && (

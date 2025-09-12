@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
 
 interface FloatingElementsProps {
@@ -6,15 +6,17 @@ interface FloatingElementsProps {
   className?: string
 }
 
-export function FloatingElements({ count = 20, className = '' }: FloatingElementsProps) {
-  const elements = useMemo(() => Array.from({ length: count }, (_, i) => ({
-    id: i,
-    size: Math.random() * 6 + 3, // 3-9px
-    left: Math.random() * 100, // 0-100%
-    delay: Math.random() * 8, // 0-8s delay
-    duration: 6 + Math.random() * 4, // 6-10s duration
-    opacity: 0.1 + Math.random() * 0.3 // 0.1-0.4 opacity
-  })), [count])
+const generateElements = (count: number) => Array.from({ length: count }, (_, i) => ({
+  id: i,
+  size: Math.random() * 6 + 3,
+  left: Math.random() * 100,
+  delay: Math.random() * 8,
+  duration: 6 + Math.random() * 4,
+  opacity: 0.1 + Math.random() * 0.3
+}))
+
+export const FloatingElements = React.memo(({ count = 20, className = '' }: FloatingElementsProps) => {
+  const elements = useMemo(() => generateElements(count), [count])
 
   return (
     <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
@@ -44,9 +46,9 @@ export function FloatingElements({ count = 20, className = '' }: FloatingElement
       ))}
     </div>
   )
-}
+})
 
-export function GeometricPatterns() {
+export const GeometricPatterns = React.memo(() => {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10">
       {/* Animated geometric shapes */}
@@ -101,4 +103,4 @@ export function GeometricPatterns() {
       />
     </div>
   )
-}
+})

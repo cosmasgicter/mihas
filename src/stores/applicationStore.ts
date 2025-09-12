@@ -59,17 +59,21 @@ export const useApplicationStore = create<ApplicationState>()(immer((set) => ({
   }),
 
   updateApplication: (id, updates) => set((state) => {
+    // amazonq-ignore-next-line
     const index = state.applications.findIndex(app => app.id === id)
     if (index !== -1) {
       Object.assign(state.applications[index], updates)
-    }
-    if (state.currentApplication?.id === id) {
-      Object.assign(state.currentApplication, updates)
+      if (state.currentApplication?.id === id) {
+        Object.assign(state.currentApplication, updates)
+      }
     }
   }),
 
   removeApplication: (id) => set((state) => {
-    state.applications = state.applications.filter(app => app.id !== id)
+    const index = state.applications.findIndex(app => app.id === id)
+    if (index !== -1) {
+      state.applications.splice(index, 1)
+    }
     if (state.currentApplication?.id === id) {
       state.currentApplication = null
     }

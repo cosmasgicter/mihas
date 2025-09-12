@@ -39,26 +39,26 @@ export default function AdminSettings() {
         .in('setting_key', keys)
       if (error) throw error
       const values: any = {}
-      data?.forEach((s: any) => {
-        values[s.setting_key] = s.setting_value || ''
+      data?.forEach((setting: any) => {
+        values[setting.setting_key] = setting.setting_value || ''
       })
-      setForm((f) => ({ ...f, ...values }))
-    } catch (err: any) {
-      setError(err.message)
+      setForm((prevForm) => ({ ...prevForm, ...values }))
+    } catch (error: any) {
+      setError(error.message)
     } finally {
       setLoading(false)
     }
   }
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const { name, value } = e.target
-    setForm((f) => ({ ...f, [name]: value }))
+    const { name, value } = event.target
+    setForm((prevForm) => ({ ...prevForm, [name]: value }))
   }
 
-  const saveSettings = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const saveSettings = async (event: React.FormEvent) => {
+    event.preventDefault()
     try {
       setSaving(true)
       setError('')
@@ -72,8 +72,8 @@ export default function AdminSettings() {
         .upsert(updates)
       if (error) throw error
       setSuccess('Settings updated successfully!')
-    } catch (err: any) {
-      setError(err.message)
+    } catch (error: any) {
+      setError(error.message)
     } finally {
       setSaving(false)
     }

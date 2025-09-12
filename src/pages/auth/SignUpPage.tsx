@@ -58,9 +58,9 @@ export default function SignUpPage() {
       await signUp(data.email, data.password, userData)
       
       setSuccess('Account created successfully! Please check your email to verify your account before signing in.')
-    } catch (error: any) {
+    } catch (error) {
       console.error('Sign up error:', error)
-      setError(error.message || 'Failed to create account. Please try again.')
+      setError(error instanceof Error ? error.message : 'Failed to create account. Please try again.')
     } finally {
       setLoading(false)
     }

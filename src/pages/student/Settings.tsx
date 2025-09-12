@@ -10,17 +10,19 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { AuthenticatedNavigation } from '@/components/ui/AuthenticatedNavigation'
 import { ArrowLeft, User, Mail, Phone, MapPin, Save } from 'lucide-react'
 
+const optionalString = () => z.string().optional().or(z.literal(''))
+
 const profileSchema = z.object({
   full_name: z.string().min(2, 'Full name must be at least 2 characters'),
   phone: z.string().min(10, 'Please enter a valid phone number').optional().or(z.literal('')),
-  date_of_birth: z.string().optional().or(z.literal('')),
+  date_of_birth: optionalString(),
   gender: z.enum(['Male', 'Female', 'Other'], { required_error: 'Please select a gender' }).optional(),
-  nationality: z.string().optional().or(z.literal('')),
-  address: z.string().optional().or(z.literal('')),
-  city: z.string().optional().or(z.literal('')),
-  country: z.string().optional().or(z.literal('')),
-  emergency_contact_name: z.string().optional().or(z.literal('')),
-  emergency_contact_phone: z.string().optional().or(z.literal(''))
+  nationality: optionalString(),
+  address: optionalString(),
+  city: optionalString(),
+  country: optionalString(),
+  emergency_contact_name: optionalString(),
+  emergency_contact_phone: optionalString()
 })
 
 type ProfileForm = z.infer<typeof profileSchema>
@@ -59,9 +61,9 @@ export default function StudentSettings() {
 
       await updateProfile(data)
       setSuccess('Profile updated successfully!')
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating profile:', error)
-      setError(error.message || 'Failed to update profile')
+      setError(error instanceof Error ? error.message : 'Failed to update profile')
     } finally {
       setLoading(false)
     }

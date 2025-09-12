@@ -92,13 +92,8 @@ export default function ApplicationFormMultiStep() {
     }
   }
 
-  const loadIntakes = async (programId: string) => {
-    try {
-      setIntakes(DEFAULT_INTAKES)
-    } catch (error: any) {
-      console.error('Error loading intakes:', error)
-      setIntakes(DEFAULT_INTAKES)
-    }
+  const loadIntakes = (programId: string) => {
+    setIntakes(DEFAULT_INTAKES)
   }
 
   const nextStep = () => {
@@ -121,32 +116,23 @@ export default function ApplicationFormMultiStep() {
     const files = event.target.files
     if (!files || files.length === 0) return
 
-    for (const file of Array.from(files)) {
-      const fileId = `${file.name}-${Date.now()}`
-      setUploadingFiles(prev => [...prev, fileId])
-      setUploadProgress(prev => ({ ...prev, [fileId]: 0 }))
+    const fileArray = Array.from(files)
+    const newFileIds = fileArray.map(file => `${file.name}-${Date.now()}`)
+    
+    setUploadingFiles(prev => [...prev, ...newFileIds])
+    setUploadProgress(prev => ({
+      ...prev,
+      ...Object.fromEntries(newFileIds.map(id => [id, 0]))
+    }))
 
+    const uploadPromises = fileArray.map(async (file, i) => {
+      const fileId = newFileIds[i]
+      const fileName = `${user?.id}/${Date.now()}-${file.name}`
+      
       try {
-        const fileName = `${user?.id}/${Date.now()}-${file.name}`
-        
-        // Simulate upload progress
-        const progressInterval = setInterval(() => {
-          setUploadProgress(prev => {
-            const current = prev[fileId] || 0
-            if (current >= 90) {
-              clearInterval(progressInterval)
-              return prev
-            }
-            return { ...prev, [fileId]: current + 10 }
-          })
-        }, 200)
-        
         const { error: uploadError } = await supabase.storage
           .from('application-documents')
           .upload(fileName, file)
-
-        clearInterval(progressInterval)
-        setUploadProgress(prev => ({ ...prev, [fileId]: 100 }))
 
         if (uploadError) throw uploadError
 
@@ -154,33 +140,35 @@ export default function ApplicationFormMultiStep() {
           .from('application-documents')
           .getPublicUrl(fileName)
 
-        const newFile: UploadedFile = {
+        return {
           id: fileId,
           name: file.name,
           size: file.size,
           type: file.type,
           url: publicUrl
         }
-
-        setUploadedFiles(prev => [...prev, newFile])
-        
-        setTimeout(() => {
-          setUploadProgress(prev => {
-            const { [fileId]: removed, ...rest } = prev
-            return rest
-          })
-        }, 2000)
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error uploading file:', error)
-        setError(`Failed to upload ${file.name}: ${error.message}`)
+        setError(`Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Upload failed'}`)
+        setUploadingFiles(prev => prev.filter(id => id !== fileId))
         setUploadProgress(prev => {
           const { [fileId]: removed, ...rest } = prev
           return rest
         })
-      } finally {
-        setUploadingFiles(prev => prev.filter(id => id !== fileId))
+        return null
       }
-    }
+    })
+
+    const results = await Promise.allSettled(uploadPromises)
+    const successfulUploads = results
+      .filter((result): result is PromiseFulfilledResult<UploadedFile> => 
+        result.status === 'fulfilled' && result.value !== null
+      )
+      .map(result => result.value)
+
+    setUploadedFiles(prev => [...prev, ...successfulUploads])
+    setUploadingFiles([])
+    setUploadProgress({})
   }
 
   const removeFile = (fileId: string) => {
@@ -193,6 +181,27 @@ export default function ApplicationFormMultiStep() {
     const sizes = ['Bytes', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  const insertDocuments = async (applicationId: string) => {
+    const documentInserts = uploadedFiles.map(file => ({
+      application_id: applicationId,
+      document_type: 'supporting_document',
+      document_name: file.name,
+      file_name: file.name,
+      file_path: file.url || '',
+      file_size: file.size,
+      mime_type: file.type,
+      uploader_id: user?.id
+    }))
+
+    const { error: documentsError } = await supabase
+      .from('documents')
+      .insert(documentInserts)
+
+    if (documentsError) {
+      console.error('Error saving document records:', documentsError)
+    }
   }
 
   const onSubmit = async (data: ApplicationFormData) => {
@@ -253,30 +262,13 @@ export default function ApplicationFormMultiStep() {
       if (applicationError) throw applicationError
 
       if (uploadedFiles.length > 0) {
-        const documentInserts = uploadedFiles.map(file => ({
-          application_id: application.id,
-          document_type: 'supporting_document',
-          document_name: file.name,
-          file_name: file.name,
-          file_path: file.url || '',
-          file_size: file.size,
-          mime_type: file.type,
-          uploader_id: user?.id
-        }))
-
-        const { error: documentsError } = await supabase
-          .from('documents')
-          .insert(documentInserts)
-
-        if (documentsError) {
-          console.error('Error saving document records:', documentsError)
-        }
+        await insertDocuments(application.id)
       }
 
       setSuccess(true)
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error submitting application:', error)
-      setError(error.message || 'Failed to submit application')
+      setError(error instanceof Error ? error.message : 'Failed to submit application')
     } finally {
       setLoading(false)
     }
