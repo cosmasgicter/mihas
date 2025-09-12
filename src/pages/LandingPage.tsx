@@ -539,8 +539,8 @@ export default function LandingPageNew() {
               <div className="space-y-2 text-gray-300">
                 <p>Mukuba University Campus</p>
                 <p>Kitwe, Zambia</p>
-                <p>+260-123-456-789</p>
-                <p>admissions@mihas-katc.ac.zm</p>
+                <p>KATC: 0966992299 | MIHAS: 0961515151</p>
+                <p>info@katc.edu.zm | info@mihas.edu.zm</p>
               </div>
             </motion.div>
             

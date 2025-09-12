@@ -27,8 +27,10 @@ export function DashboardRedirect() {
     return <Navigate to="/auth/signin" replace />
   }
 
-  // Redirect based on user role
-  if (profile && ADMIN_ROLES.includes(profile.role)) {
+  // Check if user email is admin or has admin role
+  const isAdmin = user.email === 'cosmas@beanola.com' || (profile && ADMIN_ROLES.includes(profile.role))
+  
+  if (isAdmin) {
     return <Navigate to="/admin" replace />
   }
 

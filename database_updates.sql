@@ -48,6 +48,14 @@ VALUES
 ('July 2026 Intake', 2026, 'Second Semester', '2026-07-15', '2026-12-31', '2026-06-15', 200, 200, true)
 ON CONFLICT DO NOTHING;
 
+-- Remove duplicate Clinical Medicine programs
+DELETE FROM programs 
+WHERE name = 'Diploma in Clinical Medicine' 
+AND id NOT IN (
+  SELECT MIN(id) FROM programs 
+  WHERE name = 'Diploma in Clinical Medicine'
+);
+
 -- Deactivate non-relevant programs, keep only the three specified
 UPDATE programs 
 SET is_active = FALSE 

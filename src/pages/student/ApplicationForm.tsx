@@ -74,12 +74,12 @@ const DEFAULT_INTAKES = [
 ]
 
 const applicationSchema = z.object({
-  // Program Selection
+  // Step 1: Program Selection
   program_id: z.string().min(1, 'Please select a program'),
   intake_id: z.string().min(1, 'Please select an intake'),
   
-  // Personal Information (Zambian Standards)
-  nrc_number: z.string().regex(/^\d{6}\/\d{2}\/\d{1}$/, 'NRC must be in format 123456/12/1').optional().or(z.literal('')),
+  // Step 2: Personal Information
+  nrc_number: z.string().optional(),
   passport_number: z.string().optional(),
   date_of_birth: z.string().min(1, 'Date of birth is required'),
   gender: z.enum(['Male', 'Female'], { required_error: 'Please select gender' }),
@@ -87,23 +87,21 @@ const applicationSchema = z.object({
   nationality: z.string().min(1, 'Nationality is required'),
   province: z.string().min(1, 'Province is required'),
   district: z.string().min(1, 'District is required'),
-  postal_address: z.string().min(10, 'Postal address is required'),
-  physical_address: z.string().min(10, 'Physical address is required'),
+  postal_address: z.string().min(5, 'Postal address is required'),
+  physical_address: z.string().min(5, 'Physical address is required'),
   
-  // Guardian Information (for students under 21)
+  // Step 3: Guardian Information
   guardian_name: z.string().optional(),
   guardian_phone: z.string().optional(),
   guardian_relationship: z.string().optional(),
   
-  // Health Information
+  // Step 4: Health & Legal
   medical_conditions: z.string().optional(),
   disabilities: z.string().optional(),
-  
-  // Legal Information
   criminal_record: z.boolean(),
   criminal_record_details: z.string().optional(),
   
-  // Professional Information
+  // Step 5: Professional Information
   professional_registration_number: z.string().optional(),
   professional_body: z.string().optional(),
   employment_status: z.enum(['Unemployed', 'Employed', 'Self-employed', 'Student'], { required_error: 'Please select employment status' }),
@@ -111,33 +109,29 @@ const applicationSchema = z.object({
   employer_address: z.string().optional(),
   years_of_experience: z.number().min(0).optional(),
   
-  // Educational Background
-  previous_education: z.string().min(50, 'Please provide detailed educational background (minimum 50 characters)'),
+  // Step 6: Educational Background
+  previous_education: z.string().min(10, 'Please provide your educational background'),
   grades_or_gpa: z.string().min(1, 'Please provide your grades/GPA'),
   
-  // Motivation and Goals
-  motivation_letter: z.string().min(200, 'Motivation letter must be at least 200 characters'),
-  career_goals: z.string().min(100, 'Please describe your career goals (minimum 100 characters)'),
+  // Step 7: Motivation
+  motivation_letter: z.string().min(50, 'Please share your motivation'),
+  career_goals: z.string().min(20, 'Please describe your career goals'),
   
-  // Skills Assessment
+  // Step 8: Skills & References
   english_proficiency: z.enum(['Basic', 'Intermediate', 'Advanced', 'Fluent'], {
     required_error: 'Please select your English proficiency level'
   }),
   computer_skills: z.enum(['Basic', 'Intermediate', 'Advanced'], {
     required_error: 'Please select your computer skills level'
   }),
+  references: z.string().min(20, 'Please provide at least one reference'),
   
-  // References
-  references: z.string().min(100, 'Please provide detailed references (minimum 100 characters)'),
-  
-  // Financial Information
+  // Step 9: Financial Information
   financial_sponsor: z.string().min(1, 'Please specify who will sponsor your studies'),
   sponsor_relationship: z.string().optional(),
-  
-  // Additional Information
   additional_info: z.string().optional(),
   
-  // Declarations
+  // Step 10: Declarations
   declaration: z.boolean().refine(val => val === true, {
     message: 'You must accept the declaration to proceed'
   }),
@@ -208,6 +202,22 @@ export default function ApplicationFormPage() {
   const [intakes, setIntakes] = useState<Intake[]>([])
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [uploadingFiles, setUploadingFiles] = useState<string[]>([])
+  const [currentStep, setCurrentStep] = useState(1)
+  const [uploadProgress, setUploadProgress] = useState<{[key: string]: number}>({})
+  const totalSteps = 10
+
+  const stepTitles = [
+    'Program Selection',
+    'Personal Information', 
+    'Guardian Information',
+    'Health & Legal',
+    'Professional Info',
+    'Education',
+    'Motivation',
+    'Skills & References',
+    'Financial Info',
+    'Review & Submit'
+  ]
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
@@ -259,32 +269,28 @@ export default function ApplicationFormPage() {
 
   const loadIntakes = async (programId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('program_intakes')
-        .select(`
-          *,
-          intakes(*)
-        `)
-        .eq('program_id', programId)
-        .eq('intakes.is_active', true)
-        .gte('intakes.application_deadline', new Date().toISOString())
-        .order('intakes.application_deadline')
-
-      if (error) throw error
-      
-      const intakeData = data?.map(pi => pi.intakes).filter(Boolean) || []
-      
-      // If no intakes from database, use default 2026 intakes
-      if (intakeData.length === 0) {
-        setIntakes(DEFAULT_INTAKES)
-      } else {
-        setIntakes(intakeData)
-      }
+      // Always use default intakes for now to avoid UUID issues
+      setIntakes(DEFAULT_INTAKES)
     } catch (error: any) {
       console.error('Error loading intakes:', error)
-      // Fallback to default intakes
       setIntakes(DEFAULT_INTAKES)
     }
+  }
+
+  const nextStep = () => {
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1)
+    }
+  }
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  const goToStep = (step: number) => {
+    setCurrentStep(step)
   }
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -294,14 +300,29 @@ export default function ApplicationFormPage() {
     for (const file of Array.from(files)) {
       const fileId = `${file.name}-${Date.now()}`
       setUploadingFiles(prev => [...prev, fileId])
+      setUploadProgress(prev => ({ ...prev, [fileId]: 0 }))
 
       try {
-        const fileExt = file.name.split('.').pop()
         const fileName = `${user?.id}/${Date.now()}-${file.name}`
+        
+        // Simulate upload progress
+        const progressInterval = setInterval(() => {
+          setUploadProgress(prev => {
+            const current = prev[fileId] || 0
+            if (current >= 90) {
+              clearInterval(progressInterval)
+              return prev
+            }
+            return { ...prev, [fileId]: current + 10 }
+          })
+        }, 200)
         
         const { error: uploadError } = await supabase.storage
           .from('application-documents')
           .upload(fileName, file)
+
+        clearInterval(progressInterval)
+        setUploadProgress(prev => ({ ...prev, [fileId]: 100 }))
 
         if (uploadError) throw uploadError
 
@@ -318,9 +339,20 @@ export default function ApplicationFormPage() {
         }
 
         setUploadedFiles(prev => [...prev, newFile])
+        
+        setTimeout(() => {
+          setUploadProgress(prev => {
+            const { [fileId]: removed, ...rest } = prev
+            return rest
+          })
+        }, 2000)
       } catch (error: any) {
         console.error('Error uploading file:', error)
         setError(`Failed to upload ${file.name}: ${error.message}`)
+        setUploadProgress(prev => {
+          const { [fileId]: removed, ...rest } = prev
+          return rest
+        })
       } finally {
         setUploadingFiles(prev => prev.filter(id => id !== fileId))
       }
