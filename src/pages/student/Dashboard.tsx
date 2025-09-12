@@ -173,10 +173,10 @@ export default function StudentDashboard() {
                     </Button>
                   </Link>
                 )}
-                <Link to="/apply" onClick={() => localStorage.removeItem('applicationDraft')}>
+                <Link to="/student/application-wizard">
                   <Button className="bg-primary hover:bg-primary">
                     <Plus className="h-4 w-4 mr-2" />
-                    {hasDraft ? 'New Application' : 'Start Application'}
+                    {hasDraft ? 'New Wizard Application' : 'Start New Application'}
                   </Button>
                 </Link>
               </div>
@@ -202,7 +202,7 @@ export default function StudentDashboard() {
                     <p className="text-secondary mb-6">
                       You haven't submitted any applications. Start your journey by applying to our programs.
                     </p>
-                    <Link to="/apply">
+                    <Link to="/student/application-wizard">
                       <Button>
                         <Plus className="h-4 w-4 mr-2" />
                         Create First Application
@@ -331,15 +331,15 @@ export default function StudentDashboard() {
                         Continue Draft
                       </Button>
                     </Link>
-                    <Link to="/apply" onClick={() => localStorage.removeItem('applicationDraft')} className="block">
+                    <Link to="/student/application-wizard" className="block">
                       <Button variant="ghost" size="sm" className="w-full justify-start">
                         <Plus className="h-4 w-4 mr-2" />
-                        New Application
+                        New Wizard Application
                       </Button>
                     </Link>
                   </>
                 ) : (
-                  <Link to="/apply" className="block">
+                  <Link to="/student/application-wizard" className="block">
                     <Button variant="ghost" size="sm" className="w-full justify-start">
                       <Plus className="h-4 w-4 mr-2" />
                       New Application

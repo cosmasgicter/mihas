@@ -12,11 +12,13 @@ import SignUpPage from '@/pages/auth/SignUpPage'
 import AuthCallbackPage from '@/pages/auth/AuthCallbackPage'
 import StudentDashboard from '@/pages/student/Dashboard'
 import ApplicationForm from '@/pages/student/ApplicationForm'
+import ApplicationWizard from '@/pages/student/ApplicationWizard'
 import ApplicationStatus from '@/pages/student/ApplicationStatus'
 import { DashboardRedirect } from '@/components/DashboardRedirect'
 import StudentSettings from '@/pages/student/Settings'
 import AdminDashboard from '@/pages/admin/Dashboard'
 import AdminApplications from '@/pages/admin/Applications'
+import ApplicationsAdmin from '@/pages/admin/ApplicationsAdmin'
 import AdminPrograms from '@/pages/admin/Programs'
 import AdminIntakes from '@/pages/admin/Intakes'
 import AdminUsers from '@/pages/admin/Users'
@@ -62,6 +64,11 @@ function App() {
                   <ApplicationForm />
                 </ProtectedRoute>
               } />
+              <Route path="/student/application-wizard" element={
+                <ProtectedRoute>
+                  <ApplicationWizard />
+                </ProtectedRoute>
+              } />
               <Route path="/application/:id" element={
                 <ProtectedRoute>
                   <ApplicationStatus />
@@ -83,6 +90,11 @@ function App() {
               <Route path="/admin/applications" element={
                 <AdminRoute>
                   <AdminApplications />
+                </AdminRoute>
+              } />
+              <Route path="/admin/applications-new" element={
+                <AdminRoute>
+                  <ApplicationsAdmin />
                 </AdminRoute>
               } />
               <Route path="/admin/programs" element={
