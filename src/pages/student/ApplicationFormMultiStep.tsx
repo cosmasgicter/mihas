@@ -162,7 +162,7 @@ export default function ApplicationFormMultiStep() {
     const results = await Promise.allSettled(uploadPromises)
     const successfulUploads = results
       .filter((result): result is PromiseFulfilledResult<UploadedFile> => 
-        result.status === 'fulfilled' && result.value !== null
+        result.status === 'fulfilled' && result.value !== null && result.value.url !== undefined
       )
       .map(result => result.value)
 

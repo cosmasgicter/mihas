@@ -79,11 +79,11 @@ export default function AdminPrograms() {
     setShowDelete(true)
   }
 
-  const handleOperation = async (operation: () => Promise<any>, onSuccess: () => void) => {
+  const handleOperation = async (operation: () => any, onSuccess: () => void) => {
     try {
       setSaving(true)
-      const { error } = await operation()
-      if (error) throw error
+      const result = await operation()
+      if (result.error) throw result.error
       onSuccess()
       await loadPrograms()
     } catch (err: any) {
@@ -99,7 +99,7 @@ export default function AdminPrograms() {
       description: form.description,
       duration_years: form.duration_years,
       is_active: true
-    }),
+    }).select(),
     () => setShowCreate(false)
   )
 
@@ -110,7 +110,7 @@ export default function AdminPrograms() {
         name: form.name,
         description: form.description,
         duration_years: form.duration_years
-      }).eq('id', currentProgram.id),
+      }).eq('id', currentProgram.id).select(),
       () => {
         setShowEdit(false)
         setCurrentProgram(null)
@@ -121,7 +121,7 @@ export default function AdminPrograms() {
   const deleteProgram = () => {
     if (!currentProgram) return
     handleOperation(
-      () => supabase.from('programs').delete().eq('id', currentProgram.id),
+      () => supabase.from('programs').delete().eq('id', currentProgram.id).select(),
       () => {
         setShowDelete(false)
         setCurrentProgram(null)

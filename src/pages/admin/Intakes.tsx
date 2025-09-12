@@ -124,12 +124,12 @@ export default function AdminIntakes() {
     setShowDelete(true)
   }
 
-  const handleOperation = async (operation: () => Promise<any>, onSuccess: () => void) => {
+  const handleOperation = async (operation: () => any, onSuccess: () => void) => {
     try {
       setSaving(true)
       setError('')
-      const { error } = await operation()
-      if (error) throw error
+      const result = await operation()
+      if (result.error) throw result.error
       onSuccess()
       await loadIntakes()
     } catch (err: any) {
@@ -149,7 +149,7 @@ export default function AdminIntakes() {
       total_capacity: data.total_capacity,
       available_spots: data.available_spots,
       is_active: true,
-    }),
+    }).select(),
     () => setShowCreate(false)
   )
 
@@ -164,7 +164,7 @@ export default function AdminIntakes() {
         application_deadline: data.application_deadline,
         total_capacity: data.total_capacity,
         available_spots: data.available_spots,
-      }).eq('id', currentIntake.id),
+      }).eq('id', currentIntake.id).select(),
       () => {
         setShowEdit(false)
         setCurrentIntake(null)
@@ -175,7 +175,7 @@ export default function AdminIntakes() {
   const deleteIntake = () => {
     if (!currentIntake) return
     handleOperation(
-      () => supabase.from('intakes').delete().eq('id', currentIntake.id),
+      () => supabase.from('intakes').delete().eq('id', currentIntake.id).select(),
       () => {
         setShowDelete(false)
         setCurrentIntake(null)

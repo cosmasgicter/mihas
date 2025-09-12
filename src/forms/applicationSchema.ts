@@ -122,5 +122,5 @@ export interface UploadedFile {
   name: string
   size: number
   type: string
-  url?: string
+  url: string
 }
