@@ -151,7 +151,16 @@ const applicationSchema = z.object({
 
 type ApplicationForm = z.infer<typeof applicationSchema>
 
-interface ExtendedApplication extends Application {
+interface ExtendedApplication {
+  id: string
+  application_number: string
+  user_id: string
+  program_id: string
+  intake_id: string
+  status: 'pending' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'withdrawn'
+  submitted_at: string
+  created_at: string
+  updated_at: string
   nrc_number?: string
   passport_number?: string
   date_of_birth?: string

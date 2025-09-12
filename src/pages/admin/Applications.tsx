@@ -29,6 +29,12 @@ interface ApplicationWithDetails extends Application {
   programs?: Program
   intakes?: Intake
   document_count?: number
+  date_of_birth?: string
+  gender?: string
+  nationality?: string
+  province?: string
+  physical_address?: string
+  postal_address?: string
 }
 
 export default function AdminApplications() {

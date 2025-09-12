@@ -66,18 +66,20 @@ export default function LandingPageNew() {
     {
       institution: "Kalulushi Training Centre",
       courses: [
-        "Diploma in Clinical Medicine",
-        "Diploma in Environmental Health"
+        "Diploma in Clinical Medicine (HPCZ Accredited)",
+        "Diploma in Environmental Health (ECZ Certified)"
       ],
-      highlight: "Medical Excellence",
+      highlight: "Professional Excellence",
+      accreditation: "HPCZ & ECZ Certified",
       image: "https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/f4d8d7cb-b8b3-4a0a-ba36-084fa481da0d.png"
     },
     {
       institution: "Mukuba Institute of Health and Applied Sciences",
       courses: [
-        "Diploma in Registered Nursing"
+        "Diploma in Registered Nursing (NMCZ Accredited)"
       ],
-      highlight: "Healthcare Innovation",
+      highlight: "NMCZ Certified",
+      accreditation: "NMCZ Approved",
       image: "https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/f703f321-4922-421e-8288-cf059bd92133.png"
     }
   ]
@@ -287,6 +289,116 @@ export default function LandingPageNew() {
         </div>
       </section>
 
+      {/* Accreditation Section */}
+      <section className="py-16 bg-white relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="text-3xl md:text-4xl font-bold gradient-text mb-4">
+              Accredited by Leading Professional Bodies
+            </h2>
+            <p className="text-lg text-gray-700">
+              Our programs meet the highest standards set by Zambian regulatory authorities
+            </p>
+          </motion.div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <motion.div
+              className="bg-white rounded-lg shadow-lg p-6 text-center border border-gray-100"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
+            >
+              <img
+                src="https://nmcz.org.zm/wp-content/uploads/2021/03/NMCZ-LOGO.png"
+                alt="NMCZ Logo"
+                className="h-16 mx-auto mb-4 object-contain"
+              />
+              <h3 className="text-xl font-bold text-gray-900 mb-2">NMCZ Accredited</h3>
+              <p className="text-gray-600 text-sm mb-3">
+                Nursing and Midwifery Council of Zambia
+              </p>
+              <p className="text-xs text-gray-500">
+                Diploma in Registered Nursing meets NMCZ professional standards
+              </p>
+            </motion.div>
+            
+            <motion.div
+              className="bg-white rounded-lg shadow-lg p-6 text-center border border-gray-100"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
+            >
+              <img
+                src="https://hpcz.org.zm/wp-content/uploads/2020/11/hpcz-logo.png"
+                alt="HPCZ Logo"
+                className="h-16 mx-auto mb-4 object-contain"
+              />
+              <h3 className="text-xl font-bold text-gray-900 mb-2">HPCZ Accredited</h3>
+              <p className="text-gray-600 text-sm mb-3">
+                Health Professions Council of Zambia
+              </p>
+              <p className="text-xs text-gray-500">
+                Diploma in Clinical Medicine approved by HPCZ for clinical practice
+              </p>
+            </motion.div>
+            
+            <motion.div
+              className="bg-white rounded-lg shadow-lg p-6 text-center border border-gray-100"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
+            >
+              <img
+                src="https://ecz.org.zm/wp-content/uploads/2021/04/ECZ-Logo.png"
+                alt="ECZ Logo"
+                className="h-16 mx-auto mb-4 object-contain"
+              />
+              <h3 className="text-xl font-bold text-gray-900 mb-2">ECZ Recognized</h3>
+              <p className="text-gray-600 text-sm mb-3">
+                Examinations Council of Zambia
+              </p>
+              <p className="text-xs text-gray-500">
+                Programs meet ECZ certification standards
+              </p>
+            </motion.div>
+            
+            <motion.div
+              className="bg-white rounded-lg shadow-lg p-6 text-center border border-gray-100"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
+            >
+              <img
+                src="https://www.unza.zm/images/unza-logo.png"
+                alt="UNZA Logo"
+                className="h-16 mx-auto mb-4 object-contain"
+              />
+              <h3 className="text-xl font-bold text-gray-900 mb-2">UNZA Affiliated</h3>
+              <p className="text-gray-600 text-sm mb-3">
+                University of Zambia
+              </p>
+              <p className="text-xs text-gray-500">
+                Academic programs affiliated with Zambia's premier university
+              </p>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* Enhanced Programs Section */}
       <section className="py-20 bg-gray-50 relative">
         <FloatingElements count={15} />
@@ -299,10 +411,10 @@ export default function LandingPageNew() {
             transition={{ duration: 0.8 }}
           >
             <h2 className="text-4xl md:text-5xl font-bold gradient-text mb-6">
-              Our Programs
+              Our Accredited Programs
             </h2>
             <p className="text-xl text-gray-700 font-medium">
-              Choose from a wide range of programs designed to meet industry demands
+              Three professionally accredited programs meeting Zambian standards
             </p>
           </motion.div>
           
@@ -323,12 +435,20 @@ export default function LandingPageNew() {
                     whileHover={{ scale: 1.05 }}
                     transition={{ duration: 0.3 }}
                   />
-                  <motion.div
-                    className="absolute top-4 right-4 bg-gradient-to-r from-primary to-secondary text-white px-4 py-2 rounded-full text-sm font-semibold"
-                    whileHover={{ scale: 1.1 }}
-                  >
-                    {program.highlight}
-                  </motion.div>
+                  <div className="absolute top-4 right-4 space-y-2">
+                    <motion.div
+                      className="bg-gradient-to-r from-primary to-secondary text-white px-3 py-1 rounded-full text-xs font-semibold"
+                      whileHover={{ scale: 1.1 }}
+                    >
+                      {program.highlight}
+                    </motion.div>
+                    <motion.div
+                      className="bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold"
+                      whileHover={{ scale: 1.1 }}
+                    >
+                      {program.accreditation}
+                    </motion.div>
+                  </div>
                 </div>
                 <h3 className="text-2xl font-bold gradient-text mb-4">
                   {program.institution}
