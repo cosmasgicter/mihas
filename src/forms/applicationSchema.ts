@@ -80,39 +80,29 @@ export const applicationSchema = z.object({
   guardian_relationship: z.string().optional(),
   medical_conditions: z.string().optional(),
   disabilities: z.string().optional(),
-  criminal_record: z.boolean({ required_error: 'Please select whether you have a criminal record' }),
+  criminal_record: z.boolean().optional(),
   criminal_record_details: z.string().optional(),
   professional_registration_number: z.string().optional(),
   professional_body: z.string().optional(),
-  employment_status: z.enum(['Unemployed', 'Employed', 'Self-employed', 'Student'], { required_error: 'Please select employment status' }),
+  employment_status: z.enum(['Unemployed', 'Employed', 'Self-employed', 'Student']).optional(),
   employer_name: z.string().optional(),
   employer_address: z.string().optional(),
   years_of_experience: z.number().min(0).optional(),
-  previous_education: z.string().min(10, 'Please provide your educational background'),
-  grades_or_gpa: z.string().min(1, 'Please provide your grades/GPA'),
-  motivation_letter: z.string().min(50, 'Please share your motivation (minimum 50 characters)'),
-  career_goals: z.string().min(20, 'Please describe your career goals (minimum 20 characters)'),
-  english_proficiency: z.enum(['Basic', 'Intermediate', 'Advanced', 'Fluent'], {
-    required_error: 'Please select your English proficiency level'
-  }),
-  computer_skills: z.enum(['Basic', 'Intermediate', 'Advanced'], {
-    required_error: 'Please select your computer skills level'
-  }),
-  references: z.string().min(20, 'Please provide at least one reference'),
-  financial_sponsor: z.string().min(1, 'Please specify who will sponsor your studies'),
+  previous_education: z.string().optional(),
+  grades_or_gpa: z.string().optional(),
+  motivation_letter: z.string().optional(),
+  career_goals: z.string().optional(),
+  english_proficiency: z.enum(['Basic', 'Intermediate', 'Advanced', 'Fluent']).optional(),
+  computer_skills: z.enum(['Basic', 'Intermediate', 'Advanced']).optional(),
+  references: z.string().optional(),
+  financial_sponsor: z.string().optional(),
   sponsor_relationship: z.string().optional(),
   additional_info: z.string().optional(),
-  payment_method: z.enum(['pay_now', 'pay_later'], { required_error: 'Please select payment option' }),
+  payment_method: z.enum(['pay_now', 'pay_later']).optional(),
   payment_reference: z.string().optional(),
-  declaration: z.boolean().refine(val => val === true, {
-    message: 'You must accept the declaration to proceed'
-  }),
-  information_accuracy: z.boolean().refine(val => val === true, {
-    message: 'You must confirm the accuracy of information provided'
-  }),
-  professional_conduct: z.boolean().refine(val => val === true, {
-    message: 'You must agree to professional conduct standards'
-  })
+  declaration: z.boolean().optional(),
+  information_accuracy: z.boolean().optional(),
+  professional_conduct: z.boolean().optional()
 }).superRefine((data, ctx) => {
   const hasNrc = data.nrc_number?.trim().length > 0
   const hasPassport = data.passport_number?.trim().length > 0

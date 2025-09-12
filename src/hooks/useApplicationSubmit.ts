@@ -7,7 +7,7 @@ export function useApplicationSubmit(user: any, uploadedFiles: UploadedFile[]) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
-  const insertDocuments = async (applicationId: string) => {
+  const insertDocuments = async (applicationId: string, userId: string) => {
     const documentInserts = uploadedFiles.map(file => ({
       application_id: applicationId,
       document_type: 'supporting_document',
@@ -16,7 +16,7 @@ export function useApplicationSubmit(user: any, uploadedFiles: UploadedFile[]) {
       file_path: file.url || '',
       file_size: file.size,
       mime_type: file.type,
-      uploader_id: user?.id
+      uploader_id: userId
     }))
 
     const { error: documentsError } = await supabase
@@ -33,13 +33,24 @@ export function useApplicationSubmit(user: any, uploadedFiles: UploadedFile[]) {
       setLoading(true)
       setError('')
 
+      // Validate user authentication
+      if (!user?.id) {
+        throw new Error('User not authenticated. Please sign in and try again.')
+      }
+
+      // Verify current session
+      const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
+      if (authError || !currentUser) {
+        throw new Error('Authentication session expired. Please sign in again.')
+      }
+
       const applicationNumber = `MIHAS${Date.now().toString().slice(-6)}`
       const trackingCode = `MIHAS${Math.random().toString(36).substr(2, 6).toUpperCase()}`
       
       const applicationData = {
         application_number: applicationNumber,
         public_tracking_code: trackingCode,
-        user_id: user?.id,
+        user_id: currentUser.id,
         program_id: data.program_id,
         intake_id: data.intake_id,
         nrc_number: data.nrc_number || null,
@@ -50,7 +61,7 @@ export function useApplicationSubmit(user: any, uploadedFiles: UploadedFile[]) {
         nationality: data.nationality,
         province: data.province,
         district: data.district,
-        postal_address: data.postal_address,
+        postal_address: data.postal_address || null,
         physical_address: data.physical_address,
         guardian_name: data.guardian_name || null,
         guardian_phone: data.guardian_phone || null,
@@ -79,22 +90,47 @@ export function useApplicationSubmit(user: any, uploadedFiles: UploadedFile[]) {
         submitted_at: new Date().toISOString()
       }
 
+      console.log('Submitting application data:', { 
+        ...applicationData, 
+        user_id: applicationData.user_id ? 'present' : 'missing' 
+      })
+
       const { data: application, error: applicationError } = await supabase
         .from('applications')
         .insert(applicationData)
         .select()
         .single()
 
-      if (applicationError) throw applicationError
+      if (applicationError) {
+        console.error('Application submission error:', applicationError)
+        throw applicationError
+      }
+
+      console.log('Application submitted successfully:', application.id)
 
       if (uploadedFiles.length > 0) {
-        await insertDocuments(application.id)
+        await insertDocuments(application.id, currentUser.id)
       }
 
       setSuccess(true)
     } catch (error) {
       console.error('Error submitting application:', error)
-      setError(error instanceof Error ? error.message : 'Failed to submit application')
+      
+      let errorMessage = 'Failed to submit application'
+      
+      if (error instanceof Error) {
+        if (error.message?.includes('auth')) {
+          errorMessage = 'Authentication error. Please sign in again and try submitting.'
+        } else if (error.message?.includes('network')) {
+          errorMessage = 'Network error. Please check your connection and try again.'
+        } else if (error.message?.includes('validation')) {
+          errorMessage = 'Please check that all required fields are filled correctly.'
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

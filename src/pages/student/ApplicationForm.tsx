@@ -22,7 +22,28 @@ interface StepValidation {
 export default function ApplicationForm() {
   const isMobile = useIsMobile()
   const navigate = useNavigate()
-  const { user, profile } = useAuth()
+  const { user, profile, loading: authLoading } = useAuth()
+  
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth/signin?redirect=/student/application')
+    }
+  }, [user, authLoading, navigate])
+  
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    )
+  }
+  
+  // Don't render form if not authenticated
+  if (!user) {
+    return null
+  }
   const [loading, setLoading] = useState(false)
   const [programsLoading, setProgramsLoading] = useState(true)
   const [programs, setPrograms] = useState<Program[]>([])
@@ -202,6 +223,15 @@ export default function ApplicationForm() {
       }
     }
     
+    // Special validation for step 2 - require either NRC or Passport
+    if (currentStep === 2) {
+      const nrc = watch('nrc_number')
+      const passport = watch('passport_number')
+      if (!nrc?.trim() && !passport?.trim()) {
+        return false
+      }
+    }
+    
     if (currentStep === 1) return watch('program_id') && watch('intake_id')
     if (currentStep === 10) {
       const paymentMethod = watch('payment_method')
@@ -210,6 +240,10 @@ export default function ApplicationForm() {
         return watch('payment_reference') && uploadedFiles.some(f => f.name.toLowerCase().includes('payment'))
       }
       return true
+    }
+    if (currentStep === 11) {
+      // For final step, check all declarations are accepted
+      return watch('declaration') && watch('information_accuracy') && watch('professional_conduct')
     }
     
     return true
@@ -286,7 +320,14 @@ export default function ApplicationForm() {
       let progressInterval: NodeJS.Timeout | null = null
 
       try {
-        const fileName = `${user?.id}/${Date.now()}-${file.name}`
+        // Verify user authentication for file upload
+        const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
+        if (authError || !currentUser) {
+          setError('Authentication session expired. Please sign in again.')
+          continue
+        }
+        
+        const fileName = `${currentUser.id}/${Date.now()}-${file.name}`
         
         // Simulate progress with optimized intervals
         let currentProgress = 0
@@ -387,60 +428,85 @@ export default function ApplicationForm() {
       setLoading(true)
       setError('')
 
+      // Validate user authentication
+      if (!user?.id) {
+        setError('User not authenticated. Please sign in and try again.')
+        return
+      }
+
+      // Verify current session
+      const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
+      if (authError || !currentUser) {
+        setError('Authentication session expired. Please sign in again.')
+        return
+      }
+
       const applicationNumber = `MIHAS${Date.now().toString().slice(-6)}`
       const trackingCode = `MIHAS${Math.random().toString(36).substr(2, 6).toUpperCase()}`
       
+      const applicationData = {
+        application_number: applicationNumber,
+        public_tracking_code: trackingCode,
+        user_id: currentUser.id,
+        program_id: data.program_id,
+        intake_id: data.intake_id,
+        nrc_number: data.nrc_number || null,
+        passport_number: data.passport_number || null,
+        date_of_birth: data.date_of_birth,
+        gender: data.gender,
+        marital_status: data.marital_status,
+        nationality: data.nationality,
+        province: data.province,
+        district: data.district,
+        postal_address: data.postal_address || null,
+        physical_address: data.physical_address,
+        guardian_name: data.guardian_name || null,
+        guardian_phone: data.guardian_phone || null,
+        guardian_relationship: data.guardian_relationship || null,
+        medical_conditions: data.medical_conditions || null,
+        disabilities: data.disabilities || null,
+        criminal_record: data.criminal_record || false,
+        criminal_record_details: data.criminal_record_details || null,
+        professional_registration_number: data.professional_registration_number || null,
+        professional_body: data.professional_body || null,
+        employment_status: data.employment_status,
+        employer_name: data.employer_name || null,
+        employer_address: data.employer_address || null,
+        years_of_experience: data.years_of_experience || 0,
+        previous_education: data.previous_education,
+        grades_or_gpa: data.grades_or_gpa,
+        motivation_letter: data.motivation_letter,
+        career_goals: data.career_goals,
+        english_proficiency: data.english_proficiency,
+        computer_skills: data.computer_skills,
+        references: data.references,
+        financial_sponsor: data.financial_sponsor,
+        sponsor_relationship: data.sponsor_relationship || null,
+        additional_info: data.additional_info || null,
+        payment_amount: 150,
+        payment_status: data.payment_method === 'pay_now' ? 'pending' : 'deferred',
+        payment_reference: data.payment_reference || null,
+        status: 'submitted',
+        submitted_at: new Date().toISOString()
+      }
+
+      console.log('Submitting application data:', { 
+        ...applicationData, 
+        user_id: applicationData.user_id ? 'present' : 'missing' 
+      })
+
       const { data: application, error: applicationError } = await supabase
         .from('applications')
-        .insert({
-          application_number: applicationNumber,
-          public_tracking_code: trackingCode,
-          user_id: user?.id,
-          program_id: data.program_id,
-          intake_id: data.intake_id,
-          nrc_number: data.nrc_number || null,
-          passport_number: data.passport_number || null,
-          date_of_birth: data.date_of_birth,
-          gender: data.gender,
-          marital_status: data.marital_status,
-          nationality: data.nationality,
-          province: data.province,
-          district: data.district,
-          postal_address: data.postal_address || null,
-          physical_address: data.physical_address,
-          guardian_name: data.guardian_name || null,
-          guardian_phone: data.guardian_phone || null,
-          guardian_relationship: data.guardian_relationship || null,
-          medical_conditions: data.medical_conditions || null,
-          disabilities: data.disabilities || null,
-          criminal_record: data.criminal_record || false,
-          criminal_record_details: data.criminal_record_details || null,
-          professional_registration_number: data.professional_registration_number || null,
-          professional_body: data.professional_body || null,
-          employment_status: data.employment_status,
-          employer_name: data.employer_name || null,
-          employer_address: data.employer_address || null,
-          years_of_experience: data.years_of_experience || 0,
-          previous_education: data.previous_education,
-          grades_or_gpa: data.grades_or_gpa,
-          motivation_letter: data.motivation_letter,
-          career_goals: data.career_goals,
-          english_proficiency: data.english_proficiency,
-          computer_skills: data.computer_skills,
-          references: data.references,
-          financial_sponsor: data.financial_sponsor,
-          sponsor_relationship: data.sponsor_relationship || null,
-          additional_info: data.additional_info || null,
-          payment_amount: 150,
-          payment_status: data.payment_method === 'pay_now' ? 'pending' : 'deferred',
-          payment_reference: data.payment_reference || null,
-          status: 'submitted',
-          submitted_at: new Date().toISOString()
-        })
+        .insert(applicationData)
         .select()
         .single()
 
-      if (applicationError) throw applicationError
+      if (applicationError) {
+        console.error('Application submission error:', applicationError)
+        throw applicationError
+      }
+
+      console.log('Application submitted successfully:', application.id)
 
       if (uploadedFiles.length > 0) {
         const documentInserts = uploadedFiles.map(file => ({
@@ -451,7 +517,7 @@ export default function ApplicationForm() {
           file_path: file.url || '',
           file_size: file.size,
           mime_type: file.type,
-          uploader_id: user?.id
+          uploader_id: currentUser.id
         }))
 
         const { error: documentsError } = await supabase
@@ -521,6 +587,11 @@ export default function ApplicationForm() {
           <p className="text-secondary">
             Complete your application for admission to our programs
           </p>
+          {user && (
+            <div className="mt-2 text-sm text-gray-600">
+              Logged in as: {user.email}
+            </div>
+          )}
         </div>
 
         {error && (
@@ -542,6 +613,19 @@ export default function ApplicationForm() {
                   Draft saved automatically
                 </span>
               )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={async () => {
+                  const { data: { user }, error } = await supabase.auth.getUser()
+                  console.log('Auth test:', { user: user?.id, error })
+                  alert(`User ID: ${user?.id || 'Not authenticated'}`)
+                }}
+                className="hover:bg-blue-50 text-blue-600"
+              >
+                Test Auth
+              </Button>
               <Button
                 type="button"
                 variant="ghost"

@@ -17,7 +17,28 @@ import { useApplicationSubmit } from '@/hooks/useApplicationSubmit'
 
 export default function ApplicationFormMultiStep() {
   const navigate = useNavigate()
-  const { user, profile } = useAuth()
+  const { user, profile, loading: authLoading } = useAuth()
+  
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth/signin?redirect=/student/application-multi')
+    }
+  }, [user, authLoading, navigate])
+  
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    )
+  }
+  
+  // Don't render form if not authenticated
+  if (!user) {
+    return null
+  }
   const [programsLoading, setProgramsLoading] = useState(true)
   const [programs, setPrograms] = useState<Program[]>([])
   const [intakes, setIntakes] = useState<Intake[]>([])
@@ -129,7 +150,14 @@ export default function ApplicationFormMultiStep() {
 
     const uploadPromises = fileArray.map(async (file, i) => {
       const fileId = newFileIds[i]
-      const fileName = `${user?.id}/${Date.now()}-${file.name}`
+      
+      // Verify user authentication for file upload
+      const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
+      if (authError || !currentUser) {
+        throw new Error('Authentication session expired')
+      }
+      
+      const fileName = `${currentUser.id}/${Date.now()}-${file.name}`
       
       try {
         const { error: uploadError } = await supabase.storage
