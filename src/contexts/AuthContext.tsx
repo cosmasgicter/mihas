@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase, UserProfile } from '@/lib/supabase'
 import { sanitizeForLog, sanitizeForDisplay } from '@/lib/sanitize'
+import { sessionManager, setupSessionTimeout } from '@/lib/session'
 
 interface AuthContextType {
   user: User | null
@@ -50,7 +51,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session?.user) {
           // Only load profile after auth is fully established
           if (event === 'SIGNED_IN') {
-            setTimeout(() => loadUserProfile(session.user.id), 2000)
+            // Reduced delay for better user experience
+            setTimeout(() => loadUserProfile(session.user.id), 200)
           }
         } else {
           setProfile(null)
@@ -59,7 +61,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     )
 
-    return () => subscription.unsubscribe()
+    // Setup session timeout management
+    const cleanupTimeout = setupSessionTimeout()
+
+    return () => {
+      subscription.unsubscribe()
+      cleanupTimeout()
+    }
   }, [])
 
   async function loadUserProfile(userId: string) {
@@ -73,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle()
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error loading user profile:', error.code)
+        console.error('Error loading user profile:', sanitizeForLog(error.code || 'unknown'))
         setProfile(null)
         return
       }
@@ -100,10 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function signUp(email: string, password: string, userData: any) {
     const { data, error } = await supabase.auth.signUp({
       email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.protocol}//${window.location.host}/auth/callback`
-      }
+      password
     })
 
     if (error) {
@@ -133,7 +138,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .insert(sanitizedUserData)
 
       if (profileError) {
-        console.error('Error creating profile:', profileError)
+        console.error('Error creating profile:', sanitizeForLog(profileError.message || 'unknown error'))
+        throw profileError
       }
     }
 
@@ -159,7 +165,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (value === null || value === undefined) {
         acc[key] = value
       } else if (typeof value === 'string') {
-        acc[key] = sanitizeForDisplay(value)
+        // Enhanced sanitization for profile updates
+        acc[key] = sanitizeForDisplay(value.trim())
       } else {
         acc[key] = value
       }

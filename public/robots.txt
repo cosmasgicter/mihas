@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+
+# Important pages for job seekers
+Allow: /auth/signup
+Allow: /auth/login
+Allow: /track-application
+Allow: /programs/
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /student/dashboard/
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://mihas-katc.edu.zm/sitemap.xml
+
+# Crawl delay (be respectful)
+Crawl-delay: 1

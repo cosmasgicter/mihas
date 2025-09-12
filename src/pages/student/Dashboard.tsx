@@ -111,6 +111,18 @@ export default function StudentDashboard() {
     return intake?.name || 'Unknown Intake'
   }
 
+  const getDraftTimestamp = () => {
+    try {
+      const savedDraft = localStorage.getItem('applicationDraft')
+      if (!savedDraft) return 'Unknown'
+      const draft = JSON.parse(savedDraft)
+      return draft.savedAt ? formatDate(draft.savedAt) : 'Unknown'
+    } catch (error) {
+      console.error('Error parsing draft timestamp:', error)
+      return 'Unknown'
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -209,14 +221,7 @@ export default function StudentDashboard() {
                             
                             <div className="text-sm text-secondary space-y-1">
                               <p>You have an unsaved application draft</p>
-                              <p>Last saved: {(() => {
-                                try {
-                                  const draft = JSON.parse(localStorage.getItem('applicationDraft') || '{}')
-                                  return draft.savedAt ? formatDate(draft.savedAt) : 'Unknown'
-                                } catch {
-                                  return 'Unknown'
-                                }
-                              })()}</p>
+                              <p>Last saved: {getDraftTimestamp()}</p>
                             </div>
                           </div>
                           

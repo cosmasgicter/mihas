@@ -2,7 +2,11 @@ import React from 'react';
 
 const serializeError = (error: unknown) => {
   if (error instanceof Error) {
-    return error.message + '\n' + (error.stack || '');
+    // In production, limit stack trace exposure
+    const isDevelopment = import.meta.env.DEV
+    return isDevelopment 
+      ? error.message + '\n' + (error.stack || '')
+      : error.message;
   }
   if (typeof error === 'string') {
     return error;

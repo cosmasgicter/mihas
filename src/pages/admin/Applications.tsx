@@ -5,6 +5,7 @@ import { supabase, Application, Program, Intake } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { formatDate, getStatusColor } from '@/lib/utils'
+import { sanitizeForLog } from '@/lib/sanitize'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { 
   ArrowLeft, 
@@ -65,7 +66,8 @@ export default function AdminApplications() {
         *,
         user_profiles!inner(full_name, email, phone),
         programs(name, duration_years),
-        intakes(name, year)
+        intakes(name, year),
+        documents(count)
       `, { count: 'exact' })
       .range(start, end)
       .order('created_at', { ascending: false })
@@ -75,26 +77,19 @@ export default function AdminApplications() {
     }
 
     if (search) {
-      query = query.or(`user_profiles.full_name.ilike.%${search}%,user_profiles.email.ilike.%${search}%,application_number.ilike.%${search}%`)
+      // Sanitize search input to prevent SQL injection
+      const sanitizedSearch = search.replace(/[%_\\]/g, '\\$&').replace(/'/g, "''")
+      query = query.or(`user_profiles.full_name.ilike.%${sanitizedSearch}%,user_profiles.email.ilike.%${sanitizedSearch}%,application_number.ilike.%${sanitizedSearch}%`)
     }
 
     const { data, error, count } = await query
     if (error) throw error
 
-    // Get document counts for this page
-    const applicationsWithCounts = await Promise.all(
-      (data || []).map(async (app) => {
-        const { count } = await supabase
-          .from('documents')
-          .select('*', { count: 'exact', head: true })
-          .eq('application_id', app.id)
-        
-        return {
-          ...app,
-          document_count: count || 0
-        }
-      })
-    )
+    // Map applications with document counts from the joined query
+    const applicationsWithCounts = (data || []).map(app => ({
+      ...app,
+      document_count: app.documents?.length || 0
+    }))
 
     return { applications: applicationsWithCounts, totalCount: count || 0 }
   }
@@ -137,7 +132,7 @@ export default function AdminApplications() {
       queryClient.invalidateQueries({ queryKey: ['applications'] })
 
       // Create status history record
-      await supabase
+      const { error: historyError } = await supabase
         .from('application_status_history')
         .insert({
           application_id: applicationId,
@@ -145,6 +140,11 @@ export default function AdminApplications() {
           changed_by: user?.id,
           notes: feedback || null
         })
+      
+      if (historyError) {
+        console.error('Error creating status history:', sanitizeForLog(historyError.message || 'unknown error'))
+        // Continue execution as this is not critical for the main operation
+      }
       
     } catch (error: any) {
       console.error('Error updating application status:', error)

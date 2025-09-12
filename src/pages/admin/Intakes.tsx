@@ -82,6 +82,7 @@ export default function AdminIntakes() {
       const { data, error } = await supabase
         .from('intakes')
         .select('*')
+        .eq('is_active', true)
         .order('created_at', { ascending: false })
       if (error) throw error
       setIntakes(data || [])
@@ -175,7 +176,7 @@ export default function AdminIntakes() {
   const deleteIntake = () => {
     if (!currentIntake) return
     handleOperation(
-      () => supabase.from('intakes').delete().eq('id', currentIntake.id).select(),
+      () => supabase.from('intakes').update({ is_active: false }).eq('id', currentIntake.id).select(),
       () => {
         setShowDelete(false)
         setCurrentIntake(null)
@@ -188,7 +189,7 @@ export default function AdminIntakes() {
       <div className="max-w-6xl mx-auto bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
-            <Link to="/admin/dashboard">
+            <Link to="/admin">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard
@@ -230,13 +231,13 @@ export default function AdminIntakes() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary">{intake.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary">{intake.year}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary">
-                      {new Date(intake.start_date).toLocaleDateString()}
+                      {intake.start_date ? new Date(intake.start_date).toLocaleDateString() : 'Invalid date'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary">
-                      {new Date(intake.end_date).toLocaleDateString()}
+                      {intake.end_date ? new Date(intake.end_date).toLocaleDateString() : 'Invalid date'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary">
-                      {new Date(intake.application_deadline).toLocaleDateString()}
+                      {intake.application_deadline ? new Date(intake.application_deadline).toLocaleDateString() : 'Invalid date'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary">
                       {intake.total_capacity}

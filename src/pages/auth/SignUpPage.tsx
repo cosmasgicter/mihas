@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { TextArea } from '@/components/ui/TextArea'
+import { Turnstile } from '@/components/ui/Turnstile'
 import { GraduationCap, ArrowLeft } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
@@ -38,6 +39,7 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState('')
   
   const {
     register,
@@ -48,6 +50,11 @@ export default function SignUpPage() {
   })
 
   const onSubmit = async (data: SignUpForm) => {
+    if (!turnstileToken) {
+      setError('Please complete the security verification.')
+      return
+    }
+
     setLoading(true)
     setError('')
     setSuccess('')
@@ -57,7 +64,11 @@ export default function SignUpPage() {
       const { confirmPassword, ...userData } = data
       await signUp(data.email, data.password, userData)
       
-      setSuccess('Account created successfully! Please check your email to verify your account before signing in.')
+      setSuccess('Account created successfully! You can now sign in with your credentials.')
+      // Redirect to sign in after 2 seconds
+      setTimeout(() => {
+        navigate('/auth/signin')
+      }, 2000)
     } catch (error) {
       console.error('Sign up error:', error)
       setError(error instanceof Error ? error.message : 'Failed to create account. Please try again.')
@@ -79,10 +90,11 @@ export default function SignUpPage() {
               </div>
               <h3 className="text-lg font-medium text-secondary mb-2">Account Created Successfully!</h3>
               <p className="text-sm text-secondary mb-6">{success}</p>
+              <p className="text-xs text-gray-500 mb-6">Redirecting to sign in page...</p>
               <div className="space-y-3">
                 <Link to="/auth/signin">
                   <Button className="w-full">
-                    Go to Sign In
+                    Go to Sign In Now
                   </Button>
                 </Link>
                 <Link to="/">
@@ -262,7 +274,17 @@ export default function SignUpPage() {
               </div>
             </div>
 
-
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-medium text-secondary mb-4">Security Verification</h3>
+              <div className="flex justify-center">
+                <Turnstile
+                  siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                  onVerify={setTurnstileToken}
+                  onError={() => setTurnstileToken('')}
+                  onExpire={() => setTurnstileToken('')}
+                />
+              </div>
+            </div>
 
             {error && (
               <div className="rounded-md bg-red-50 p-4">
@@ -274,6 +296,7 @@ export default function SignUpPage() {
               type="submit"
               className="w-full"
               loading={loading}
+              disabled={!turnstileToken}
             >
               Create Account
             </Button>

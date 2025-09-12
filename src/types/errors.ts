@@ -5,7 +5,10 @@ export interface AppError {
 }
 
 export function isAppError(error: unknown): error is AppError {
-  return typeof error === 'object' && error !== null && 'message' in error
+  return typeof error === 'object' && 
+         error !== null && 
+         'message' in error && 
+         typeof (error as any).message === 'string'
 }
 
 export function getErrorMessage(error: unknown): string {

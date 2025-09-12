@@ -24,7 +24,9 @@ export function useApplicationsData(currentPage: number, statusFilter: string, s
     }
 
     if (search) {
-      query = query.or(`user_profiles.full_name.ilike.%${search}%,user_profiles.email.ilike.%${search}%,application_number.ilike.%${search}%`)
+      // Sanitize search input to prevent SQL injection
+      const sanitizedSearch = search.replace(/[%_\\]/g, '\\$&').replace(/'/g, "''")
+      query = query.or(`user_profiles.full_name.ilike.%${sanitizedSearch}%,user_profiles.email.ilike.%${sanitizedSearch}%,application_number.ilike.%${sanitizedSearch}%`)
     }
 
     const { data, error, count } = await query

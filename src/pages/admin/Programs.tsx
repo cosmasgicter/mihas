@@ -41,6 +41,7 @@ export default function AdminPrograms() {
       const { data, error } = await supabase
         .from('programs')
         .select('*')
+        .eq('is_active', true)
         .order('created_at', { ascending: false })
       if (error) throw error
       setPrograms(data || [])
@@ -93,22 +94,45 @@ export default function AdminPrograms() {
     }
   }
 
-  const createProgram = () => handleOperation(
-    () => supabase.from('programs').insert({
-      name: form.name,
-      description: form.description,
-      duration_years: form.duration_years,
-      is_active: true
-    }).select(),
-    () => setShowCreate(false)
-  )
+  const createProgram = () => {
+    // Validate form
+    if (!form.name.trim()) {
+      setError('Program name is required')
+      return
+    }
+    if (form.duration_years < 1 || form.duration_years > 10) {
+      setError('Duration must be between 1 and 10 years')
+      return
+    }
+    
+    handleOperation(
+      () => supabase.from('programs').insert({
+        name: form.name.trim(),
+        description: form.description.trim(),
+        duration_years: form.duration_years,
+        is_active: true
+      }).select(),
+      () => setShowCreate(false)
+    )
+  }
 
   const updateProgram = () => {
     if (!currentProgram) return
+    
+    // Validate form
+    if (!form.name.trim()) {
+      setError('Program name is required')
+      return
+    }
+    if (form.duration_years < 1 || form.duration_years > 10) {
+      setError('Duration must be between 1 and 10 years')
+      return
+    }
+    
     handleOperation(
       () => supabase.from('programs').update({
-        name: form.name,
-        description: form.description,
+        name: form.name.trim(),
+        description: form.description.trim(),
         duration_years: form.duration_years
       }).eq('id', currentProgram.id).select(),
       () => {
@@ -121,7 +145,7 @@ export default function AdminPrograms() {
   const deleteProgram = () => {
     if (!currentProgram) return
     handleOperation(
-      () => supabase.from('programs').delete().eq('id', currentProgram.id).select(),
+      () => supabase.from('programs').update({ is_active: false }).eq('id', currentProgram.id).select(),
       () => {
         setShowDelete(false)
         setCurrentProgram(null)
@@ -134,7 +158,7 @@ export default function AdminPrograms() {
       <div className="max-w-4xl mx-auto bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
-            <Link to="/admin/dashboard">
+            <Link to="/admin">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard

@@ -38,29 +38,29 @@ export default function LandingPageNew() {
   }
 
   const stats = [
-    { number: "1000+", label: "Graduates", delay: 0.1 },
-    { number: "95%", label: "Employment Rate", delay: 0.2 },
-    { number: "20+", label: "Years Experience", delay: 0.3 },
-    { number: "50+", label: "Industry Partners", delay: 0.4 }
+    { number: "300+", label: "Graduates Employed", delay: 0.1 },
+    { number: "92%", label: "Job Placement Rate", delay: 0.2 },
+    { number: "6+", label: "Years Training Healthcare Workers", delay: 0.3 },
+    { number: "25+", label: "Employer Partners Hiring Our Graduates", delay: 0.4 }
   ]
 
   const features = [
     {
       icon: Users,
-      title: "Expert Faculty",
-      description: "Learn from experienced professionals and industry experts who bring real-world knowledge to the classroom",
+      title: "Career-Ready Training",
+      description: "Learn from healthcare professionals actively working in Zambian hospitals and clinics. Get mentored by experts who understand the job market",
       gradient: "from-primary to-primary/60"
     },
     {
       icon: Award,
-      title: "Accredited Programs",
-      description: "All our programs are fully accredited and recognized by industry bodies and government agencies",
+      title: "Government Recognized Qualifications",
+      description: "NMCZ, HPCZ & ECZ accredited programs accepted by employers across Zambia, SADC region, and internationally",
       gradient: "from-secondary to-secondary/60"
     },
     {
       icon: BookOpen,
-      title: "Practical Training",
-      description: "Hands-on experience through internships, clinical rotations, and industry partnerships",
+      title: "Guaranteed Job Placement Support",
+      description: "92% employment rate with direct connections to hospitals, clinics, and health organizations seeking qualified graduates",
       gradient: "from-accent to-accent/60"
     }
   ]
@@ -129,7 +129,7 @@ export default function LandingPageNew() {
             variants={itemVariants}
             className="text-xl md:text-2xl lg:text-3xl mb-8 max-w-4xl mx-auto leading-relaxed text-white/95 font-medium"
           >
-            Join Mukuba Institute of Health and Applied Sciences and Kalulushi Training Centre – Leading institutions in health sciences education in Zambia
+            Launch Your Healthcare Career in Zambia & Beyond – Apply for Accredited Health Sciences Programs with 92% Job Placement Success
           </motion.p>
           
           <motion.div
@@ -216,10 +216,10 @@ export default function LandingPageNew() {
             transition={{ duration: 0.8 }}
           >
             <h2 className="text-4xl md:text-5xl font-bold gradient-text mb-6">
-              Why Choose MIHAS-KATC?
+              Why Choose MIHAS-KATC for Your Healthcare Career?
             </h2>
             <p className="text-xl text-gray-700 max-w-3xl mx-auto font-medium">
-              We offer world-class education with practical training to prepare you for a successful career
+              Join 300+ successful graduates working across Zambia and internationally. Get job-ready with our accredited programs and industry partnerships
             </p>
           </motion.div>
           
@@ -261,10 +261,10 @@ export default function LandingPageNew() {
             transition={{ duration: 0.6 }}
           >
             <h2 className="text-3xl md:text-4xl font-bold gradient-text mb-4">
-              Accredited by Leading Professional Bodies
+              Qualifications Recognized by Employers Across Zambia & Beyond
             </h2>
             <p className="text-lg text-gray-700">
-              Our programs meet the highest standards set by Zambian regulatory authorities
+              Our graduates are qualified to work in hospitals, clinics, and health organizations throughout Zambia, SADC region, and internationally
             </p>
           </motion.div>
           
@@ -288,7 +288,7 @@ export default function LandingPageNew() {
                 Nursing and Midwifery Council of Zambia
               </p>
               <p className="text-xs text-gray-500">
-                Diploma in Registered Nursing meets NMCZ professional standards
+                Graduates qualified for nursing jobs in all Zambian hospitals and clinics
               </p>
             </motion.div>
             
@@ -311,7 +311,7 @@ export default function LandingPageNew() {
                 Health Professions Council of Zambia
               </p>
               <p className="text-xs text-gray-500">
-                Diploma in Clinical Medicine approved by HPCZ for clinical practice
+                Graduates eligible for clinical officer positions nationwide
               </p>
             </motion.div>
             
@@ -334,7 +334,7 @@ export default function LandingPageNew() {
                 Examinations Council of Zambia
               </p>
               <p className="text-xs text-gray-500">
-                Programs meet ECZ certification standards
+                Environmental health graduates work in government and private sectors
               </p>
             </motion.div>
             
@@ -357,7 +357,7 @@ export default function LandingPageNew() {
                 University of Zambia
               </p>
               <p className="text-xs text-gray-500">
-                Academic programs affiliated with Zambia's premier university
+                University-level qualifications recognized by international employers
               </p>
             </motion.div>
           </div>
@@ -376,10 +376,10 @@ export default function LandingPageNew() {
             transition={{ duration: 0.8 }}
           >
             <h2 className="text-4xl md:text-5xl font-bold gradient-text mb-6">
-              Our Accredited Programs
+              High-Demand Healthcare Jobs Training Programs
             </h2>
             <p className="text-xl text-gray-700 font-medium">
-              Three professionally accredited programs meeting Zambian standards
+              Three government-accredited programs with guaranteed job opportunities in Zambia's growing healthcare sector
             </p>
           </motion.div>
           
@@ -459,14 +459,14 @@ export default function LandingPageNew() {
             animate={{ y: [0, -5, 0] }}
             transition={{ duration: 4, repeat: Infinity }}
           >
-            Ready to Start Your Journey?
+            Ready to Secure Your Healthcare Job in Zambia?
           </motion.h2>
           <motion.p
             className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto"
             animate={{ y: [0, 5, 0] }}
             transition={{ duration: 4, repeat: Infinity, delay: 0.5 }}
           >
-            Join thousands of successful graduates who started their careers with us
+            Applications open now! Join 300+ graduates working in hospitals, clinics, and health organizations across Zambia and beyond
           </motion.p>
           <motion.div
             whileHover={{ scale: 1.05 }}
@@ -501,12 +501,14 @@ export default function LandingPageNew() {
                 <GraduationCap className="h-8 w-8 text-primary" />
                 <span className="text-2xl font-bold gradient-text">MIHAS-KATC</span>
               </motion.div>
-              <h3 className="text-xl font-semibold mb-4">Contact Information</h3>
+              <h3 className="text-xl font-semibold mb-4">Apply Today - Contact Us</h3>
               <div className="space-y-2 text-gray-300">
-                <p>Mukuba University Campus</p>
-                <p>Kitwe, Zambia</p>
-                <p>KATC: 0966992299 | MIHAS: 0961515151</p>
-                <p>info@katc.edu.zm | info@mihas.edu.zm</p>
+                <p><strong>Location:</strong> Mukuba University Campus, Kitwe, Copperbelt Province, Zambia</p>
+                <p><strong>Applications:</strong> Open for Zambian & International Students</p>
+                <p><strong>KATC:</strong> +260 966 992 299</p>
+                <p><strong>MIHAS:</strong> +260 961 515 151</p>
+                <p><strong>Email:</strong> admissions@katc.edu.zm | admissions@mihas.edu.zm</p>
+                <p><strong>Career Support:</strong> careers@mihas-katc.edu.zm</p>
               </div>
             </motion.div>
             

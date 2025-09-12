@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { ArrowLeft } from 'lucide-react'
 
 interface SettingsForm {
   site_name: string
@@ -11,6 +13,13 @@ interface SettingsForm {
   contact_email: string
   contact_phone: string
 }
+
+interface SystemSetting {
+  setting_key: string
+  setting_value: string
+}
+
+const SETTING_KEYS = ['site_name', 'primary_color', 'secondary_color', 'contact_email', 'contact_phone'] as const
 
 export default function AdminSettings() {
   const [form, setForm] = useState<SettingsForm>({
@@ -32,15 +41,14 @@ export default function AdminSettings() {
   const loadSettings = async () => {
     try {
       setLoading(true)
-      const keys = ['site_name', 'primary_color', 'secondary_color', 'contact_email', 'contact_phone']
       const { data, error } = await supabase
         .from('system_settings')
         .select('setting_key, setting_value')
-        .in('setting_key', keys)
+        .in('setting_key', SETTING_KEYS)
       if (error) throw error
-      const values: any = {}
-      data?.forEach((setting: any) => {
-        values[setting.setting_key] = setting.setting_value || ''
+      const values: Partial<SettingsForm> = {}
+      data?.forEach((setting: SystemSetting) => {
+        values[setting.setting_key as keyof SettingsForm] = setting.setting_value || ''
       })
       setForm((prevForm) => ({ ...prevForm, ...values }))
     } catch (error: any) {
@@ -72,6 +80,8 @@ export default function AdminSettings() {
         .upsert(updates)
       if (error) throw error
       setSuccess('Settings updated successfully!')
+      // Auto-clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000)
     } catch (error: any) {
       setError(error.message)
     } finally {
@@ -82,7 +92,15 @@ export default function AdminSettings() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow p-6">
-        <h1 className="text-2xl font-bold text-secondary mb-6">System Settings</h1>
+        <div className="flex items-center space-x-4 mb-6">
+          <Link to="/admin">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </Link>
+          <h1 className="text-2xl font-bold text-secondary">System Settings</h1>
+        </div>
 
         {error && (
           <div className="rounded-md bg-red-50 p-4 mb-6">

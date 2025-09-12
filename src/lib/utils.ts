@@ -42,8 +42,11 @@ export function generateApplicationNumber() {
     const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase()
     return `MIHAS-${year}-${uuid}`
   }
-  const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0')
-  return `MIHAS-${year}-${random}`
+  // Improved fallback with timestamp and larger random range
+  const timestamp = Date.now().toString().slice(-4)
+  const random = Math.floor(Math.random() * 100000000).toString().padStart(8, '0')
+  const combined = (timestamp + random).substring(0, 8).toUpperCase()
+  return `MIHAS-${year}-${combined}`
 }
 
 export function getStatusColor(status: string) {
@@ -63,9 +66,9 @@ export function getStatusColor(status: string) {
   }
 }
 
-export function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('en-US', {
+export function formatCurrency(amount: number, currency: string = 'USD', locale: string = 'en-US') {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: 'USD',
+    currency,
   }).format(amount)
 }

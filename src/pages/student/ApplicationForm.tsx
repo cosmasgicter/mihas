@@ -158,6 +158,7 @@ export default function ApplicationForm() {
       }
     } catch (error) {
       console.error('Error loading draft:', error)
+      localStorage.removeItem('applicationDraft')
     }
   }
 
@@ -262,14 +263,14 @@ export default function ApplicationForm() {
     for (const file of Array.from(files)) {
       // Validate file size (10MB limit)
       if (file.size > 10 * 1024 * 1024) {
-        setError(`File "${file.name.replace(/[<>"'&]/g, '')}" is too large. Maximum size is 10MB.`)
+        setError(`File is too large. Maximum size is 10MB.`)
         continue
       }
 
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']
       if (!allowedTypes.includes(file.type)) {
-        setError(`File "${file.name.replace(/[<>"'&]/g, '')}" is not supported. Please upload JPG, PNG, or PDF files.`)
+        setError(`File type not supported. Please upload JPG, PNG, or PDF files.`)
         continue
       }
 
@@ -323,7 +324,7 @@ export default function ApplicationForm() {
         }, 2000)
       } catch (error: any) {
         console.error('Error uploading file:', error)
-        setError(`Failed to upload "${file.name.replace(/[<>"'&]/g, '')}": Upload failed`)
+        setError(`Failed to upload file: Upload failed`)
         setUploadProgress(prev => {
           const { [fileId]: removed, ...rest } = prev
           return rest
