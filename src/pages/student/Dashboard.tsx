@@ -24,6 +24,7 @@ export default function StudentDashboard() {
   const [intakes, setIntakes] = useState<Intake[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [hasDraft, setHasDraft] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -31,9 +32,32 @@ export default function StudentDashboard() {
     }
   }, [user])
 
+  // Listen for storage changes to update draft status
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const savedDraft = localStorage.getItem('applicationDraft')
+      setHasDraft(!!savedDraft)
+    }
+
+    // Listen for storage events from other tabs/windows
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Also check when the window gains focus (user returns from another page)
+    window.addEventListener('focus', handleStorageChange)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('focus', handleStorageChange)
+    }
+  }, [])
+
   const loadDashboardData = async () => {
     try {
       setLoading(true)
+      
+      // Check for saved draft
+      const savedDraft = localStorage.getItem('applicationDraft')
+      setHasDraft(!!savedDraft)
       
       // Load user's applications using profile user_id
       const { data: applicationsData, error: applicationsError } = await supabase
@@ -113,18 +137,31 @@ export default function StudentDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-primary mb-2">
-                  Ready to Apply?
+                  {hasDraft ? 'Continue Your Application' : 'Ready to Apply?'}
                 </h2>
                 <p className="text-primary">
-                  Start your application to join programs at Kalulushi Training Centre or Mukuba Institute of Health and Applied Sciences
+                  {hasDraft 
+                    ? 'You have a saved draft. Continue where you left off or start a new application.'
+                    : 'Start your application to join programs at Kalulushi Training Centre or Mukuba Institute of Health and Applied Sciences'
+                  }
                 </p>
               </div>
-              <Link to="/apply">
-                <Button className="bg-primary hover:bg-primary">
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Application
-                </Button>
-              </Link>
+              <div className="flex space-x-3">
+                {hasDraft && (
+                  <Link to="/apply">
+                    <Button className="bg-yellow-600 hover:bg-yellow-700">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Continue Draft
+                    </Button>
+                  </Link>
+                )}
+                <Link to="/apply" onClick={() => localStorage.removeItem('applicationDraft')}>
+                  <Button className="bg-primary hover:bg-primary">
+                    <Plus className="h-4 w-4 mr-2" />
+                    {hasDraft ? 'New Application' : 'Start Application'}
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -138,7 +175,7 @@ export default function StudentDashboard() {
               </div>
               
               <div className="divide-y divide-gray-200">
-                {applications.length === 0 ? (
+                {applications.length === 0 && !hasDraft ? (
                   <div className="px-6 py-12 text-center">
                     <FileText className="h-12 w-12 text-secondary mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-secondary mb-2">
@@ -155,37 +192,74 @@ export default function StudentDashboard() {
                     </Link>
                   </div>
                 ) : (
-                  applications.map((application) => (
-                    <div key={application.id} className="px-6 py-4 hover:bg-gray-50">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            {getStatusIcon(application.status)}
-                            <h4 className="text-sm font-medium text-secondary">
-                              {getProgramName(application.program_id)}
-                            </h4>
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              getStatusColor(application.status)
-                            }`}>
-                              {application.status.replace('_', ' ').toUpperCase()}
-                            </span>
+                  <>
+                    {hasDraft && (
+                      <div className="px-6 py-4 hover:bg-gray-50 bg-yellow-50 border-l-4 border-yellow-400">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-2">
+                              <Clock className="h-5 w-5 text-yellow-500" />
+                              <h4 className="text-sm font-medium text-secondary">
+                                Draft Application
+                              </h4>
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                DRAFT
+                              </span>
+                            </div>
+                            
+                            <div className="text-sm text-secondary space-y-1">
+                              <p>You have an unsaved application draft</p>
+                              <p>Last saved: {(() => {
+                                try {
+                                  const draft = JSON.parse(localStorage.getItem('applicationDraft') || '{}')
+                                  return draft.savedAt ? formatDate(draft.savedAt) : 'Unknown'
+                                } catch {
+                                  return 'Unknown'
+                                }
+                              })()}</p>
+                            </div>
                           </div>
                           
-                          <div className="text-sm text-secondary space-y-1">
-                            <p>Application #{application.application_number}</p>
-                            <p>Intake: {getIntakeName(application.intake_id)}</p>
-                            <p>Submitted: {formatDate(application.submitted_at)}</p>
-                          </div>
+                          <Link to="/apply">
+                            <Button variant="outline" size="sm">
+                              Continue Draft
+                            </Button>
+                          </Link>
                         </div>
-                        
-                        <Link to={`/application/${application.id}`}>
-                          <Button variant="outline" size="sm">
-                            View Details
-                          </Button>
-                        </Link>
                       </div>
-                    </div>
-                  ))
+                    )}
+                    {applications.map((application) => (
+                      <div key={application.id} className="px-6 py-4 hover:bg-gray-50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-2">
+                              {getStatusIcon(application.status)}
+                              <h4 className="text-sm font-medium text-secondary">
+                                {getProgramName(application.program_id)}
+                              </h4>
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                getStatusColor(application.status)
+                              }`}>
+                                {application.status.replace('_', ' ').toUpperCase()}
+                              </span>
+                            </div>
+                            
+                            <div className="text-sm text-secondary space-y-1">
+                              <p>Application #{application.application_number}</p>
+                              <p>Intake: {getIntakeName(application.intake_id)}</p>
+                              <p>Submitted: {formatDate(application.submitted_at)}</p>
+                            </div>
+                          </div>
+                          
+                          <Link to={`/application/${application.id}`}>
+                            <Button variant="outline" size="sm">
+                              View Details
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </>
                 )}
               </div>
             </div>
@@ -238,12 +312,29 @@ export default function StudentDashboard() {
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-lg font-medium text-secondary mb-4">Quick Links</h3>
               <div className="space-y-2">
-                <Link to="/apply" className="block">
-                  <Button variant="ghost" size="sm" className="w-full justify-start">
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Application
-                  </Button>
-                </Link>
+                {hasDraft ? (
+                  <>
+                    <Link to="/apply" className="block">
+                      <Button variant="ghost" size="sm" className="w-full justify-start">
+                        <FileText className="h-4 w-4 mr-2" />
+                        Continue Draft
+                      </Button>
+                    </Link>
+                    <Link to="/apply" onClick={() => localStorage.removeItem('applicationDraft')} className="block">
+                      <Button variant="ghost" size="sm" className="w-full justify-start">
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Application
+                      </Button>
+                    </Link>
+                  </>
+                ) : (
+                  <Link to="/apply" className="block">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Plus className="h-4 w-4 mr-2" />
+                      New Application
+                    </Button>
+                  </Link>
+                )}
                 <Button variant="ghost" size="sm" className="w-full justify-start">
                   <FileText className="h-4 w-4 mr-2" />
                   Document Templates

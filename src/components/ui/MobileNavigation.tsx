@@ -44,13 +44,15 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
       x: 50,
       opacity: 0
     },
-    open: (custom: number) => ({
-      x: 0,
-      opacity: 1,
-      transition: {
-        delay: custom * 0.1
+    open: (custom: number) => {
+      return {
+        x: 0,
+        opacity: 1,
+        transition: {
+          delay: custom * 0.1
+        }
       }
-    })
+    }
   }
 
   return (
@@ -82,9 +84,10 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
           <NavigationMenu.Item>
             <Link to="/track-application">
               <Button 
-                variant="outline" 
+                variant="gradient" 
                 size="md" 
-                className="text-white border-2 border-white/50 hover:bg-white hover:text-primary font-semibold backdrop-blur-sm bg-white/10 transition-all duration-300 hover:scale-105"
+                magnetic
+                className="bg-gradient-to-r from-white/20 to-white/30 border border-white/50 text-white hover:from-white hover:to-white hover:text-primary font-semibold backdrop-blur-sm"
               >
                 Track Application
               </Button>
