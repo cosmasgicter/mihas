@@ -53,7 +53,7 @@ export default function SignUpPage() {
     setSuccess('')
 
     try {
-      // Proceed with sign up (Turnstile verification disabled for development)
+      // Proceed with sign up
       const { confirmPassword, ...userData } = data
       await signUp(data.email, data.password, userData)
       
@@ -262,10 +262,7 @@ export default function SignUpPage() {
               </div>
             </div>
 
-            {/* Turnstile placeholder - disabled for development */}
-            <div className="text-center text-sm text-secondary">
-              Security verification temporarily disabled for development
-            </div>
+
 
             {error && (
               <div className="rounded-md bg-red-50 p-4">
