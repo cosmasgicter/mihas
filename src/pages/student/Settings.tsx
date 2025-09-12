@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { AuthenticatedNavigation } from '@/components/ui/AuthenticatedNavigation'
 import { ArrowLeft, User, Mail, Phone, MapPin, Save } from 'lucide-react'
 
 const profileSchema = z.object({
@@ -67,8 +68,9 @@ export default function StudentSettings() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50">
+      <AuthenticatedNavigation />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <Link to="/student/dashboard" className="inline-flex items-center text-primary hover:text-primary mb-4">

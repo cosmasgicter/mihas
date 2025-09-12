@@ -6,9 +6,12 @@ import { Button } from '@/components/ui/Button'
 import { AnimatedCard } from '@/components/ui/AnimatedCard'
 import { TypewriterText } from '@/components/ui/TypewriterText'
 import { FloatingElements, GeometricPatterns } from '@/components/ui/FloatingElements'
+import { MobileNavigation } from '@/components/ui/MobileNavigation'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { GraduationCap, Users, Award, BookOpen, Star, ArrowRight, CheckCircle } from 'lucide-react'
 
 export default function LandingPageNew() {
+  const isMobile = useIsMobile()
   const [heroRef, heroInView] = useInView({ threshold: 0.3, triggerOnce: true })
   const [statsRef, statsInView] = useInView({ threshold: 0.3, triggerOnce: true })
 
@@ -94,53 +97,7 @@ export default function LandingPageNew() {
         transition={{ duration: 0.6, ease: [0.25, 0.25, 0, 1] }}
       >
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <motion.div
-              className="flex items-center space-x-2"
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <motion.div
-                animate={{ rotate: [0, 360] }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              >
-                <GraduationCap className="h-8 w-8 text-primary" />
-              </motion.div>
-              <span className="text-xl font-bold gradient-text">MIHAS-KATC</span>
-            </motion.div>
-            <motion.div
-              className="flex space-x-4"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              <motion.div variants={itemVariants}>
-                <Link to="/track-application">
-                  <Button 
-                    variant="outline" 
-                    size="md" 
-                    className="text-white border-2 border-white/50 hover:bg-white hover:text-primary font-semibold backdrop-blur-sm bg-white/10 transition-all duration-300 hover:scale-105"
-                  >
-                    Track Application
-                  </Button>
-                </Link>
-              </motion.div>
-              <motion.div variants={itemVariants}>
-                <Link to="/auth/signin">
-                  <Button variant="gradient" size="md" magnetic className="bg-gradient-to-r from-white/20 to-white/30 border border-white/50 text-white hover:from-white hover:to-white hover:text-primary font-semibold backdrop-blur-sm">
-                    Sign In
-                  </Button>
-                </Link>
-              </motion.div>
-              <motion.div variants={itemVariants}>
-                <Link to="/auth/signup">
-                  <Button variant="gradient" size="md" magnetic glow className="font-semibold">
-                    Apply Now
-                  </Button>
-                </Link>
-              </motion.div>
-            </motion.div>
-          </div>
+          <MobileNavigation />
         </nav>
       </motion.header>
 
@@ -177,7 +134,7 @@ export default function LandingPageNew() {
           
           <motion.div
             variants={itemVariants}
-            className="flex flex-col sm:flex-row gap-6 justify-center items-center"
+            className={`flex ${isMobile ? 'flex-col' : 'flex-col sm:flex-row'} gap-6 justify-center items-center`}
           >
             <Link to="/auth/signup">
               <Button variant="gradient" size="xl" magnetic glow>
@@ -224,7 +181,7 @@ export default function LandingPageNew() {
           initial="hidden"
           animate={statsInView ? "visible" : "hidden"}
         >
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className={`grid ${isMobile ? 'grid-cols-2 gap-4' : 'grid-cols-2 md:grid-cols-4 gap-8'}`}>
             {stats.map((stat, index) => (
               <motion.div
                 key={index}
@@ -266,7 +223,7 @@ export default function LandingPageNew() {
             </p>
           </motion.div>
           
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className={`grid ${isMobile ? 'grid-cols-1 gap-6' : 'md:grid-cols-3 gap-8'}`}>
             {features.map((feature, index) => (
               <AnimatedCard
                 key={index}
@@ -311,7 +268,7 @@ export default function LandingPageNew() {
             </p>
           </motion.div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8'}`}>
             <motion.div
               className="bg-white rounded-lg shadow-lg p-6 text-center border border-gray-100"
               initial={{ opacity: 0, y: 30 }}
@@ -321,9 +278,10 @@ export default function LandingPageNew() {
               whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
             >
               <img
-                src="https://nmcz.org.zm/wp-content/uploads/2021/03/NMCZ-LOGO.png"
-                alt="NMCZ Logo"
+                src="/images/accreditation/nmcz-logo.svg"
+                alt="Nursing and Midwifery Council of Zambia (NMCZ) official accreditation logo"
                 className="h-16 mx-auto mb-4 object-contain"
+                loading="lazy"
               />
               <h3 className="text-xl font-bold text-gray-900 mb-2">NMCZ Accredited</h3>
               <p className="text-gray-600 text-sm mb-3">
@@ -343,9 +301,10 @@ export default function LandingPageNew() {
               whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
             >
               <img
-                src="https://hpcz.org.zm/wp-content/uploads/2020/11/hpcz-logo.png"
-                alt="HPCZ Logo"
+                src="/images/accreditation/hpcz-logo.svg"
+                alt="Health Professions Council of Zambia (HPCZ) official accreditation logo"
                 className="h-16 mx-auto mb-4 object-contain"
+                loading="lazy"
               />
               <h3 className="text-xl font-bold text-gray-900 mb-2">HPCZ Accredited</h3>
               <p className="text-gray-600 text-sm mb-3">
@@ -365,9 +324,10 @@ export default function LandingPageNew() {
               whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
             >
               <img
-                src="https://ecz.org.zm/wp-content/uploads/2021/04/ECZ-Logo.png"
-                alt="ECZ Logo"
+                src="/images/accreditation/ecz-logo.svg"
+                alt="Examinations Council of Zambia (ECZ) official certification logo"
                 className="h-16 mx-auto mb-4 object-contain"
+                loading="lazy"
               />
               <h3 className="text-xl font-bold text-gray-900 mb-2">ECZ Recognized</h3>
               <p className="text-gray-600 text-sm mb-3">
@@ -387,9 +347,10 @@ export default function LandingPageNew() {
               whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
             >
               <img
-                src="https://www.unza.zm/images/unza-logo.png"
-                alt="UNZA Logo"
+                src="/images/accreditation/unza-logo.svg"
+                alt="University of Zambia (UNZA) official affiliation logo"
                 className="h-16 mx-auto mb-4 object-contain"
+                loading="lazy"
               />
               <h3 className="text-xl font-bold text-gray-900 mb-2">UNZA Affiliated</h3>
               <p className="text-gray-600 text-sm mb-3">
@@ -422,7 +383,7 @@ export default function LandingPageNew() {
             </p>
           </motion.div>
           
-          <div className="grid md:grid-cols-2 gap-12">
+          <div className={`grid ${isMobile ? 'grid-cols-1 gap-8' : 'md:grid-cols-2 gap-12'}`}>
             {programs.map((program, index) => (
               <AnimatedCard
                 key={index}
@@ -434,8 +395,9 @@ export default function LandingPageNew() {
                 <div className="relative">
                   <motion.img
                     src={program.image}
-                    alt={`${program.institution} facility`}
+                    alt={`${program.institution} campus facility and learning environment`}
                     className="w-full h-48 object-cover rounded-lg mb-6"
+                    loading="lazy"
                     whileHover={{ scale: 1.05 }}
                     transition={{ duration: 0.3 }}
                   />

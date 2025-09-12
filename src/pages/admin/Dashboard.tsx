@@ -3,6 +3,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Button } from '@/components/ui/Button'
+import { AdminNavigation } from '@/components/ui/AdminNavigation'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { 
   Users, 
   FileText, 
@@ -12,7 +14,6 @@ import {
   GraduationCap,
   Calendar,
   Settings,
-  LogOut,
   TrendingUp,
   AlertTriangle
 } from 'lucide-react'
@@ -29,6 +30,7 @@ interface DashboardStats {
 }
 
 export default function AdminDashboard() {
+  const isMobile = useIsMobile()
   const { user, profile, signOut } = useAuth()
   const [stats, setStats] = useState<DashboardStats>({
     totalApplications: 0,
@@ -50,26 +52,22 @@ export default function AdminDashboard() {
     try {
       setLoading(true)
       
-      // Get all stats directly from database
-      const [applicationsResponse, programsResponse, intakesResponse, profilesResponse] = await Promise.all([
-        supabase.from('applications').select('status', { count: 'exact' }),
-        supabase.from('programs').select('count', { count: 'exact' }).eq('is_active', true),
-        supabase.from('intakes').select('count', { count: 'exact' }).eq('is_active', true),
-        supabase.from('user_profiles').select('count', { count: 'exact' }).eq('role', 'student')
+      // Get all stats directly from database using count queries
+      const [totalAppsResponse, pendingResponse, approvedResponse, rejectedResponse, programsResponse, intakesResponse, profilesResponse] = await Promise.all([
+        supabase.from('applications').select('*', { count: 'exact', head: true }),
+        supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+        supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
+        supabase.from('programs').select('*', { count: 'exact', head: true }).eq('is_active', true),
+        supabase.from('intakes').select('*', { count: 'exact', head: true }).eq('is_active', true),
+        supabase.from('user_profiles').select('*', { count: 'exact', head: true }).eq('role', 'student')
       ])
 
-      // Calculate application stats
-      const applications = applicationsResponse.data || []
-      const totalApplications = applications.length
-      const pendingApplications = applications.filter(app => app.status === 'pending').length
-      const approvedApplications = applications.filter(app => app.status === 'approved').length
-      const rejectedApplications = applications.filter(app => app.status === 'rejected').length
-
       setStats({
-        totalApplications,
-        pendingApplications,
-        approvedApplications,
-        rejectedApplications,
+        totalApplications: totalAppsResponse.count || 0,
+        pendingApplications: pendingResponse.count || 0,
+        approvedApplications: approvedResponse.count || 0,
+        rejectedApplications: rejectedResponse.count || 0,
         totalPrograms: programsResponse.count || 0,
         activeIntakes: intakesResponse.count || 0,
         totalStudents: profilesResponse.count || 0
@@ -150,37 +148,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                  <Settings className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-lg font-semibold text-secondary">
-                    Admin Dashboard
-                  </h1>
-                  <p className="text-sm text-secondary">
-                    Welcome back, {profile?.full_name}
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-secondary capitalize">
-                Role: {profile?.role?.replace('_', ' ')}
-              </span>
-              <Button variant="outline" size="sm" onClick={signOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AdminNavigation />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
@@ -190,7 +158,7 @@ export default function AdminDashboard() {
         )}
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'} mb-8`}>
           {statCards.map((stat, index) => {
             const Icon = stat.icon
             return (
@@ -214,16 +182,16 @@ export default function AdminDashboard() {
           })}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className={`grid ${isMobile ? 'grid-cols-1 gap-6' : 'grid-cols-1 lg:grid-cols-3 gap-8'}`}>
           {/* Quick Actions */}
-          <div className="lg:col-span-2">
+          <div className={isMobile ? '' : 'lg:col-span-2'}>
             <div className="bg-white rounded-lg shadow">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-medium text-secondary">Quick Actions</h3>
               </div>
               
               <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 gap-4'}`}>
                   <Link to="/admin/applications">
                     <Button className="w-full h-24 flex flex-col items-center justify-center space-y-2">
                       <FileText className="h-6 w-6" />

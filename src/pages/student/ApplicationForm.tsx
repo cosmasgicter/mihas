@@ -2,139 +2,17 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase, Program, Intake } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { TextArea } from '@/components/ui/TextArea'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { AuthenticatedNavigation } from '@/components/ui/AuthenticatedNavigation'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { ArrowLeft, Upload, X, FileText, CheckCircle, ArrowRight, CreditCard, Phone, Save } from 'lucide-react'
 import { Link } from 'react-router-dom'
-
-const DEFAULT_PROGRAMS: Program[] = [
-  {
-    id: 'diploma-clinical-medicine',
-    name: 'Diploma in Clinical Medicine',
-    description: 'HPCZ Accredited - Prepares students for clinical officer practice',
-    duration_years: 3,
-    is_active: true,
-    created_at: '',
-    updated_at: ''
-  },
-  {
-    id: 'diploma-environmental-health',
-    name: 'Diploma in Environmental Health',
-    description: 'ECZ Accredited - Environmental health and safety specialization',
-    duration_years: 3,
-    is_active: true,
-    created_at: '',
-    updated_at: ''
-  },
-  {
-    id: 'diploma-registered-nursing',
-    name: 'Diploma in Registered Nursing',
-    description: 'NMCZ Accredited - Professional nursing practice preparation',
-    duration_years: 3,
-    is_active: true,
-    created_at: '',
-    updated_at: ''
-  }
-]
-
-const DEFAULT_INTAKES = [
-  {
-    id: 'january-2026',
-    name: 'January 2026 Intake',
-    year: 2026,
-    semester: 'First Semester',
-    start_date: '2026-01-15',
-    end_date: '2026-06-30',
-    application_deadline: '2025-12-15',
-    total_capacity: 200,
-    available_spots: 200,
-    is_active: true,
-    created_at: '',
-    updated_at: ''
-  },
-  {
-    id: 'july-2026',
-    name: 'July 2026 Intake',
-    year: 2026,
-    semester: 'Second Semester',
-    start_date: '2026-07-15',
-    end_date: '2026-12-31',
-    application_deadline: '2026-06-15',
-    total_capacity: 200,
-    available_spots: 200,
-    is_active: true,
-    created_at: '',
-    updated_at: ''
-  }
-]
-
-const applicationSchema = z.object({
-  program_id: z.string().min(1, 'Please select a program'),
-  intake_id: z.string().min(1, 'Please select an intake'),
-  nrc_number: z.string().optional(),
-  passport_number: z.string().optional(),
-  date_of_birth: z.string().min(1, 'Date of birth is required'),
-  gender: z.enum(['Male', 'Female'], { required_error: 'Please select gender' }),
-  marital_status: z.enum(['Single', 'Married', 'Divorced', 'Widowed'], { required_error: 'Please select marital status' }),
-  nationality: z.string().min(1, 'Nationality is required'),
-  province: z.string().min(1, 'Province is required'),
-  district: z.string().min(1, 'District is required'),
-  postal_address: z.string().optional(),
-  physical_address: z.string().min(5, 'Physical address is required'),
-  guardian_name: z.string().optional(),
-  guardian_phone: z.string().optional(),
-  guardian_relationship: z.string().optional(),
-  medical_conditions: z.string().optional(),
-  disabilities: z.string().optional(),
-  criminal_record: z.boolean(),
-  criminal_record_details: z.string().optional(),
-  professional_registration_number: z.string().optional(),
-  professional_body: z.string().optional(),
-  employment_status: z.enum(['Unemployed', 'Employed', 'Self-employed', 'Student'], { required_error: 'Please select employment status' }),
-  employer_name: z.string().optional(),
-  employer_address: z.string().optional(),
-  years_of_experience: z.number().min(0).optional(),
-  previous_education: z.string().min(10, 'Please provide your educational background'),
-  grades_or_gpa: z.string().min(1, 'Please provide your grades/GPA'),
-  motivation_letter: z.string().min(50, 'Please share your motivation (minimum 50 characters)'),
-  career_goals: z.string().min(20, 'Please describe your career goals (minimum 20 characters)'),
-  english_proficiency: z.enum(['Basic', 'Intermediate', 'Advanced', 'Fluent'], {
-    required_error: 'Please select your English proficiency level'
-  }),
-  computer_skills: z.enum(['Basic', 'Intermediate', 'Advanced'], {
-    required_error: 'Please select your computer skills level'
-  }),
-  references: z.string().min(20, 'Please provide at least one reference'),
-  financial_sponsor: z.string().min(1, 'Please specify who will sponsor your studies'),
-  sponsor_relationship: z.string().optional(),
-  additional_info: z.string().optional(),
-  payment_method: z.enum(['pay_now', 'pay_later'], { required_error: 'Please select payment option' }),
-  payment_reference: z.string().optional(),
-  declaration: z.boolean().refine(val => val === true, {
-    message: 'You must accept the declaration to proceed'
-  }),
-  information_accuracy: z.boolean().refine(val => val === true, {
-    message: 'You must confirm the accuracy of information provided'
-  }),
-  professional_conduct: z.boolean().refine(val => val === true, {
-    message: 'You must agree to professional conduct standards'
-  })
-})
-
-type ApplicationForm = z.infer<typeof applicationSchema>
-
-interface UploadedFile {
-  id: string
-  name: string
-  size: number
-  type: string
-  url?: string
-}
+import { DEFAULT_PROGRAMS, DEFAULT_INTAKES, applicationSchema, ApplicationFormData, UploadedFile } from '@/forms/applicationSchema'
 
 interface StepValidation {
   isValid: boolean
@@ -142,6 +20,7 @@ interface StepValidation {
 }
 
 export default function ApplicationForm() {
+  const isMobile = useIsMobile()
   const navigate = useNavigate()
   const { user, profile } = useAuth()
   const [loading, setLoading] = useState(false)
@@ -181,7 +60,7 @@ export default function ApplicationForm() {
     trigger,
     getValues,
     formState: { errors },
-  } = useForm<ApplicationForm>({
+  } = useForm<ApplicationFormData>({
     resolver: zodResolver(applicationSchema),
     mode: 'onChange'
   })
@@ -263,7 +142,7 @@ export default function ApplicationForm() {
         // Restore form data
         Object.keys(draftData).forEach(key => {
           if (key !== 'currentStep' && key !== 'savedAt' && key !== 'uploadedFiles') {
-            setValue(key as keyof ApplicationForm, draftData[key])
+            setValue(key as keyof ApplicationFormData, draftData[key])
           }
         })
         
@@ -299,7 +178,7 @@ export default function ApplicationForm() {
     }))
   }
 
-  const getStepFields = (step: number): (keyof ApplicationForm)[] => {
+  const getStepFields = (step: number): (keyof ApplicationFormData)[] => {
     switch (step) {
       case 1: return ['program_id', 'intake_id']
       case 2: return ['date_of_birth', 'gender', 'marital_status', 'nationality', 'province', 'district', 'physical_address']
@@ -500,7 +379,7 @@ export default function ApplicationForm() {
     }
   }
 
-  const onSubmit = async (data: ApplicationForm) => {
+  const onSubmit = async (data: ApplicationFormData) => {
     try {
       setLoading(true)
       setError('')
@@ -625,8 +504,9 @@ export default function ApplicationForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50">
+      <AuthenticatedNavigation />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <Link to="/student/dashboard" className="inline-flex items-center text-primary hover:text-primary mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />

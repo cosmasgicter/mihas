@@ -4,20 +4,20 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase, Application, Program, Intake } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { AuthenticatedNavigation } from '@/components/ui/AuthenticatedNavigation'
 import { formatDate, getStatusColor } from '@/lib/utils'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { 
   User, 
   FileText, 
   Clock, 
   CheckCircle, 
   XCircle, 
-  Plus,
-  LogOut,
-  Bell,
-  Settings
+  Plus
 } from 'lucide-react'
 
 export default function StudentDashboard() {
+  const isMobile = useIsMobile()
   const { user, profile, signOut } = useAuth()
   const [applications, setApplications] = useState<Application[]>([])
   const [programs, setPrograms] = useState<Program[]>([])
@@ -98,40 +98,7 @@ export default function StudentDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                  <User className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-lg font-semibold text-secondary">
-                    Welcome, {profile?.full_name || 'Student'}
-                  </h1>
-                  <p className="text-sm text-secondary">{profile?.email}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm">
-                <Bell className="h-4 w-4" />
-              </Button>
-              <Link to="/settings">
-                <Button variant="ghost" size="sm">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Button variant="outline" size="sm" onClick={signOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AuthenticatedNavigation />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
@@ -162,9 +129,9 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className={`grid ${isMobile ? 'grid-cols-1 gap-6' : 'grid-cols-1 lg:grid-cols-3 gap-8'}`}>
           {/* Applications List */}
-          <div className="lg:col-span-2">
+          <div className={isMobile ? '' : 'lg:col-span-2'}>
             <div className="bg-white rounded-lg shadow">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-medium text-secondary">My Applications</h3>

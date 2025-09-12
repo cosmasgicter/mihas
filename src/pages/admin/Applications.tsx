@@ -5,6 +5,7 @@ import { supabase, Application, Program, Intake } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { formatDate, getStatusColor } from '@/lib/utils'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { 
   ArrowLeft, 
   FileText, 
@@ -17,7 +18,9 @@ import {
   Clock,
   AlertTriangle,
   Download,
-  MessageSquare
+  MessageSquare,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 
 interface ApplicationWithDetails extends Application {
@@ -37,64 +40,74 @@ interface ApplicationWithDetails extends Application {
   postal_address?: string
 }
 
+const PAGE_SIZE = 20
+
 export default function AdminApplications() {
   const { user, profile } = useAuth()
-  const [applications, setApplications] = useState<ApplicationWithDetails[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
   const [updating, setUpdating] = useState<string | null>(null)
-  const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [currentPage, setCurrentPage] = useState(0)
   const [selectedApplication, setSelectedApplication] = useState<ApplicationWithDetails | null>(null)
   const [showDetails, setShowDetails] = useState(false)
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
   const [feedbackText, setFeedbackText] = useState('')
   const [feedbackLoading, setFeedbackLoading] = useState(false)
 
-  useEffect(() => {
-    loadApplications()
-  }, [])
+  const fetchApplications = async (page: number, status: string, search: string) => {
+    const start = page * PAGE_SIZE
+    const end = start + PAGE_SIZE - 1
+    
+    let query = supabase
+      .from('applications')
+      .select(`
+        *,
+        user_profiles!inner(full_name, email, phone),
+        programs(name, duration_years),
+        intakes(name, year)
+      `, { count: 'exact' })
+      .range(start, end)
+      .order('created_at', { ascending: false })
 
-  const loadApplications = async () => {
-    try {
-      setLoading(true)
-      
-      const { data, error } = await supabase
-        .from('applications')
-        .select(`
-          *,
-          user_profiles!inner(full_name, email, phone),
-          programs(name, duration_years),
-          intakes(name, year),
-          documents(count)
-        `)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-
-      // Count documents for each application
-      const applicationsWithCounts = await Promise.all(
-        (data || []).map(async (app) => {
-          const { count } = await supabase
-            .from('documents')
-            .select('*', { count: 'exact', head: true })
-            .eq('application_id', app.id)
-          
-          return {
-            ...app,
-            document_count: count || 0
-          }
-        })
-      )
-
-      setApplications(applicationsWithCounts)
-    } catch (error: any) {
-      console.error('Error loading applications:', error)
-      setError(error.message)
-    } finally {
-      setLoading(false)
+    if (status !== 'all') {
+      query = query.eq('status', status)
     }
+
+    if (search) {
+      query = query.or(`user_profiles.full_name.ilike.%${search}%,user_profiles.email.ilike.%${search}%,application_number.ilike.%${search}%`)
+    }
+
+    const { data, error, count } = await query
+    if (error) throw error
+
+    // Get document counts for this page
+    const applicationsWithCounts = await Promise.all(
+      (data || []).map(async (app) => {
+        const { count } = await supabase
+          .from('documents')
+          .select('*', { count: 'exact', head: true })
+          .eq('application_id', app.id)
+        
+        return {
+          ...app,
+          document_count: count || 0
+        }
+      })
+    )
+
+    return { applications: applicationsWithCounts, totalCount: count || 0 }
   }
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['applications', currentPage, statusFilter, searchTerm],
+    queryFn: () => fetchApplications(currentPage, statusFilter, searchTerm),
+    staleTime: 30000, // 30 seconds
+  })
+
+  const applications = data?.applications || []
+  const totalCount = data?.totalCount || 0
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
 
   const updateApplicationStatus = async (applicationId: string, newStatus: string, feedback?: string) => {
     try {
@@ -120,14 +133,8 @@ export default function AdminApplications() {
 
       if (error) throw error
 
-      // Update local state
-      setApplications(prev => 
-        prev.map(app => 
-          app.id === applicationId 
-            ? { ...app, status: newStatus as Application['status'], updated_at: new Date().toISOString() }
-            : app
-        )
-      )
+      // Invalidate and refetch applications
+      queryClient.invalidateQueries({ queryKey: ['applications'] })
 
       // Create status history record
       await supabase
@@ -141,7 +148,6 @@ export default function AdminApplications() {
       
     } catch (error: any) {
       console.error('Error updating application status:', error)
-      setError(error.message)
     } finally {
       setUpdating(null)
     }
@@ -165,21 +171,14 @@ export default function AdminApplications() {
 
       if (error) throw error
 
-      // Update local state
-      setApplications(prev => 
-        prev.map(app => 
-          app.id === selectedApplication.id 
-            ? { ...app, updated_at: new Date().toISOString() }
-            : app
-        )
-      )
+      // Invalidate and refetch applications
+      queryClient.invalidateQueries({ queryKey: ['applications'] })
 
       setShowFeedbackModal(false)
       setFeedbackText('')
       
     } catch (error: any) {
       console.error('Error submitting feedback:', error)
-      setError(error.message)
     } finally {
       setFeedbackLoading(false)
     }
@@ -200,31 +199,20 @@ export default function AdminApplications() {
     }
   }
 
-  const filteredApplications = applications.filter(app => {
-    const matchesSearch = 
-      app.user_profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.user_profiles?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.application_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.programs?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesStatus = statusFilter === 'all' || app.status === statusFilter
-    
-    return matchesSearch && matchesStatus
-  })
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(0)
+  }, [searchTerm, statusFilter])
 
-  const getStatusCounts = () => {
-    return {
-      all: applications.length,
-      submitted: applications.filter(app => app.status === 'submitted').length,
-      under_review: applications.filter(app => app.status === 'under_review').length,
-      approved: applications.filter(app => app.status === 'approved').length,
-      rejected: applications.filter(app => app.status === 'rejected').length
-    }
+  const handleSearch = (value: string) => {
+    setSearchTerm(value)
   }
 
-  const statusCounts = getStatusCounts()
+  const handleStatusFilter = (value: string) => {
+    setStatusFilter(value)
+  }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" />
@@ -253,7 +241,7 @@ export default function AdminApplications() {
               </div>
             </div>
             <div className="text-sm text-secondary">
-              {filteredApplications.length} of {applications.length} applications
+              {totalCount} total applications
             </div>
           </div>
         </div>
@@ -262,7 +250,7 @@ export default function AdminApplications() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
           <div className="rounded-md bg-red-50 p-4 mb-6">
-            <div className="text-sm text-red-700">{error}</div>
+            <div className="text-sm text-red-700">{error.message}</div>
           </div>
         )}
 
@@ -277,7 +265,7 @@ export default function AdminApplications() {
                   type="text"
                   placeholder="Search applications..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleSearch(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
               </div>
@@ -287,14 +275,14 @@ export default function AdminApplications() {
             <div className="sm:w-48">
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => handleStatusFilter(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
               >
-                <option value="all">All Status ({statusCounts.all})</option>
-                <option value="submitted">Submitted ({statusCounts.submitted})</option>
-                <option value="under_review">Under Review ({statusCounts.under_review})</option>
-                <option value="approved">Approved ({statusCounts.approved})</option>
-                <option value="rejected">Rejected ({statusCounts.rejected})</option>
+                <option value="all">All Status</option>
+                <option value="submitted">Submitted</option>
+                <option value="under_review">Under Review</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
               </select>
             </div>
           </div>
@@ -302,7 +290,7 @@ export default function AdminApplications() {
 
         {/* Applications List */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
-          {filteredApplications.length === 0 ? (
+          {applications.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="h-12 w-12 text-secondary mx-auto mb-4" />
               <h3 className="text-lg font-medium text-secondary mb-2">
@@ -341,7 +329,7 @@ export default function AdminApplications() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredApplications.map((application) => (
+                  {applications.map((application) => (
                     <tr key={application.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
@@ -444,6 +432,38 @@ export default function AdminApplications() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+              <div className="text-sm text-secondary">
+                Showing {currentPage * PAGE_SIZE + 1} to {Math.min((currentPage + 1) * PAGE_SIZE, totalCount)} of {totalCount} applications
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                  disabled={currentPage === 0}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <span className="text-sm text-secondary">
+                  Page {currentPage + 1} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                  disabled={currentPage >= totalPages - 1}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
         </div>
