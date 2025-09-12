@@ -13,7 +13,12 @@
     "type-check": "tsc --noEmit",
     "security-audit": "npm audit --audit-level moderate",
     "install-deps": "npm install",
-    "clean": "rm -rf node_modules package-lock.json"
+    "clean": "rm -rf node_modules package-lock.json",
+    "setup-storage": "node setup-storage-fixed.js",
+    "test-storage": "node test-storage.js",
+    "storage:setup": "node setup-storage-fixed.js",
+    "storage:test": "node test-storage.js",
+    "storage:validate": "node test-storage.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

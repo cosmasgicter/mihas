@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
@@ -44,69 +44,69 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const loadDashboardStats = useCallback(async () => {
-    try {
-      setLoading(true)
-      
-      // Try to get stats with optimized queries, fallback to individual queries if needed
-      try {
-        // Attempt to use a more efficient approach with fewer queries
-        const [appsResponse, programsResponse, intakesResponse, profilesResponse] = await Promise.all([
-          supabase.from('applications').select('status', { count: 'exact' }),
-          supabase.from('programs').select('*', { count: 'exact', head: true }).eq('is_active', true),
-          supabase.from('intakes').select('*', { count: 'exact', head: true }).eq('is_active', true),
-          supabase.from('user_profiles').select('*', { count: 'exact', head: true }).eq('role', 'student')
-        ])
-
-        // Count applications by status from the single query
-        const applications = appsResponse.data || []
-        const statusCounts = applications.reduce((acc, app) => {
-          acc[app.status] = (acc[app.status] || 0) + 1
-          return acc
-        }, {} as Record<string, number>)
-
-        setStats({
-          totalApplications: applications.length,
-          pendingApplications: statusCounts.pending || 0,
-          approvedApplications: statusCounts.approved || 0,
-          rejectedApplications: statusCounts.rejected || 0,
-          totalPrograms: programsResponse.count || 0,
-          activeIntakes: intakesResponse.count || 0,
-          totalStudents: profilesResponse.count || 0
-        })
-      } catch (optimizedError) {
-        // Fallback to original approach if optimized version fails
-        const [totalAppsResponse, pendingResponse, approvedResponse, rejectedResponse, programsResponse, intakesResponse, profilesResponse] = await Promise.all([
-          supabase.from('applications').select('*', { count: 'exact', head: true }),
-          supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-          supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
-          supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
-          supabase.from('programs').select('*', { count: 'exact', head: true }).eq('is_active', true),
-          supabase.from('intakes').select('*', { count: 'exact', head: true }).eq('is_active', true),
-          supabase.from('user_profiles').select('*', { count: 'exact', head: true }).eq('role', 'student')
-        ])
-
-        setStats({
-          totalApplications: totalAppsResponse.count || 0,
-          pendingApplications: pendingResponse.count || 0,
-          approvedApplications: approvedResponse.count || 0,
-          rejectedApplications: rejectedResponse.count || 0,
-          totalPrograms: programsResponse.count || 0,
-          activeIntakes: intakesResponse.count || 0,
-          totalStudents: profilesResponse.count || 0
-        })
-      }
-    } catch (error: any) {
-      console.error('Error loading dashboard stats:', error)
-      setError(error.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
   useEffect(() => {
+    const loadDashboardStats = async () => {
+      try {
+        setLoading(true)
+        
+        // Try to get stats with optimized queries, fallback to individual queries if needed
+        try {
+          // Attempt to use a more efficient approach with fewer queries
+          const [appsResponse, programsResponse, intakesResponse, profilesResponse] = await Promise.all([
+            supabase.from('applications').select('status', { count: 'exact' }),
+            supabase.from('programs').select('*', { count: 'exact', head: true }).eq('is_active', true),
+            supabase.from('intakes').select('*', { count: 'exact', head: true }).eq('is_active', true),
+            supabase.from('user_profiles').select('*', { count: 'exact', head: true }).eq('role', 'student')
+          ])
+
+          // Count applications by status from the single query
+          const applications = appsResponse.data || []
+          const statusCounts = applications.reduce((acc, app) => {
+            acc[app.status] = (acc[app.status] || 0) + 1
+            return acc
+          }, {} as Record<string, number>)
+
+          setStats({
+            totalApplications: applications.length,
+            pendingApplications: statusCounts.pending || 0,
+            approvedApplications: statusCounts.approved || 0,
+            rejectedApplications: statusCounts.rejected || 0,
+            totalPrograms: programsResponse.count || 0,
+            activeIntakes: intakesResponse.count || 0,
+            totalStudents: profilesResponse.count || 0
+          })
+        } catch (optimizedError) {
+          // Fallback to original approach if optimized version fails
+          const [totalAppsResponse, pendingResponse, approvedResponse, rejectedResponse, programsResponse, intakesResponse, profilesResponse] = await Promise.all([
+            supabase.from('applications').select('*', { count: 'exact', head: true }),
+            supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+            supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+            supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
+            supabase.from('programs').select('*', { count: 'exact', head: true }).eq('is_active', true),
+            supabase.from('intakes').select('*', { count: 'exact', head: true }).eq('is_active', true),
+            supabase.from('user_profiles').select('*', { count: 'exact', head: true }).eq('role', 'student')
+          ])
+
+          setStats({
+            totalApplications: totalAppsResponse.count || 0,
+            pendingApplications: pendingResponse.count || 0,
+            approvedApplications: approvedResponse.count || 0,
+            rejectedApplications: rejectedResponse.count || 0,
+            totalPrograms: programsResponse.count || 0,
+            activeIntakes: intakesResponse.count || 0,
+            totalStudents: profilesResponse.count || 0
+          })
+        }
+      } catch (error: any) {
+        console.error('Error loading dashboard stats:', error)
+        setError(error.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
     loadDashboardStats()
-  }, [loadDashboardStats])
+  }, [])
 
   if (loading) {
     return (

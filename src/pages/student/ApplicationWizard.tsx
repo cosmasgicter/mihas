@@ -8,13 +8,11 @@ import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { ArrowLeft, CheckCircle, ArrowRight, Upload, X, Sparkles, FileText, CreditCard, Send } from 'lucide-react'
+import { ArrowLeft, CheckCircle, ArrowRight, X, Sparkles, FileText, CreditCard, Send } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 
-// Wizard form schema
 const wizardSchema = z.object({
-  // Step 1: Basic KYC
   full_name: z.string().min(2, 'Full name is required'),
   nrc_number: z.string().optional(),
   passport_number: z.string().optional(),
@@ -29,8 +27,6 @@ const wizardSchema = z.object({
     required_error: 'Please select a program' 
   }),
   intake: z.string().min(1, 'Please select an intake'),
-  
-  // Step 3: Payment
   payment_method: z.string().optional(),
   payer_name: z.string().optional(),
   payer_phone: z.string().optional(),
@@ -66,7 +62,6 @@ export default function ApplicationWizard() {
   const [success, setSuccess] = useState(false)
   const [applicationId, setApplicationId] = useState<string | null>(null)
   
-  // Step 2: Education
   const [subjects, setSubjects] = useState<Grade12Subject[]>([])
   const [selectedGrades, setSelectedGrades] = useState<SubjectGrade[]>([])
   const [resultSlipFile, setResultSlipFile] = useState<File | null>(null)
@@ -74,15 +69,11 @@ export default function ApplicationWizard() {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<{[key: string]: number}>({})
   const [uploadedFiles, setUploadedFiles] = useState<{[key: string]: boolean}>({})
-  
-  // Step 3: Payment
   const [popFile, setPopFile] = useState<File | null>(null)
   
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<WizardFormData>({
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<WizardFormData>({
     resolver: zodResolver(wizardSchema),
-    defaultValues: {
-      amount: 150
-    }
+    defaultValues: { amount: 150 }
   })
 
   const selectedProgram = watch('program')
@@ -96,14 +87,6 @@ export default function ApplicationWizard() {
   useEffect(() => {
     loadSubjects()
   }, [])
-
-  useEffect(() => {
-    // Auto-derive institution and set payment target
-    if (selectedProgram) {
-      const isKATC = ['Clinical Medicine', 'Environmental Health'].includes(selectedProgram)
-      // This info will be shown in payment step
-    }
-  }, [selectedProgram])
 
   const loadSubjects = async () => {
     try {
@@ -143,7 +126,6 @@ export default function ApplicationWizard() {
   const uploadFileWithProgress = async (file: File, path: string): Promise<string> => {
     const fileName = `applications/${user?.id}/${applicationId}/${path}/${Date.now()}-${file.name}`
     
-    // Simulate progress for better UX
     const progressInterval = setInterval(() => {
       setUploadProgress(prev => {
         const current = prev[path] || 0
@@ -155,25 +137,12 @@ export default function ApplicationWizard() {
     }, 200)
     
     try {
-      // First, ensure the bucket exists
-      const { data: buckets } = await supabase.storage.listBuckets()
-      const bucketExists = buckets?.some(bucket => bucket.name === 'application-documents')
-      
-      if (!bucketExists) {
-        const { error: createError } = await supabase.storage.createBucket('application-documents', {
-          public: false,
-          allowedMimeTypes: ['image/jpeg', 'image/png', 'application/pdf']
-        })
-        if (createError) throw new Error(`Failed to create storage bucket: ${createError.message}`)
-      }
-
       const { error: uploadError } = await supabase.storage
         .from('application-documents')
         .upload(fileName, file)
 
       if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`)
 
-      // Complete progress
       setUploadProgress(prev => ({ ...prev, [path]: 100 }))
       
       const { data: { publicUrl } } = supabase.storage
@@ -183,7 +152,6 @@ export default function ApplicationWizard() {
       return publicUrl
     } finally {
       clearInterval(progressInterval)
-      // Clear progress after 2 seconds
       setTimeout(() => {
         setUploadProgress(prev => {
           const newProgress = { ...prev }
@@ -196,7 +164,6 @@ export default function ApplicationWizard() {
 
   const nextStep = async () => {
     if (currentStep === 1) {
-      // Validate and save basic info
       const isValid = await handleSubmit(async (data) => {
         try {
           setLoading(true)
@@ -233,12 +200,10 @@ export default function ApplicationWizard() {
           setLoading(false)
         }
       })()
-      
       return
     }
     
     if (currentStep === 2) {
-      // Validate education step
       if (selectedGrades.length < 6) {
         setError('Minimum 6 subjects required')
         return
@@ -253,7 +218,6 @@ export default function ApplicationWizard() {
         setUploading(true)
         setError('')
         
-        // Upload files with progress tracking
         setUploadProgress({ result_slip: 0 })
         const resultSlipUrl = await uploadFileWithProgress(resultSlipFile, 'result_slip')
         setUploadedFiles(prev => ({ ...prev, result_slip: true }))
@@ -265,20 +229,22 @@ export default function ApplicationWizard() {
           setUploadedFiles(prev => ({ ...prev, extra_kyc: true }))
         }
         
-        // Save grades
+        // Save grades with duplicate prevention
         for (const grade of selectedGrades) {
           if (grade.subject_id) {
-            await supabase
+            const { error: gradeError } = await supabase
               .from('application_grades')
               .insert({
                 application_id: applicationId,
                 subject_id: grade.subject_id,
                 grade: grade.grade
               })
+            if (gradeError && !gradeError.message.includes('duplicate')) {
+              throw gradeError
+            }
           }
         }
         
-        // Update application with file URLs
         await supabase
           .from('applications_new')
           .update({
@@ -293,7 +259,6 @@ export default function ApplicationWizard() {
       } finally {
         setUploading(false)
       }
-      
       return
     }
     
@@ -318,12 +283,10 @@ export default function ApplicationWizard() {
       setLoading(true)
       setError('')
       
-      // Upload POP with progress
       setUploadProgress({ proof_of_payment: 0 })
       const popUrl = await uploadFileWithProgress(popFile, 'proof_of_payment')
       setUploadedFiles(prev => ({ ...prev, proof_of_payment: true }))
       
-      // Update application with payment info and submit
       await supabase
         .from('applications_new')
         .update({
@@ -988,7 +951,7 @@ export default function ApplicationWizard() {
             )}
           </AnimatePresence>
 
-          {/* Fancy Navigation */}
+          {/* Navigation */}
           <motion.div 
             className="flex justify-between items-center pt-6"
             initial={{ opacity: 0, y: 20 }}
