@@ -46,9 +46,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Auth state change:', event, session?.user?.email)
         setUser(session?.user || null)
         
-        if (session?.user && event === 'SIGNED_IN') {
-          // Delay profile loading to avoid schema issues
-          setTimeout(() => loadUserProfile(session.user.id), 500)
+        if (session?.user) {
+          // Only load profile after auth is fully established
+          if (event === 'SIGNED_IN') {
+            setTimeout(() => loadUserProfile(session.user.id), 2000)
+          }
         } else {
           setProfile(null)
         }
@@ -89,14 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signIn(email: string, password: string) {
-    const result = await supabase.auth.signInWithPassword({ email, password })
-    
-    // Load profile after successful sign in
-    if (result.data.user && !result.error) {
-      setTimeout(() => loadUserProfile(result.data.user.id), 1000)
-    }
-    
-    return result
+    return await supabase.auth.signInWithPassword({ email, password })
   }
 
   async function signUp(email: string, password: string, userData: any) {

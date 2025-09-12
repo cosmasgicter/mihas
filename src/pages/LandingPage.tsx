@@ -114,7 +114,7 @@ export default function LandingPageNew() {
             >
               <motion.div variants={itemVariants}>
                 <Link to="/auth/signin">
-                  <Button variant="outline" size="md" magnetic className="border-2 border-white text-white hover:bg-white hover:text-primary font-semibold">
+                  <Button variant="gradient" size="md" magnetic className="bg-gradient-to-r from-white/20 to-white/30 border border-white/50 text-white hover:from-white hover:to-white hover:text-primary font-semibold backdrop-blur-sm">
                     Sign In
                   </Button>
                 </Link>
