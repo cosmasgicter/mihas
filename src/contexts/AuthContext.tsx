@@ -93,7 +93,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }, {} as UserProfile)
         setProfile(sanitizedProfile)
       } else {
-        setProfile(null)
+        // Create profile if it doesn't exist
+        const { data: user } = await supabase.auth.getUser()
+        if (user.user) {
+          const newProfile = {
+            user_id: userId,
+            email: user.user.email || '',
+            full_name: user.user.user_metadata?.full_name || user.user.email?.split('@')[0] || 'Student',
+            role: 'student'
+          }
+          
+          const { data: createdProfile, error: createError } = await supabase
+            .from('user_profiles')
+            .insert(newProfile)
+            .select()
+            .single()
+            
+          if (!createError && createdProfile) {
+            setProfile(createdProfile)
+          } else {
+            setProfile(null)
+          }
+        } else {
+          setProfile(null)
+        }
       }
     } catch (error) {
       console.error('Error loading user profile:', error)

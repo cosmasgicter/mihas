@@ -203,8 +203,13 @@ export default function ApplicationForm() {
     }
     
     if (currentStep === 1) return watch('program_id') && watch('intake_id')
-    if (currentStep === 10 && watch('payment_method') === 'pay_now') {
-      return watch('payment_reference') && uploadedFiles.some(f => f.name.toLowerCase().includes('payment'))
+    if (currentStep === 10) {
+      const paymentMethod = watch('payment_method')
+      if (!paymentMethod) return false
+      if (paymentMethod === 'pay_now') {
+        return watch('payment_reference') && uploadedFiles.some(f => f.name.toLowerCase().includes('payment'))
+      }
+      return true
     }
     
     return true
@@ -291,7 +296,7 @@ export default function ApplicationForm() {
             }
             return { ...prev, [fileId]: current + 10 }
           })
-        }, 200)
+        }, 100)
         
         const { error: uploadError } = await supabase.storage
           .from('application-documents')
@@ -321,15 +326,16 @@ export default function ApplicationForm() {
             const { [fileId]: removed, ...rest } = prev
             return rest
           })
-        }, 2000)
+          setUploadingFiles(prev => prev.filter(id => id !== fileId))
+        }, 1000)
       } catch (error: any) {
         console.error('Error uploading file:', error)
-        setError(`Failed to upload file: Upload failed`)
+        setError(`Failed to upload ${file.name}: ${error.message || 'Upload failed'}`)
+        clearInterval(progressInterval)
         setUploadProgress(prev => {
           const { [fileId]: removed, ...rest } = prev
           return rest
         })
-      } finally {
         setUploadingFiles(prev => prev.filter(id => id !== fileId))
       }
     }
@@ -882,8 +888,10 @@ export default function ApplicationForm() {
                     <label className="flex items-center">
                       <input
                         type="radio"
-                        {...register('criminal_record')}
+                        name="criminal_record"
                         value="false"
+                        onChange={(e) => setValue('criminal_record', e.target.value === 'true')}
+                        checked={watch('criminal_record') === false}
                         className="mr-2"
                       />
                       No, I have no criminal record
@@ -891,8 +899,10 @@ export default function ApplicationForm() {
                     <label className="flex items-center">
                       <input
                         type="radio"
-                        {...register('criminal_record')}
+                        name="criminal_record"
                         value="true"
+                        onChange={(e) => setValue('criminal_record', e.target.value === 'true')}
+                        checked={watch('criminal_record') === true}
                         className="mr-2"
                       />
                       Yes, I have a criminal record

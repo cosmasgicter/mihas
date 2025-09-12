@@ -80,7 +80,7 @@ export const applicationSchema = z.object({
   guardian_relationship: z.string().optional(),
   medical_conditions: z.string().optional(),
   disabilities: z.string().optional(),
-  criminal_record: z.boolean(),
+  criminal_record: z.boolean({ required_error: 'Please select whether you have a criminal record' }),
   criminal_record_details: z.string().optional(),
   professional_registration_number: z.string().optional(),
   professional_body: z.string().optional(),
@@ -102,7 +102,7 @@ export const applicationSchema = z.object({
   financial_sponsor: z.string().min(1, 'Please specify who will sponsor your studies'),
   sponsor_relationship: z.string().optional(),
   additional_info: z.string().optional(),
-  payment_method: z.enum(['pay_now', 'pay_later'], { required_error: 'Please select payment option' }).optional(),
+  payment_method: z.enum(['pay_now', 'pay_later'], { required_error: 'Please select payment option' }),
   payment_reference: z.string().optional(),
   declaration: z.boolean().refine(val => val === true, {
     message: 'You must accept the declaration to proceed'
