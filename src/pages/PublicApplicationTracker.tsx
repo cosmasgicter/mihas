@@ -111,21 +111,21 @@ export default function PublicApplicationTracker() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
-      <header className="bg-white shadow">
+      <header className="bg-white/80 backdrop-blur-sm shadow-lg border-b border-white/20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+          <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-4">
-              <Link to="/" className="inline-flex items-center text-primary hover:text-primary">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Home
+              <Link to="/" className="inline-flex items-center text-primary hover:text-primary/80 transition-colors">
+                <ArrowLeft className="h-5 w-5 mr-2" />
+                <span className="font-medium">Back to Home</span>
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-secondary">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                   Track Your Application
                 </h1>
-                <p className="text-sm text-secondary">
+                <p className="text-lg text-secondary/80 mt-1">
                   Check the status of your application without logging in
                 </p>
               </div>
@@ -136,11 +136,11 @@ export default function PublicApplicationTracker() {
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search Section */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-lg font-semibold text-secondary mb-4">
-            Find Your Application
+        <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-xl border border-white/20 p-8 mb-8">
+          <h2 className="text-2xl font-bold text-secondary mb-4">
+            🔍 Find Your Application
           </h2>
-          <p className="text-sm text-secondary mb-6">
+          <p className="text-lg text-secondary/80 mb-8">
             Enter your application number (e.g., MIHAS123456) or tracking code to check your application status.
           </p>
           
@@ -151,51 +151,53 @@ export default function PublicApplicationTracker() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Enter application number or tracking code"
-                className="w-full"
+                className="w-full text-lg py-4 px-6 border-2 border-gray-200 focus:border-primary rounded-xl"
               />
             </div>
             <Button 
               onClick={searchApplication}
               loading={loading}
-              className="px-6"
+              className="px-8 py-4 text-lg font-semibold bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 rounded-xl shadow-lg"
             >
-              <Search className="h-4 w-4 mr-2" />
+              <Search className="h-5 w-5 mr-2" />
               Search
             </Button>
           </div>
           
           {error && (
-            <div className="mt-4 rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-700">{error}</div>
+            <div className="mt-6 rounded-xl bg-red-50 border border-red-200 p-6">
+              <div className="text-lg text-red-700 font-medium">{error}</div>
             </div>
           )}
         </div>
 
         {/* Application Status */}
         {application && (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-2xl border border-white/20 overflow-hidden">
             {/* Status Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
+            <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 p-8 text-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-2xl font-bold mb-2">
+                  <h3 className="text-3xl font-bold mb-3">
                     📋 Application #{application.application_number}
                   </h3>
-                  <p className="text-white/90 text-lg font-medium">
+                  <p className="text-white/95 text-xl font-semibold">
                     {application.program_name}
                   </p>
-                  <p className="text-white/80">
+                  <p className="text-white/85 text-lg mt-1">
                     📅 {application.intake_name}
                   </p>
                 </div>
                 <div className="text-right">
-                  <div className="flex items-center space-x-2 mb-2">
-                    {getStatusIcon(application.status)}
-                    <span className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-white font-bold text-lg">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="text-4xl">
+                      {getStatusIcon(application.status)}
+                    </div>
+                    <span className="bg-white/25 backdrop-blur-sm px-6 py-3 rounded-full text-white font-bold text-xl border border-white/30">
                       {application.status.replace('_', ' ').toUpperCase()}
                     </span>
                   </div>
-                  <p className="text-white/80">
+                  <p className="text-white/85 text-lg">
                     🕒 Last updated: {formatDate(application.updated_at)}
                   </p>
                 </div>
@@ -203,24 +205,24 @@ export default function PublicApplicationTracker() {
             </div>
 
             {/* Status Details */}
-            <div className="p-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="p-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Status */}
                 <div className="lg:col-span-2">
-                  <h4 className="text-lg font-medium text-secondary mb-4">
-                    Current Status
+                  <h4 className="text-2xl font-bold text-secondary mb-6">
+                    📊 Current Status
                   </h4>
                   
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6 mb-6">
-                    <div className="flex items-start space-x-4">
-                      <div className="text-3xl">
+                  <div className="bg-gradient-to-r from-blue-50 via-purple-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-8 mb-8 shadow-lg">
+                    <div className="flex items-start space-x-6">
+                      <div className="text-5xl">
                         {getStatusIcon(application.status)}
                       </div>
                       <div>
-                        <p className="font-bold text-xl text-secondary mb-2">
+                        <p className="font-bold text-2xl text-secondary mb-3">
                           {application.status.replace('_', ' ').toUpperCase()}
                         </p>
-                        <p className="text-secondary text-lg leading-relaxed">
+                        <p className="text-secondary text-xl leading-relaxed">
                           {getStatusMessage(application.status)}
                         </p>
                       </div>
@@ -229,15 +231,15 @@ export default function PublicApplicationTracker() {
 
                   {/* Admin Feedback */}
                   {application.admin_feedback && (
-                    <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-6">
-                      <h5 className="font-bold text-green-900 mb-3 text-lg flex items-center">
+                    <div className="bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 border-2 border-green-200 rounded-xl p-8 shadow-lg">
+                      <h5 className="font-bold text-green-900 mb-4 text-xl flex items-center">
                         💬 Feedback from Admissions Team
                       </h5>
-                      <p className="text-green-800 mb-3 text-lg leading-relaxed">
+                      <p className="text-green-800 mb-4 text-xl leading-relaxed">
                         {application.admin_feedback}
                       </p>
                       {application.admin_feedback_date && (
-                        <p className="text-green-600 font-medium">
+                        <p className="text-green-600 font-semibold text-lg">
                           📅 Provided on {formatDate(application.admin_feedback_date)}
                         </p>
                       )}
@@ -247,39 +249,39 @@ export default function PublicApplicationTracker() {
 
                 {/* Application Info */}
                 <div>
-                  <h4 className="text-lg font-medium text-secondary mb-4">
-                    Application Details
+                  <h4 className="text-2xl font-bold text-secondary mb-6">
+                    📋 Application Details
                   </h4>
                   
-                  <div className="space-y-4 text-sm">
-                    <div className="flex items-center space-x-3">
-                      <FileText className="h-4 w-4 text-secondary" />
+                  <div className="space-y-6 text-lg">
+                    <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                      <FileText className="h-6 w-6 text-primary" />
                       <div>
-                        <p className="font-medium text-secondary">Application Number</p>
-                        <p className="text-secondary">{application.application_number}</p>
+                        <p className="font-semibold text-secondary">Application Number</p>
+                        <p className="text-secondary font-mono">{application.application_number}</p>
                       </div>
                     </div>
                     
-                    <div className="flex items-center space-x-3">
-                      <User className="h-4 w-4 text-secondary" />
+                    <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                      <User className="h-6 w-6 text-primary" />
                       <div>
-                        <p className="font-medium text-secondary">Program</p>
+                        <p className="font-semibold text-secondary">Program</p>
                         <p className="text-secondary">{application.program_name}</p>
                       </div>
                     </div>
                     
-                    <div className="flex items-center space-x-3">
-                      <Calendar className="h-4 w-4 text-secondary" />
+                    <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                      <Calendar className="h-6 w-6 text-primary" />
                       <div>
-                        <p className="font-medium text-secondary">Intake</p>
+                        <p className="font-semibold text-secondary">Intake</p>
                         <p className="text-secondary">{application.intake_name}</p>
                       </div>
                     </div>
                     
-                    <div className="flex items-center space-x-3">
-                      <Clock className="h-4 w-4 text-secondary" />
+                    <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                      <Clock className="h-6 w-6 text-primary" />
                       <div>
-                        <p className="font-medium text-secondary">Submitted</p>
+                        <p className="font-semibold text-secondary">Submitted</p>
                         <p className="text-secondary">{formatDate(application.submitted_at)}</p>
                       </div>
                     </div>
@@ -289,19 +291,19 @@ export default function PublicApplicationTracker() {
             </div>
 
             {/* Action Buttons */}
-            <div className="bg-gray-50 px-6 py-4 flex justify-between items-center">
-              <p className="text-sm text-secondary">
+            <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-8 py-6 flex justify-between items-center border-t border-gray-200">
+              <p className="text-lg text-secondary font-medium">
                 Need help? Contact our admissions office for assistance.
               </p>
-              <div className="flex space-x-3">
+              <div className="flex space-x-4">
                 <Link to="/apply">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="lg" className="text-lg px-6 py-3">
                     Submit New Application
                   </Button>
                 </Link>
-                <Link to="/auth/login">
-                  <Button size="sm">
-                    <Eye className="h-4 w-4 mr-2" />
+                <Link to="/auth/signin">
+                  <Button size="lg" className="text-lg px-6 py-3 bg-gradient-to-r from-primary to-secondary">
+                    <Eye className="h-5 w-5 mr-2" />
                     View Full Details
                   </Button>
                 </Link>
@@ -312,18 +314,20 @@ export default function PublicApplicationTracker() {
 
         {/* No Results */}
         {searched && !application && !loading && (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <FileText className="h-12 w-12 text-secondary mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-secondary mb-2">
-              No Application Found
+          <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-xl border border-white/20 p-10 text-center">
+            <FileText className="h-16 w-16 text-secondary mx-auto mb-6" />
+            <h3 className="text-2xl font-bold text-secondary mb-4">
+              🔍 No Application Found
             </h3>
-            <p className="text-secondary mb-6">
+            <p className="text-secondary text-lg mb-8 leading-relaxed">
               We couldn't find an application with that number or tracking code. 
               Please check your information and try again.
             </p>
-            <div className="flex justify-center space-x-4">
+            <div className="flex justify-center space-x-6">
               <Button 
                 variant="outline" 
+                size="lg"
+                className="text-lg px-8 py-4"
                 onClick={() => {
                   setSearchTerm('')
                   setSearched(false)
@@ -333,7 +337,7 @@ export default function PublicApplicationTracker() {
                 Try Again
               </Button>
               <Link to="/apply">
-                <Button>
+                <Button size="lg" className="text-lg px-8 py-4 bg-gradient-to-r from-primary to-secondary">
                   Submit New Application
                 </Button>
               </Link>
@@ -342,26 +346,26 @@ export default function PublicApplicationTracker() {
         )}
 
         {/* Help Section */}
-        <div className="mt-8 bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-secondary mb-4">
-            Need Help?
+        <div className="mt-8 bg-white/90 backdrop-blur-sm rounded-xl shadow-xl border border-white/20 p-8">
+          <h3 className="text-2xl font-bold text-secondary mb-6">
+            ❓ Need Help?
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-            <div>
-              <h4 className="font-medium text-secondary mb-2">
-                Where to find your application number?
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-lg">
+            <div className="bg-blue-50 rounded-lg p-6">
+              <h4 className="font-bold text-secondary mb-4 text-xl">
+                📍 Where to find your application number?
               </h4>
-              <ul className="text-secondary space-y-1">
+              <ul className="text-secondary space-y-2">
                 <li>• Check your email confirmation after submitting</li>
                 <li>• Look for format: MIHAS123456</li>
                 <li>• Contact admissions if you can't find it</li>
               </ul>
             </div>
-            <div>
-              <h4 className="font-medium text-secondary mb-2">
-                Application Status Meanings
+            <div className="bg-green-50 rounded-lg p-6">
+              <h4 className="font-bold text-secondary mb-4 text-xl">
+                📊 Application Status Meanings
               </h4>
-              <ul className="text-secondary space-y-1">
+              <ul className="text-secondary space-y-2">
                 <li>• <strong>Submitted:</strong> Application received</li>
                 <li>• <strong>Under Review:</strong> Being evaluated</li>
                 <li>• <strong>Approved:</strong> Accepted for admission</li>
@@ -370,10 +374,10 @@ export default function PublicApplicationTracker() {
             </div>
           </div>
           
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-sm text-secondary">
-              <strong>Contact Information:</strong> For questions about your application, 
-              contact our admissions office at admissions@mihas.edu.zm or call +260 XXX XXX XXX
+          <div className="mt-8 pt-6 border-t border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6">
+            <p className="text-lg text-secondary leading-relaxed">
+              <strong>📞 Contact Information:</strong> For questions about your application, 
+              contact our admissions office at <strong>admissions@mihas.edu.zm</strong> or call <strong>KATC: 0966992299 | MIHAS: 0961515151</strong>
             </p>
           </div>
         </div>

@@ -116,7 +116,11 @@ export default function LandingPageNew() {
             >
               <motion.div variants={itemVariants}>
                 <Link to="/track-application">
-                  <Button variant="ghost" size="md" className="text-white hover:bg-white/20 font-semibold">
+                  <Button 
+                    variant="outline" 
+                    size="md" 
+                    className="text-white border-2 border-white/50 hover:bg-white hover:text-primary font-semibold backdrop-blur-sm bg-white/10 transition-all duration-300 hover:scale-105"
+                  >
                     Track Application
                   </Button>
                 </Link>
