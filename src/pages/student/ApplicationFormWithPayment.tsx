@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { TextArea } from '@/components/ui/TextArea'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { ArrowLeft, Upload, X, FileText, CheckCircle, ArrowRight } from 'lucide-react'
+import { ArrowLeft, Upload, X, FileText, CheckCircle, ArrowRight, Star, Trophy, Target, Zap, CreditCard, Phone } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const DEFAULT_PROGRAMS: Program[] = [
   {
@@ -113,6 +114,8 @@ const applicationSchema = z.object({
   financial_sponsor: z.string().min(1, 'Please specify who will sponsor your studies'),
   sponsor_relationship: z.string().optional(),
   additional_info: z.string().optional(),
+  payment_method: z.enum(['pay_now', 'pay_later'], { required_error: 'Please select payment option' }),
+  payment_reference: z.string().optional(),
   declaration: z.boolean().refine(val => val === true, {
     message: 'You must accept the declaration to proceed'
   }),
@@ -134,7 +137,7 @@ interface UploadedFile {
   url?: string
 }
 
-export default function ApplicationFormMultiStep() {
+export default function ApplicationFormWithPayment() {
   const navigate = useNavigate()
   const { user, profile } = useAuth()
   const [loading, setLoading] = useState(false)
@@ -147,7 +150,10 @@ export default function ApplicationFormMultiStep() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
-  const totalSteps = 10
+  const [completedSteps, setCompletedSteps] = useState<number[]>([])
+  const [gamificationPoints, setGamificationPoints] = useState(0)
+  const [achievements, setAchievements] = useState<string[]>([])
+  const totalSteps = 11
 
   const stepTitles = [
     'Program Selection',
@@ -159,6 +165,7 @@ export default function ApplicationFormMultiStep() {
     'Motivation',
     'Skills & References',
     'Financial Info',
+    'Payment',
     'Review & Submit'
   ]
 
@@ -166,12 +173,15 @@ export default function ApplicationFormMultiStep() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<ApplicationForm>({
     resolver: zodResolver(applicationSchema),
   })
 
   const selectedProgramId = watch('program_id')
+  const selectedProgram = programs.find(p => p.id === selectedProgramId)
+  const paymentMethod = watch('payment_method')
 
   useEffect(() => {
     loadPrograms()
@@ -195,7 +205,6 @@ export default function ApplicationFormMultiStep() {
       if (error) throw error
 
       if (data && data.length > 0) {
-        // Filter to only show the three specific programs
         const filteredPrograms = data.filter(program => 
           program.name.includes('Clinical Medicine') ||
           program.name.includes('Environmental Health') ||
@@ -225,6 +234,15 @@ export default function ApplicationFormMultiStep() {
 
   const nextStep = () => {
     if (currentStep < totalSteps) {
+      if (!completedSteps.includes(currentStep)) {
+        setCompletedSteps([...completedSteps, currentStep])
+        setGamificationPoints(prev => prev + 10)
+        
+        // Add achievements
+        if (currentStep === 1) setAchievements(prev => [...prev, 'Program Selected! 🎯'])
+        if (currentStep === 5) setAchievements(prev => [...prev, 'Halfway There! 🚀'])
+        if (currentStep === 10) setAchievements(prev => [...prev, 'Almost Done! 🏆'])
+      }
       setCurrentStep(currentStep + 1)
     }
   }
@@ -239,6 +257,32 @@ export default function ApplicationFormMultiStep() {
     setCurrentStep(step)
   }
 
+  const getPaymentNumber = () => {
+    if (!selectedProgram) return ''
+    
+    // KATC programs
+    if (selectedProgram.name.includes('Clinical Medicine') || selectedProgram.name.includes('Environmental Health')) {
+      return '0966992299'
+    }
+    // MIHAS programs  
+    if (selectedProgram.name.includes('Nursing')) {
+      return '0961515151'
+    }
+    return '0966992299' // Default
+  }
+
+  const getInstitution = () => {
+    if (!selectedProgram) return ''
+    
+    if (selectedProgram.name.includes('Clinical Medicine') || selectedProgram.name.includes('Environmental Health')) {
+      return 'KATC'
+    }
+    if (selectedProgram.name.includes('Nursing')) {
+      return 'MIHAS'
+    }
+    return 'KATC'
+  }
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (!files || files.length === 0) return
@@ -251,7 +295,6 @@ export default function ApplicationFormMultiStep() {
       try {
         const fileName = `${user?.id}/${Date.now()}-${file.name}`
         
-        // Simulate upload progress
         const progressInterval = setInterval(() => {
           setUploadProgress(prev => {
             const current = prev[fileId] || 0
@@ -317,6 +360,24 @@ export default function ApplicationFormMultiStep() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
+  const saveDraft = async () => {
+    try {
+      setLoading(true)
+      const formData = watch()
+      
+      // Save to localStorage as backup
+      localStorage.setItem('applicationDraft', JSON.stringify(formData))
+      
+      // TODO: Save to database as draft
+      alert('Draft saved successfully!')
+    } catch (error: any) {
+      console.error('Error saving draft:', error)
+      setError('Failed to save draft')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const onSubmit = async (data: ApplicationForm) => {
     try {
       setLoading(true)
@@ -341,7 +402,7 @@ export default function ApplicationFormMultiStep() {
           nationality: data.nationality,
           province: data.province,
           district: data.district,
-          postal_address: data.postal_address,
+          postal_address: data.postal_address || null,
           physical_address: data.physical_address,
           guardian_name: data.guardian_name || null,
           guardian_phone: data.guardian_phone || null,
@@ -366,6 +427,9 @@ export default function ApplicationFormMultiStep() {
           financial_sponsor: data.financial_sponsor,
           sponsor_relationship: data.sponsor_relationship || null,
           additional_info: data.additional_info || null,
+          payment_amount: 150,
+          payment_status: data.payment_method === 'pay_now' ? 'pending' : 'deferred',
+          payment_reference: data.payment_reference || null,
           status: 'submitted',
           submitted_at: new Date().toISOString()
         })
@@ -377,7 +441,7 @@ export default function ApplicationFormMultiStep() {
       if (uploadedFiles.length > 0) {
         const documentInserts = uploadedFiles.map(file => ({
           application_id: application.id,
-          document_type: 'supporting_document',
+          document_type: file.name.toLowerCase().includes('payment') ? 'payment_proof' : 'supporting_document',
           document_name: file.name,
           file_name: file.name,
           file_path: file.url || '',
@@ -395,6 +459,8 @@ export default function ApplicationFormMultiStep() {
         }
       }
 
+      // Clear draft
+      localStorage.removeItem('applicationDraft')
       setSuccess(true)
     } catch (error: any) {
       console.error('Error submitting application:', error)
@@ -406,26 +472,41 @@ export default function ApplicationFormMultiStep() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
-        <div className="max-w-md w-full">
+      <motion.div 
+        className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
+        <motion.div 
+          className="max-w-md w-full"
+          initial={{ scale: 0.8, y: 50 }}
+          animate={{ scale: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 300 }}
+        >
           <div className="bg-white rounded-lg shadow p-8 text-center">
-            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
+            <motion.div 
+              className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.3, type: "spring", stiffness: 400 }}
+            >
               <CheckCircle className="h-8 w-8 text-green-600" />
-            </div>
+            </motion.div>
             <h2 className="text-2xl font-bold text-secondary mb-4">
-              Application Submitted Successfully!
+              🎉 Application Submitted Successfully!
             </h2>
             <p className="text-secondary mb-4">
-              Your application has been submitted and is now under review. You will receive email updates about the status of your application.
+              Congratulations! You earned {gamificationPoints} points for completing your application!
             </p>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
               <p className="text-sm text-blue-800 font-medium mb-2">
-                Track Your Application Status
+                🏆 Achievements Unlocked
               </p>
-              <p className="text-xs text-blue-700">
-                You can check your application status anytime using the public tracking system. 
-                No login required - just use your application number or tracking code.
-              </p>
+              <div className="space-y-1">
+                {achievements.map((achievement, index) => (
+                  <p key={index} className="text-xs text-blue-700">{achievement}</p>
+                ))}
+              </div>
             </div>
             <div className="space-y-3">
               <Link to="/student/dashboard">
@@ -433,368 +514,285 @@ export default function ApplicationFormMultiStep() {
                   Go to Dashboard
                 </Button>
               </Link>
-              <Link to="/apply">
+              <Link to="/track-application">
                 <Button variant="outline" className="w-full">
-                  Submit Another Application
+                  Track Application
                 </Button>
               </Link>
             </div>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
+        <motion.div 
+          className="mb-8"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
           <Link to="/student/dashboard" className="inline-flex items-center text-primary hover:text-primary mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Link>
           <h1 className="text-3xl font-bold text-secondary mb-2">
-            Application Form
+            🚀 Application Form
           </h1>
           <p className="text-secondary">
-            Complete all sections to submit your application.
+            Complete your journey to academic excellence! Points: {gamificationPoints} ⭐
           </p>
-        </div>
+        </motion.div>
 
         {error && (
-          <div className="rounded-md bg-red-50 p-4 mb-6">
+          <motion.div 
+            className="rounded-md bg-red-50 p-4 mb-6"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+          >
             <div className="text-sm text-red-700">{error}</div>
-          </div>
+          </motion.div>
         )}
 
-        {/* Multi-Step Navigation */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-secondary">
-              Step {currentStep} of {totalSteps}: {stepTitles[currentStep - 1]}
-            </h2>
-            <div className="text-sm text-secondary">
-              {Math.round((currentStep / totalSteps) * 100)}% Complete
+        {/* Gamification Progress */}
+        <motion.div 
+          className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg shadow p-6 mb-8 text-white"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <Trophy className="h-6 w-6" />
+              <h2 className="text-lg font-semibold">
+                Step {currentStep} of {totalSteps}: {stepTitles[currentStep - 1]}
+              </h2>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Star className="h-5 w-5" />
+              <span className="font-bold">{gamificationPoints} pts</span>
             </div>
           </div>
           
-          {/* Progress Bar */}
-          <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
-            <div 
-              className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all duration-500 ease-out"
+          <div className="w-full bg-white/20 rounded-full h-3 mb-4">
+            <motion.div 
+              className="bg-white h-3 rounded-full transition-all duration-500 ease-out"
               style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+              initial={{ width: 0 }}
+              animate={{ width: `${(currentStep / totalSteps) * 100}%` }}
             />
           </div>
           
-          {/* Step Indicators */}
           <div className="flex justify-between items-center overflow-x-auto">
             {stepTitles.map((title, index) => {
               const stepNumber = index + 1
               const isActive = stepNumber === currentStep
-              const isCompleted = stepNumber < currentStep
+              const isCompleted = completedSteps.includes(stepNumber)
               
               return (
-                <div key={index} className="flex flex-col items-center cursor-pointer min-w-0 flex-1" onClick={() => goToStep(stepNumber)}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
-                    isCompleted 
-                      ? 'bg-green-500 text-white' 
-                      : isActive 
-                      ? 'bg-primary text-white' 
-                      : 'bg-gray-200 text-gray-600'
-                  }`}>
+                <motion.div 
+                  key={index} 
+                  className="flex flex-col items-center cursor-pointer min-w-0 flex-1" 
+                  onClick={() => goToStep(stepNumber)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <motion.div 
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
+                      isCompleted 
+                        ? 'bg-green-400 text-white' 
+                        : isActive 
+                        ? 'bg-white text-purple-500' 
+                        : 'bg-white/30 text-white'
+                    }`}
+                    animate={isCompleted ? { rotate: 360 } : {}}
+                    transition={{ duration: 0.5 }}
+                  >
                     {isCompleted ? '✓' : stepNumber}
-                  </div>
+                  </motion.div>
                   <span className={`text-xs mt-1 text-center ${
-                    isActive ? 'text-primary font-medium' : 'text-gray-500'
+                    isActive ? 'text-white font-medium' : 'text-white/80'
                   }`}>
                     {title}
                   </span>
-                </div>
+                </motion.div>
               )
             })}
           </div>
-        </div>
+        </motion.div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-          {/* Step 1: Program Selection */}
-          {currentStep === 1 && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-secondary mb-4">
-                Program Selection
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-secondary mb-1">
-                    Program <span className="text-red-500">*</span>
-                  </label>
-                  {programsLoading ? (
-                    <div className="flex items-center justify-center py-3">
-                      <LoadingSpinner size="sm" />
+          <AnimatePresence mode="wait">
+            {/* Step 10: Payment */}
+            {currentStep === 10 && (
+              <motion.div 
+                key="payment"
+                className="bg-white rounded-lg shadow p-6"
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="flex items-center space-x-2 mb-4">
+                  <CreditCard className="h-6 w-6 text-primary" />
+                  <h2 className="text-lg font-semibold text-secondary">
+                    Application Fee Payment
+                  </h2>
+                </div>
+                
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 mb-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-lg font-bold text-secondary">Application Fee: K150</p>
+                      <p className="text-sm text-secondary">One-time payment for all programs</p>
                     </div>
-                  ) : (
-                    <select
-                      {...register('program_id')}
-                      className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-                    >
-                      <option value="">Select a program</option>
-                      {programs.map((program) => (
-                        <option key={program.id} value={program.id}>
-                          {program.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  {errors.program_id && (
-                    <p className="mt-1 text-sm text-red-600">{errors.program_id.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-secondary mb-1">
-                    Intake <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    {...register('intake_id')}
-                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-                    disabled={!selectedProgramId}
-                  >
-                    <option value="">Select an intake</option>
-                    {intakes.map((intake) => (
-                      <option key={intake.id} value={intake.id}>
-                        {intake.name} - Deadline: {new Date(intake.application_deadline).toLocaleDateString()}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.intake_id && (
-                    <p className="mt-1 text-sm text-red-600">{errors.intake_id.message}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Personal Information */}
-          {currentStep === 2 && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-secondary mb-4">
-                Personal Information
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Input
-                    {...register('nrc_number')}
-                    label="NRC Number"
-                    placeholder="123456/12/1"
-                    error={errors.nrc_number?.message}
-                  />
-                </div>
-                
-                <div>
-                  <Input
-                    {...register('passport_number')}
-                    label="Passport Number"
-                    placeholder="Enter passport number"
-                    error={errors.passport_number?.message}
-                  />
-                </div>
-                
-                <div>
-                  <Input
-                    type="date"
-                    {...register('date_of_birth')}
-                    label="Date of Birth"
-                    error={errors.date_of_birth?.message}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-secondary mb-1">
-                    Gender <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    {...register('gender')}
-                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-                  >
-                    <option value="">Select gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
-                  {errors.gender && (
-                    <p className="mt-1 text-sm text-red-600">{errors.gender.message}</p>
-                  )}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-secondary mb-1">
-                    Marital Status <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    {...register('marital_status')}
-                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-                  >
-                    <option value="">Select marital status</option>
-                    <option value="Single">Single</option>
-                    <option value="Married">Married</option>
-                    <option value="Divorced">Divorced</option>
-                    <option value="Widowed">Widowed</option>
-                  </select>
-                  {errors.marital_status && (
-                    <p className="mt-1 text-sm text-red-600">{errors.marital_status.message}</p>
-                  )}
-                </div>
-                
-                <div>
-                  <Input
-                    {...register('nationality')}
-                    label="Nationality"
-                    defaultValue="Zambian"
-                    error={errors.nationality?.message}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-secondary mb-1">
-                    Province <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    {...register('province')}
-                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-                  >
-                    <option value="">Select province</option>
-                    <option value="Central">Central</option>
-                    <option value="Copperbelt">Copperbelt</option>
-                    <option value="Eastern">Eastern</option>
-                    <option value="Luapula">Luapula</option>
-                    <option value="Lusaka">Lusaka</option>
-                    <option value="Muchinga">Muchinga</option>
-                    <option value="Northern">Northern</option>
-                    <option value="North-Western">North-Western</option>
-                    <option value="Southern">Southern</option>
-                    <option value="Western">Western</option>
-                  </select>
-                  {errors.province && (
-                    <p className="mt-1 text-sm text-red-600">{errors.province.message}</p>
-                  )}
-                </div>
-                
-                <div>
-                  <Input
-                    {...register('district')}
-                    label="District"
-                    placeholder="Enter your district"
-                    error={errors.district?.message}
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="mt-6 space-y-4">
-                <div>
-                  <TextArea
-                    {...register('postal_address')}
-                    label="Postal Address (Optional)"
-                    placeholder="P.O. Box 123, City, Province"
-                    rows={2}
-                    error={errors.postal_address?.message}
-                  />
-                </div>
-                
-                <div>
-                  <TextArea
-                    {...register('physical_address')}
-                    label="Physical Address"
-                    placeholder="House number, street, area, city"
-                    rows={2}
-                    error={errors.physical_address?.message}
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Document Upload - Available on steps 3+ */}
-          {currentStep >= 3 && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-secondary mb-4">
-                Supporting Documents
-              </h2>
-              
-              <div className="mb-4">
-                <label className="block">
-                  <input
-                    type="file"
-                    multiple
-                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary/40 cursor-pointer transition-colors">
-                    <Upload className="h-8 w-8 text-secondary mx-auto mb-2" />
-                    <p className="text-sm text-secondary">
-                      Click to upload files or drag and drop
-                    </p>
-                    <p className="text-xs text-secondary">
-                      PDF, DOC, DOCX, JPG, JPEG, PNG up to 10MB each
-                    </p>
+                    <div className="text-right">
+                      <p className="text-sm text-secondary">Institution: {getInstitution()}</p>
+                      <div className="flex items-center space-x-1">
+                        <Phone className="h-4 w-4 text-primary" />
+                        <p className="font-mono text-primary font-bold">{getPaymentNumber()}</p>
+                      </div>
+                    </div>
                   </div>
-                </label>
-              </div>
-
-              {Object.keys(uploadProgress).length > 0 && (
-                <div className="mt-4 space-y-2">
-                  {Object.entries(uploadProgress).map(([fileId, progress]) => {
-                    const fileName = uploadedFiles.find(f => f.id === fileId)?.name || fileId.split('-')[0]
-                    return (
-                      <div key={fileId} className="bg-gray-50 rounded-lg p-3">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-medium text-secondary">{fileName}</span>
-                          <span className="text-sm text-primary">{progress}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
-                      </div>
-                    )
-                  })}
                 </div>
-              )}
 
-              {uploadedFiles.length > 0 && (
-                <div className="space-y-2">
-                  {uploadedFiles.map((file) => (
-                    <div key={file.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <FileText className="h-5 w-5 text-primary" />
-                        <div>
-                          <p className="text-sm font-medium text-secondary">{file.name}</p>
-                          <p className="text-xs text-secondary">{formatFileSize(file.size)}</p>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeFile(file.id)}
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-secondary mb-3">
+                      Payment Option <span className="text-red-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <motion.label 
+                        className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                          paymentMethod === 'pay_now' 
+                            ? 'border-primary bg-primary/5' 
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                       >
-                        <X className="h-4 w-4" />
-                      </Button>
+                        <input
+                          type="radio"
+                          {...register('payment_method')}
+                          value="pay_now"
+                          className="sr-only"
+                        />
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-4 h-4 rounded-full border-2 ${
+                            paymentMethod === 'pay_now' 
+                              ? 'border-primary bg-primary' 
+                              : 'border-gray-300'
+                          }`}>
+                            {paymentMethod === 'pay_now' && (
+                              <div className="w-2 h-2 bg-white rounded-full mx-auto mt-0.5" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-secondary">Pay Now</p>
+                            <p className="text-sm text-secondary">Complete payment via MTN Money</p>
+                          </div>
+                        </div>
+                      </motion.label>
+
+                      <motion.label 
+                        className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                          paymentMethod === 'pay_later' 
+                            ? 'border-primary bg-primary/5' 
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <input
+                          type="radio"
+                          {...register('payment_method')}
+                          value="pay_later"
+                          className="sr-only"
+                        />
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-4 h-4 rounded-full border-2 ${
+                            paymentMethod === 'pay_later' 
+                              ? 'border-primary bg-primary' 
+                              : 'border-gray-300'
+                          }`}>
+                            {paymentMethod === 'pay_later' && (
+                              <div className="w-2 h-2 bg-white rounded-full mx-auto mt-0.5" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-secondary">Pay Later</p>
+                            <p className="text-sm text-secondary">Submit application, pay before deadline</p>
+                          </div>
+                        </div>
+                      </motion.label>
                     </div>
-                  ))}
+                    {errors.payment_method && (
+                      <p className="mt-1 text-sm text-red-600">{errors.payment_method.message}</p>
+                    )}
+                  </div>
+
+                  {paymentMethod === 'pay_now' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-4"
+                    >
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <h3 className="font-medium text-yellow-800 mb-2">Payment Instructions:</h3>
+                        <ol className="text-sm text-yellow-700 space-y-1">
+                          <li>1. Send K150 to MTN Money number: <strong>{getPaymentNumber()}</strong></li>
+                          <li>2. Take a screenshot of the transaction confirmation</li>
+                          <li>3. Upload the screenshot as payment proof below</li>
+                          <li>4. Enter the transaction reference number</li>
+                        </ol>
+                      </div>
+
+                      <div>
+                        <Input
+                          {...register('payment_reference')}
+                          label="Transaction Reference Number"
+                          placeholder="Enter MTN Money transaction ID"
+                          error={errors.payment_reference?.message}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-secondary mb-2">
+                          Payment Proof Screenshot
+                        </label>
+                        <label className="block">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileUpload}
+                            className="hidden"
+                          />
+                          <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 text-center hover:border-primary/50 cursor-pointer transition-colors">
+                            <Upload className="h-8 w-8 text-primary mx-auto mb-2" />
+                            <p className="text-sm text-secondary">
+                              Upload payment screenshot
+                            </p>
+                            <p className="text-xs text-secondary">
+                              JPG, JPEG, PNG up to 10MB
+                            </p>
+                          </div>
+                        </label>
+                      </div>
+                    </motion.div>
+                  )}
                 </div>
-              )}
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between items-center pt-6">
+          <motion.div 
+            className="flex justify-between items-center pt-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
             <div>
               {currentStep > 1 && (
                 <Button type="button" variant="outline" onClick={prevStep}>
@@ -804,11 +802,9 @@ export default function ApplicationFormMultiStep() {
             </div>
             
             <div className="flex space-x-4">
-              <Link to="/student/dashboard">
-                <Button type="button" variant="ghost">
-                  Save as Draft
-                </Button>
-              </Link>
+              <Button type="button" variant="ghost" onClick={saveDraft}>
+                💾 Save Draft
+              </Button>
               
               {currentStep < totalSteps ? (
                 <Button type="button" onClick={nextStep}>
@@ -817,11 +813,11 @@ export default function ApplicationFormMultiStep() {
                 </Button>
               ) : (
                 <Button type="submit" loading={loading}>
-                  Submit Application
+                  🚀 Submit Application
                 </Button>
               )}
             </div>
-          </div>
+          </motion.div>
         </form>
       </div>
     </div>

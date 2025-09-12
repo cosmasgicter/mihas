@@ -41,30 +41,63 @@ ADD COLUMN IF NOT EXISTS public_tracking_code VARCHAR(20) UNIQUE;
 -- Create index for public tracking
 CREATE INDEX IF NOT EXISTS idx_applications_tracking_code ON applications(public_tracking_code);
 
--- Add new intakes for 2026
-INSERT INTO intakes (name, year, semester, start_date, end_date, application_deadline, total_capacity, available_spots, is_active)
-VALUES 
-('January 2026 Intake', 2026, 'First Semester', '2026-01-15', '2026-06-30', '2025-12-15', 200, 200, true),
-('July 2026 Intake', 2026, 'Second Semester', '2026-07-15', '2026-12-31', '2026-06-15', 200, 200, true)
-ON CONFLICT DO NOTHING;
+-- Add new intakes for 2026 (only if they don't exist)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM intakes WHERE name = 'January 2026 Intake') THEN
+        INSERT INTO intakes (name, year, semester, start_date, end_date, application_deadline, total_capacity, available_spots, is_active)
+        VALUES ('January 2026 Intake', 2026, 'First Semester', '2026-01-15', '2026-06-30', '2025-12-15', 200, 200, true);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM intakes WHERE name = 'July 2026 Intake') THEN
+        INSERT INTO intakes (name, year, semester, start_date, end_date, application_deadline, total_capacity, available_spots, is_active)
+        VALUES ('July 2026 Intake', 2026, 'Second Semester', '2026-07-15', '2026-12-31', '2026-06-15', 200, 200, true);
+    END IF;
+END $$;
 
--- Remove duplicate Clinical Medicine programs
-DELETE FROM programs 
-WHERE name = 'Diploma in Clinical Medicine' 
-AND id NOT IN (
-  SELECT MIN(id) FROM programs 
-  WHERE name = 'Diploma in Clinical Medicine'
-);
+-- Remove duplicate Clinical Medicine programs safely
+DO $$
+DECLARE
+    duplicate_ids UUID[];
+BEGIN
+    -- Get duplicate program IDs (keep the first one)
+    SELECT ARRAY(
+        SELECT id FROM (
+            SELECT id, ROW_NUMBER() OVER (PARTITION BY name ORDER BY created_at) as rn
+            FROM programs 
+            WHERE name = 'Diploma in Clinical Medicine'
+        ) t WHERE rn > 1
+    ) INTO duplicate_ids;
+    
+    -- Delete related records first
+    DELETE FROM program_intakes WHERE program_id = ANY(duplicate_ids);
+    DELETE FROM applications WHERE program_id = ANY(duplicate_ids);
+    DELETE FROM programs WHERE id = ANY(duplicate_ids);
+END $$;
 
--- Deactivate non-relevant programs, keep only the three specified
-UPDATE programs 
-SET is_active = FALSE 
-WHERE name NOT IN (
-  'Diploma in Clinical Medicine',
-  'Diploma in Environmental Health', 
-  'Diploma in Nursing',
-  'Diploma in Registered Nursing'
-);
+-- Safely deactivate non-relevant programs
+DO $$
+DECLARE
+    unwanted_programs UUID[];
+BEGIN
+    -- Get IDs of programs to deactivate
+    SELECT ARRAY(
+        SELECT id FROM programs 
+        WHERE name NOT IN (
+            'Diploma in Clinical Medicine',
+            'Diploma in Environmental Health', 
+            'Diploma in Nursing',
+            'Diploma in Registered Nursing'
+        )
+    ) INTO unwanted_programs;
+    
+    -- Delete related records first
+    DELETE FROM program_intakes WHERE program_id = ANY(unwanted_programs);
+    DELETE FROM applications WHERE program_id = ANY(unwanted_programs);
+    
+    -- Deactivate programs
+    UPDATE programs SET is_active = FALSE WHERE id = ANY(unwanted_programs);
+END $$;
 
 -- Ensure the three main programs are active and have correct names
 UPDATE programs 
@@ -134,6 +167,17 @@ CREATE TRIGGER applications_tracking_code_trigger
 -- Enable RLS on new tables
 ALTER TABLE application_status_history ENABLE ROW LEVEL SECURITY;
 
+-- Create policies only if table exists and policies don't exist
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'application_status_history') THEN
+        -- Drop existing policies
+        DROP POLICY IF EXISTS "Users can view their own application history" ON application_status_history;
+        DROP POLICY IF EXISTS "Admins can view all application history" ON application_status_history;
+        DROP POLICY IF EXISTS "Admins can insert application history" ON application_status_history;
+    END IF;
+END $$;
+
 -- RLS policies for application_status_history
 CREATE POLICY "Users can view their own application history" ON application_status_history
   FOR SELECT USING (
@@ -148,7 +192,7 @@ CREATE POLICY "Admins can view all application history" ON application_status_hi
       SELECT 1 FROM user_profiles 
       WHERE user_id = auth.uid() 
       AND role IN ('admin', 'staff')
-    )
+    ) OR auth.email() = 'cosmas@beanola.com'
   );
 
 CREATE POLICY "Admins can insert application history" ON application_status_history
@@ -157,10 +201,17 @@ CREATE POLICY "Admins can insert application history" ON application_status_hist
       SELECT 1 FROM user_profiles 
       WHERE user_id = auth.uid() 
       AND role IN ('admin', 'staff')
-    )
+    ) OR auth.email() = 'cosmas@beanola.com'
   );
 
--- Update existing applications with tracking codes
-UPDATE applications 
-SET public_tracking_code = generate_tracking_code() 
-WHERE public_tracking_code IS NULL;
+-- Update existing applications with tracking codes (handle potential duplicates)
+DO $$
+DECLARE
+    app_record RECORD;
+BEGIN
+    FOR app_record IN SELECT id FROM applications WHERE public_tracking_code IS NULL LOOP
+        UPDATE applications 
+        SET public_tracking_code = generate_tracking_code() 
+        WHERE id = app_record.id;
+    END LOOP;
+END $$;

@@ -175,30 +175,28 @@ export default function PublicApplicationTracker() {
         {application && (
           <div className="bg-white rounded-lg shadow overflow-hidden">
             {/* Status Header */}
-            <div className="bg-gradient-to-r from-primary to-primary p-6 text-white">
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold mb-2">
-                    Application #{application.application_number}
+                  <h3 className="text-2xl font-bold mb-2">
+                    📋 Application #{application.application_number}
                   </h3>
-                  <p className="text-primary-foreground/90">
+                  <p className="text-white/90 text-lg font-medium">
                     {application.program_name}
                   </p>
-                  <p className="text-sm text-primary-foreground/80">
-                    {application.intake_name}
+                  <p className="text-white/80">
+                    📅 {application.intake_name}
                   </p>
                 </div>
                 <div className="text-right">
                   <div className="flex items-center space-x-2 mb-2">
                     {getStatusIcon(application.status)}
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      getStatusColor(application.status)
-                    }`}>
+                    <span className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-white font-bold text-lg">
                       {application.status.replace('_', ' ').toUpperCase()}
                     </span>
                   </div>
-                  <p className="text-sm text-primary-foreground/80">
-                    Last updated: {formatDate(application.updated_at)}
+                  <p className="text-white/80">
+                    🕒 Last updated: {formatDate(application.updated_at)}
                   </p>
                 </div>
               </div>
@@ -213,14 +211,16 @@ export default function PublicApplicationTracker() {
                     Current Status
                   </h4>
                   
-                  <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                    <div className="flex items-start space-x-3">
-                      {getStatusIcon(application.status)}
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6 mb-6">
+                    <div className="flex items-start space-x-4">
+                      <div className="text-3xl">
+                        {getStatusIcon(application.status)}
+                      </div>
                       <div>
-                        <p className="font-medium text-secondary mb-2">
+                        <p className="font-bold text-xl text-secondary mb-2">
                           {application.status.replace('_', ' ').toUpperCase()}
                         </p>
-                        <p className="text-sm text-secondary">
+                        <p className="text-secondary text-lg leading-relaxed">
                           {getStatusMessage(application.status)}
                         </p>
                       </div>
@@ -229,16 +229,16 @@ export default function PublicApplicationTracker() {
 
                   {/* Admin Feedback */}
                   {application.admin_feedback && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <h5 className="font-medium text-blue-900 mb-2">
-                        Feedback from Admissions Team
+                    <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-6">
+                      <h5 className="font-bold text-green-900 mb-3 text-lg flex items-center">
+                        💬 Feedback from Admissions Team
                       </h5>
-                      <p className="text-sm text-blue-800 mb-2">
+                      <p className="text-green-800 mb-3 text-lg leading-relaxed">
                         {application.admin_feedback}
                       </p>
                       {application.admin_feedback_date && (
-                        <p className="text-xs text-blue-600">
-                          Provided on {formatDate(application.admin_feedback_date)}
+                        <p className="text-green-600 font-medium">
+                          📅 Provided on {formatDate(application.admin_feedback_date)}
                         </p>
                       )}
                     </div>
