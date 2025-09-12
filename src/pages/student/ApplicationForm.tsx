@@ -331,7 +331,9 @@ export default function ApplicationForm() {
       } catch (error: any) {
         console.error('Error uploading file:', error)
         setError(`Failed to upload ${file.name}: ${error.message || 'Upload failed'}`)
-        clearInterval(progressInterval)
+        if (progressInterval) {
+          clearInterval(progressInterval)
+        }
         setUploadProgress(prev => {
           const { [fileId]: removed, ...rest } = prev
           return rest
