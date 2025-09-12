@@ -132,10 +132,10 @@ export default function LandingPageNew() {
       </motion.header>
 
       {/* Enhanced Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Animated Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-accent opacity-90" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-accent opacity-95" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-black/10" />
         <FloatingElements count={30} />
         <GeometricPatterns />
 
@@ -157,7 +157,7 @@ export default function LandingPageNew() {
           
           <motion.p
             variants={itemVariants}
-            className="text-xl md:text-2xl lg:text-3xl mb-8 max-w-4xl mx-auto leading-relaxed"
+            className="text-xl md:text-2xl lg:text-3xl mb-8 max-w-4xl mx-auto leading-relaxed text-white/95 font-medium"
           >
             Join Mukuba Institute of Health and Applied Sciences and Kalulushi Training Centre – Leading institutions in health sciences education in Zambia
           </motion.p>
@@ -172,7 +172,12 @@ export default function LandingPageNew() {
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
-            <Button variant="outline" size="xl" className="border-2 border-white text-white hover:bg-white hover:text-primary">
+            <Button 
+              variant="outline" 
+              size="xl" 
+              className="border-2 border-white text-white hover:bg-white hover:text-primary font-semibold"
+              onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+            >
               <span className="mr-2">Learn More</span>
               <Star className="w-5 h-5" />
             </Button>
@@ -181,11 +186,12 @@ export default function LandingPageNew() {
 
         {/* Scroll Indicator */}
         <motion.div
-          className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+          className="absolute bottom-8 left-1/2 transform -translate-x-1/2 cursor-pointer"
           animate={{ y: [0, 10, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
+          onClick={() => document.getElementById('stats')?.scrollIntoView({ behavior: 'smooth' })}
         >
-          <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center">
+          <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center hover:border-gray-200 transition-colors">
             <motion.div
               className="w-1 h-3 bg-white rounded-full mt-2"
               animate={{ y: [0, 12, 0] }}
@@ -196,7 +202,7 @@ export default function LandingPageNew() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 bg-gray-50 relative">
+      <section id="stats" className="py-20 bg-gray-50 relative">
         <FloatingElements count={10} className="opacity-30" />
         <motion.div
           ref={statsRef}
@@ -229,7 +235,7 @@ export default function LandingPageNew() {
       </section>
 
       {/* Enhanced Features Section */}
-      <section className="py-20 bg-white relative">
+      <section id="features" className="py-20 bg-white relative">
         <GeometricPatterns />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -242,7 +248,7 @@ export default function LandingPageNew() {
             <h2 className="text-4xl md:text-5xl font-bold gradient-text mb-6">
               Why Choose MIHAS-KATC?
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-700 max-w-3xl mx-auto font-medium">
               We offer world-class education with practical training to prepare you for a successful career
             </p>
           </motion.div>
@@ -264,8 +270,8 @@ export default function LandingPageNew() {
                 >
                   <feature.icon className="h-10 w-10 text-white" />
                 </motion.div>
-                <h3 className="text-2xl font-bold mb-4 text-gray-800">{feature.title}</h3>
-                <p className="text-gray-600 leading-relaxed">
+                <h3 className="text-2xl font-bold mb-4 text-gray-900">{feature.title}</h3>
+                <p className="text-gray-700 leading-relaxed font-medium">
                   {feature.description}
                 </p>
               </AnimatedCard>
@@ -288,7 +294,7 @@ export default function LandingPageNew() {
             <h2 className="text-4xl md:text-5xl font-bold gradient-text mb-6">
               Our Programs
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-xl text-gray-700 font-medium">
               Choose from a wide range of programs designed to meet industry demands
             </p>
           </motion.div>
@@ -331,7 +337,7 @@ export default function LandingPageNew() {
                       transition={{ delay: courseIndex * 0.1 }}
                     >
                       <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
-                      <span className="text-gray-700">{course}</span>
+                      <span className="text-gray-800 font-medium">{course}</span>
                     </motion.div>
                   ))}
                 </div>

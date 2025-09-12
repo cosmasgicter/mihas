@@ -1,28 +1,10 @@
 {
-  "name": "mihas-katc-admissions",
+  "name": "MIHAS-KATC Admissions Portal",
   "short_name": "MIHAS-KATC",
   "description": "Student Admissions Portal for MIHAS and KATC",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1e3a8a",
-  "orientation": "portrait-primary",
-  "icons": [
-    {
-      "src": "/pwa-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/pwa-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    },
-    {
-      "src": "/pwa-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ]
+  "orientation": "portrait-primary"
 }
