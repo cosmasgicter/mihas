@@ -21,6 +21,7 @@ import AdminPrograms from '@/pages/admin/Programs'
 import AdminIntakes from '@/pages/admin/Intakes'
 import AdminUsers from '@/pages/admin/Users'
 import AdminSettings from '@/pages/admin/Settings'
+import PublicApplicationTracker from '@/pages/PublicApplicationTracker'
 import NotFoundPage from '@/pages/NotFoundPage'
 
 // Create a client
@@ -42,6 +43,7 @@ function App() {
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<LandingPage />} />
+              <Route path="/track-application" element={<PublicApplicationTracker />} />
               <Route path="/auth/signin" element={<SignInPage />} />
               <Route path="/auth/signup" element={<SignUpPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />

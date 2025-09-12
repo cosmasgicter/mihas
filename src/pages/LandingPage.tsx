@@ -113,6 +113,13 @@ export default function LandingPageNew() {
               animate="visible"
             >
               <motion.div variants={itemVariants}>
+                <Link to="/track-application">
+                  <Button variant="ghost" size="md" className="text-white hover:bg-white/20 font-semibold">
+                    Track Application
+                  </Button>
+                </Link>
+              </motion.div>
+              <motion.div variants={itemVariants}>
                 <Link to="/auth/signin">
                   <Button variant="gradient" size="md" magnetic className="bg-gradient-to-r from-white/20 to-white/30 border border-white/50 text-white hover:from-white hover:to-white hover:text-primary font-semibold backdrop-blur-sm">
                     Sign In
@@ -420,18 +427,23 @@ export default function LandingPageNew() {
             <motion.div variants={itemVariants}>
               <h3 className="text-xl font-semibold mb-6">Quick Links</h3>
               <ul className="space-y-3">
-                {['About Us', 'Programs', 'Admissions', 'Contact'].map((link, index) => (
+                {[
+                  { name: 'About Us', href: '#' },
+                  { name: 'Programs', href: '#programs' },
+                  { name: 'Track Application', href: '/track-application' },
+                  { name: 'Contact', href: '#' }
+                ].map((link, index) => (
                   <motion.li
-                    key={link}
+                    key={link.name}
                     initial={{ opacity: 0, x: -20 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: index * 0.1 }}
                   >
-                    <a href="#" className="text-gray-300 hover:text-primary transition-colors duration-300 flex items-center group">
+                    <Link to={link.href} className="text-gray-300 hover:text-primary transition-colors duration-300 flex items-center group">
                       <ArrowRight className="w-4 h-4 mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      {link}
-                    </a>
+                      {link.name}
+                    </Link>
                   </motion.li>
                 ))}
               </ul>

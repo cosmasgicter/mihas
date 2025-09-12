@@ -16,7 +16,8 @@ import {
   XCircle,
   Clock,
   AlertTriangle,
-  Download
+  Download,
+  MessageSquare
 } from 'lucide-react'
 
 interface ApplicationWithDetails extends Application {
@@ -40,6 +41,9 @@ export default function AdminApplications() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [selectedApplication, setSelectedApplication] = useState<ApplicationWithDetails | null>(null)
   const [showDetails, setShowDetails] = useState(false)
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false)
+  const [feedbackText, setFeedbackText] = useState('')
+  const [feedbackLoading, setFeedbackLoading] = useState(false)
 
   useEffect(() => {
     loadApplications()
@@ -86,18 +90,26 @@ export default function AdminApplications() {
     }
   }
 
-  const updateApplicationStatus = async (applicationId: string, newStatus: string) => {
+  const updateApplicationStatus = async (applicationId: string, newStatus: string, feedback?: string) => {
     try {
       setUpdating(applicationId)
       
+      const updateData: any = {
+        status: newStatus,
+        updated_at: new Date().toISOString(),
+        ...(newStatus === 'under_review' && { review_started_at: new Date().toISOString() }),
+        ...((['approved', 'rejected'].includes(newStatus)) && { decision_date: new Date().toISOString() })
+      }
+      
+      if (feedback) {
+        updateData.admin_feedback = feedback
+        updateData.admin_feedback_date = new Date().toISOString()
+        updateData.admin_feedback_by = user?.id
+      }
+
       const { error } = await supabase
         .from('applications')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString(),
-          ...(newStatus === 'under_review' && { review_started_at: new Date().toISOString() }),
-          ...((['approved', 'rejected'].includes(newStatus)) && { decision_date: new Date().toISOString() })
-        })
+        .update(updateData)
         .eq('id', applicationId)
 
       if (error) throw error
@@ -111,13 +123,59 @@ export default function AdminApplications() {
         )
       )
 
-      // TODO: Send notification to applicant
+      // Create status history record
+      await supabase
+        .from('application_status_history')
+        .insert({
+          application_id: applicationId,
+          status: newStatus,
+          changed_by: user?.id,
+          notes: feedback || null
+        })
       
     } catch (error: any) {
       console.error('Error updating application status:', error)
       setError(error.message)
     } finally {
       setUpdating(null)
+    }
+  }
+
+  const submitFeedback = async () => {
+    if (!selectedApplication || !feedbackText.trim()) return
+    
+    try {
+      setFeedbackLoading(true)
+      
+      const { error } = await supabase
+        .from('applications')
+        .update({
+          admin_feedback: feedbackText,
+          admin_feedback_date: new Date().toISOString(),
+          admin_feedback_by: user?.id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedApplication.id)
+
+      if (error) throw error
+
+      // Update local state
+      setApplications(prev => 
+        prev.map(app => 
+          app.id === selectedApplication.id 
+            ? { ...app, updated_at: new Date().toISOString() }
+            : app
+        )
+      )
+
+      setShowFeedbackModal(false)
+      setFeedbackText('')
+      
+    } catch (error: any) {
+      console.error('Error submitting feedback:', error)
+      setError(error.message)
+    } finally {
+      setFeedbackLoading(false)
     }
   }
 
@@ -329,6 +387,18 @@ export default function AdminApplications() {
                             <Eye className="h-4 w-4" />
                           </Button>
                           
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedApplication(application)
+                              setShowFeedbackModal(true)
+                            }}
+                            title="Add Feedback"
+                          >
+                            💬
+                          </Button>
+                          
                           {application.status === 'submitted' && (
                             <Button
                               variant="outline"
@@ -461,14 +531,35 @@ export default function AdminApplications() {
                   </div>
                   <div>
                     <h4 className="text-sm font-medium text-secondary">References</h4>
-                    <p className="text-sm text-secondary mt-1">{selectedApplication.references}</p>
+                    <p className="text-sm text-secondary mt-1 whitespace-pre-wrap">{selectedApplication.references}</p>
                   </div>
                   {selectedApplication.additional_info && (
                     <div>
                       <h4 className="text-sm font-medium text-secondary">Additional Information</h4>
-                      <p className="text-sm text-secondary mt-1">{selectedApplication.additional_info}</p>
+                      <p className="text-sm text-secondary mt-1 whitespace-pre-wrap">{selectedApplication.additional_info}</p>
                     </div>
                   )}
+                  
+                  {/* Enhanced Application Fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-200">
+                    <div>
+                      <h4 className="text-sm font-medium text-secondary">Personal Details</h4>
+                      <div className="text-xs text-secondary mt-1 space-y-1">
+                        <p><strong>Date of Birth:</strong> {selectedApplication.date_of_birth || 'Not provided'}</p>
+                        <p><strong>Gender:</strong> {selectedApplication.gender || 'Not provided'}</p>
+                        <p><strong>Nationality:</strong> {selectedApplication.nationality || 'Not provided'}</p>
+                        <p><strong>Province:</strong> {selectedApplication.province || 'Not provided'}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-secondary">Contact Information</h4>
+                      <div className="text-xs text-secondary mt-1 space-y-1">
+                        <p><strong>Phone:</strong> {selectedApplication.user_profiles?.phone || 'Not provided'}</p>
+                        <p><strong>Physical Address:</strong> {selectedApplication.physical_address || 'Not provided'}</p>
+                        <p><strong>Postal Address:</strong> {selectedApplication.postal_address || 'Not provided'}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -476,6 +567,15 @@ export default function AdminApplications() {
             <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
               <Button variant="outline" onClick={() => setShowDetails(false)}>
                 Close
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDetails(false)
+                  setShowFeedbackModal(true)
+                }}
+              >
+                Add Feedback
               </Button>
               {selectedApplication.status === 'submitted' && (
                 <Button
@@ -514,6 +614,77 @@ export default function AdminApplications() {
                   </Button>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Feedback Modal */}
+      {showFeedbackModal && selectedApplication && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-secondary">
+                  Add Feedback - {selectedApplication.application_number}
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowFeedbackModal(false)
+                    setFeedbackText('')
+                  }}
+                >
+                  <XCircle className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-sm text-secondary mb-2">
+                  <strong>Applicant:</strong> {selectedApplication.user_profiles?.full_name}
+                </p>
+                <p className="text-sm text-secondary mb-4">
+                  <strong>Program:</strong> {selectedApplication.programs?.name}
+                </p>
+              </div>
+              
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-secondary mb-2">
+                  Feedback Message
+                </label>
+                <textarea
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                  placeholder="Provide feedback to the applicant about their application status, required documents, or next steps..."
+                  rows={6}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                />
+                <p className="text-xs text-secondary mt-1">
+                  This feedback will be visible to the applicant when they check their application status.
+                </p>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowFeedbackModal(false)
+                  setFeedbackText('')
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                loading={feedbackLoading}
+                onClick={submitFeedback}
+                disabled={!feedbackText.trim()}
+              >
+                Submit Feedback
+              </Button>
             </div>
           </div>
         </div>
