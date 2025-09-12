@@ -34,17 +34,6 @@ export default function AdminSettings() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  useEffect(() => {
-    loadSettings()
-  }, [loadSettings])
-
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => setSuccess(''), 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [success])
-
   const loadSettings = useCallback(async () => {
     try {
       setLoading(true)
@@ -64,6 +53,17 @@ export default function AdminSettings() {
       setLoading(false)
     }
   }, [])
+
+  useEffect(() => {
+    loadSettings()
+  }, [loadSettings])
+
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(''), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [success])
 
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement>
