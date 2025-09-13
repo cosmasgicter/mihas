@@ -135,7 +135,7 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
 
         {/* Mobile Menu Button */}
         <motion.button
-          className="md:hidden p-3 rounded-xl text-white hover:bg-white/20 transition-all duration-300 focus:outline-none focus:ring-3 focus:ring-primary/60 shadow-lg hover:shadow-xl border border-white/20 hover:border-white/40 min-h-[48px] min-w-[48px]"
+          className="md:hidden p-3 rounded-xl text-white bg-black/40 hover:bg-black/60 backdrop-blur-sm transition-all duration-300 focus:outline-none focus:ring-3 focus:ring-primary/60 shadow-lg hover:shadow-xl border border-white/30 hover:border-white/50 min-h-[48px] min-w-[48px]"
           onClick={toggleMenu}
           whileTap={{ scale: 0.95 }}
           aria-label={isOpen ? "Close menu" : "Open menu"}

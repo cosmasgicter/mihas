@@ -11,7 +11,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { checkEligibility, getRecommendedSubjects } from '@/lib/eligibility'
 import { ArrowLeft, CheckCircle, ArrowRight, X, Sparkles, FileText, CreditCard, Send, XCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
-// import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const wizardSchema = z.object({
   full_name: z.string().min(2, 'Full name is required'),
@@ -71,6 +71,9 @@ export default function ApplicationWizard() {
   const [uploadProgress, setUploadProgress] = useState<{[key: string]: number}>({})
   const [uploadedFiles, setUploadedFiles] = useState<{[key: string]: boolean}>({})
   const [popFile, setPopFile] = useState<File | null>(null)
+  const [isDraftSaving, setIsDraftSaving] = useState(false)
+  const [draftSaved, setDraftSaved] = useState(false)
+  const [sessionWarning, setSessionWarning] = useState<any>(null)
   
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<WizardFormData>({
     resolver: zodResolver(wizardSchema),
@@ -120,17 +123,40 @@ export default function ApplicationWizard() {
   }, [])
 
   // Save draft on form changes
+  // Auto-save on form changes with debouncing
   useEffect(() => {
-    const formData = watch()
-    const draft = {
-      formData,
-      selectedGrades,
-      currentStep,
-      applicationId,
-      savedAt: new Date().toISOString()
+    const subscription = watch(() => {
+      if (currentStep > 1) {
+        const timeoutId = setTimeout(() => {
+          saveDraft()
+        }, 2000)
+        return () => clearTimeout(timeoutId)
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [watch, currentStep])
+
+  const saveDraft = async () => {
+    if (!user || isDraftSaving) return
+    try {
+      setIsDraftSaving(true)
+      const formData = watch()
+      const draft = {
+        formData,
+        selectedGrades,
+        currentStep,
+        applicationId,
+        savedAt: new Date().toISOString()
+      }
+      localStorage.setItem('applicationWizardDraft', JSON.stringify(draft))
+      setDraftSaved(true)
+      setTimeout(() => setDraftSaved(false), 2000)
+    } catch (error) {
+      console.error('Error saving draft:', error)
+    } finally {
+      setIsDraftSaving(false)
     }
-    localStorage.setItem('applicationWizardDraft', JSON.stringify(draft))
-  }, [watch(), selectedGrades, currentStep, applicationId])
+  }
 
   useEffect(() => {
     loadSubjects()
@@ -247,6 +273,7 @@ export default function ApplicationWizard() {
   }
 
   const nextStep = async () => {
+    saveDraft() // Auto-save when moving to next step
     if (currentStep === 1) {
       // Validate form first
       const formData = watch()
@@ -382,6 +409,7 @@ export default function ApplicationWizard() {
 
   const prevStep = () => {
     if (currentStep > 1) {
+      saveDraft() // Auto-save when moving to previous step
       setCurrentStep(currentStep - 1)
     }
   }
@@ -496,11 +524,55 @@ export default function ApplicationWizard() {
             <p className="text-gray-600">
               Complete the 4-step application process
             </p>
+            {user && (
+              <div className="mt-2 text-sm text-gray-600">
+                Logged in as: {user.email}
+              </div>
+            )}
           </motion.div>
         </div>
 
-        {/* Fancy Progress Steps */}
+        {/* Progress Steps with Save Status */}
         <div className="mb-6 lg:mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Step {currentStep} of 4: {['Basic KYC', 'Education', 'Payment', 'Submit'][currentStep - 1]}
+            </h2>
+            <div className="flex items-center space-x-4">
+              {isDraftSaving && (
+                <motion.div 
+                  className="flex items-center space-x-2 text-sm text-gray-600"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <span>Saving...</span>
+                </motion.div>
+              )}
+              {draftSaved && (
+                <motion.div 
+                  className="flex items-center space-x-2 text-sm text-green-600"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  <span>Saved</span>
+                </motion.div>
+              )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={saveDraft}
+                disabled={isDraftSaving}
+                className="hover:bg-blue-50"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Save Now
+              </Button>
+            </div>
+          </div>
           <div className="relative">
             <div className="absolute top-4 left-0 w-full h-0.5 bg-gray-200 hidden sm:block"></div>
             <div className="flex items-center justify-between relative overflow-x-auto pb-2 sm:pb-0">

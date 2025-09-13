@@ -139,6 +139,7 @@ export default function AdminApplications() {
     
     const stats = {
       total: data.length,
+      draft: data.filter(app => app.status === 'draft').length,
       submitted: data.filter(app => app.status === 'submitted').length,
       under_review: data.filter(app => app.status === 'under_review').length,
       approved: data.filter(app => app.status === 'approved').length,
@@ -304,6 +305,8 @@ export default function AdminApplications() {
         return <Clock className="h-4 w-4 text-primary" />
       case 'submitted':
         return <AlertTriangle className="h-4 w-4 text-yellow-500" />
+      case 'draft':
+        return <FileText className="h-4 w-4 text-gray-500" />
       default:
         return <Clock className="h-4 w-4 text-secondary" />
     }
@@ -402,7 +405,7 @@ export default function AdminApplications() {
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6 mb-6 sm:mb-8"
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-6 mb-6 sm:mb-8"
           >
             <AnimatedCard className="bg-gradient-to-br from-blue-500 to-blue-600 text-white col-span-2 sm:col-span-1" hover3d>
               <div className="flex items-center justify-between">
@@ -414,17 +417,27 @@ export default function AdminApplications() {
               </div>
             </AnimatedCard>
             
-            <AnimatedCard className="bg-gradient-to-br from-yellow-500 to-orange-500 text-white" hover3d delay={0.1}>
+            <AnimatedCard className="bg-gradient-to-br from-gray-500 to-gray-600 text-white" hover3d delay={0.1}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-100 text-xs sm:text-sm font-medium">Draft</p>
+                  <p className="text-xl sm:text-3xl font-bold">{stats.draft}</p>
+                </div>
+                <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-gray-200" />
+              </div>
+            </AnimatedCard>
+            
+            <AnimatedCard className="bg-gradient-to-br from-yellow-500 to-orange-500 text-white" hover3d delay={0.15}>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-yellow-100 text-xs sm:text-sm font-medium">Submitted</p>
                   <p className="text-xl sm:text-3xl font-bold">{stats.submitted}</p>
                 </div>
-                <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-200" />
+                <Send className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-200" />
               </div>
             </AnimatedCard>
             
-            <AnimatedCard className="bg-gradient-to-br from-purple-500 to-indigo-500 text-white" hover3d delay={0.2}>
+            <AnimatedCard className="bg-gradient-to-br from-purple-500 to-indigo-500 text-white" hover3d delay={0.25}>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-purple-100 text-xs sm:text-sm font-medium">Review</p>
@@ -434,7 +447,7 @@ export default function AdminApplications() {
               </div>
             </AnimatedCard>
             
-            <AnimatedCard className="bg-gradient-to-br from-green-500 to-emerald-500 text-white" hover3d delay={0.3}>
+            <AnimatedCard className="bg-gradient-to-br from-green-500 to-emerald-500 text-white" hover3d delay={0.35}>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-green-100 text-xs sm:text-sm font-medium">Approved</p>
@@ -444,7 +457,7 @@ export default function AdminApplications() {
               </div>
             </AnimatedCard>
             
-            <AnimatedCard className="bg-gradient-to-br from-red-500 to-pink-500 text-white" hover3d delay={0.4}>
+            <AnimatedCard className="bg-gradient-to-br from-red-500 to-pink-500 text-white" hover3d delay={0.45}>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-red-100 text-xs sm:text-sm font-medium">Rejected</p>
@@ -540,6 +553,7 @@ export default function AdminApplications() {
                   className="form-input-mobile w-full px-3 sm:px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 >
                   <option value="all">All Status</option>
+                  <option value="draft">📝 Draft</option>
                   <option value="submitted">📋 Submitted</option>
                   <option value="under_review">🔍 Under Review</option>
                   <option value="approved">✅ Approved</option>

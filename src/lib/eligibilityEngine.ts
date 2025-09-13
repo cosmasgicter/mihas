@@ -169,7 +169,7 @@ export class EligibilityEngine {
   private async calculateCoreSubjectsScore(grades: SubjectGrade[], conditions: any): Promise<number> {
     const { required_subjects, min_grade } = conditions
     let score = 0
-    let totalRequired = required_subjects.length
+    const totalRequired = required_subjects.length
 
     for (const requiredSubject of required_subjects) {
       const grade = grades.find(g => 
@@ -193,7 +193,7 @@ export class EligibilityEngine {
   private async identifyMissingRequirements(
     programId: string,
     grades: SubjectGrade[],
-    guidelines: RegulatoryGuideline[]
+    _guidelines: RegulatoryGuideline[]
   ): Promise<MissingRequirement[]> {
     const missing: MissingRequirement[] = []
 
@@ -274,7 +274,7 @@ export class EligibilityEngine {
     return recommendations
   }
 
-  private calculateOverallScore(breakdown: EligibilityBreakdown, rules: EligibilityRule[]): number {
+  private calculateOverallScore(breakdown: EligibilityBreakdown, _rules: EligibilityRule[]): number {
     return breakdown.total_weighted_score
   }
 
@@ -301,11 +301,12 @@ export class EligibilityEngine {
 
   private isRuleMet(rule: EligibilityRule, grades: SubjectGrade[]): boolean {
     switch (rule.rule_type) {
-      case 'subject_count':
+      case 'subject_count': {
         const { min_subjects, grade_threshold } = rule.condition_json
         return grades.filter(g => g.grade >= grade_threshold).length >= min_subjects
+      }
       
-      case 'specific_subject':
+      case 'specific_subject': {
         const { required_subjects, min_grade } = rule.condition_json
         return required_subjects.every((subject: string) =>
           grades.some(g => 
@@ -313,6 +314,7 @@ export class EligibilityEngine {
             g.grade >= min_grade
           )
         )
+      }
       
       default:
         return false

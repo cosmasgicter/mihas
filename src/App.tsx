@@ -14,9 +14,8 @@ import SignInPage from '@/pages/auth/SignInPage'
 import SignUpPage from '@/pages/auth/SignUpPage'
 import AuthCallbackPage from '@/pages/auth/AuthCallbackPage'
 import StudentDashboard from '@/pages/student/Dashboard'
-import ApplicationForm from '@/pages/student/ApplicationForm'
+// import ApplicationForm from '@/pages/student/ApplicationForm' // Removed for uniformity
 import ApplicationWizard from '@/pages/student/ApplicationWizard'
-import ApplicationWizardFixed from '@/pages/student/ApplicationWizardFixed'
 import ApplicationStatus from '@/pages/student/ApplicationStatus'
 import { DashboardRedirect } from '@/components/DashboardRedirect'
 import StudentSettings from '@/pages/student/Settings'
@@ -85,12 +84,12 @@ function App() {
               } />
               <Route path="/apply" element={
                 <ProtectedRoute>
-                  <ApplicationForm />
+                  <ApplicationWizard />
                 </ProtectedRoute>
               } />
               <Route path="/student/application-wizard" element={
                 <ProtectedRoute>
-                  <ApplicationWizardFixed />
+                  <ApplicationWizard />
                 </ProtectedRoute>
               } />
               <Route path="/application/:id" element={

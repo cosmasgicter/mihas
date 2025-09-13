@@ -9,17 +9,19 @@ interface TextAreaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement
 
 const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
   ({ className, label, error, helperText, ...props }, ref) => {
-    const id = props.id ?? props.name ?? React.useId()
+    const id = React.useId()
+    const finalId = props.id ?? props.name ?? id
     
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={id} className="block text-sm font-medium text-secondary mb-1">
+          <label htmlFor={finalId} className="block text-sm font-medium text-secondary mb-1">
             {label}
             {props.required && <span className="text-red-500 ml-1">*</span>}
           </label>
         )}
         <textarea
+          id={finalId}
           className={cn(
             'flex min-h-[80px] w-full rounded-md border border-secondary bg-white px-3 py-2 text-sm placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:cursor-not-allowed disabled:opacity-50',
             error && 'border-red-500 focus:ring-red-500 focus:border-red-500',

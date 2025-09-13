@@ -104,7 +104,7 @@ export function ContinueApplication() {
               Start your application to join programs at Kalulushi Training Centre or Mukuba Institute of Health and Applied Sciences
             </p>
           </div>
-          <Link to="/student/application">
+          <Link to="/student/application-wizard">
             <Button className="bg-primary hover:bg-primary">
               <FileText className="h-4 w-4 mr-2" />
               Start New Application
@@ -186,7 +186,7 @@ export function ContinueApplication() {
             )}
           </Button>
           
-          <Link to="/student/application">
+          <Link to="/student/application-wizard">
             <Button className="bg-primary hover:bg-primary">
               <FileText className="h-4 w-4 mr-2" />
               Continue Application

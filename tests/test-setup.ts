@@ -5,7 +5,7 @@ export const test = base.extend<{
   testUser: { email: string; password: string; role: string }
   adminUser: { email: string; password: string; role: string }
 }>({
-  testUser: async ({}, use) => {
+  testUser: async ({ }, use) => {
     await use({
       email: 'student@test.com',
       password: 'password123',
@@ -13,7 +13,7 @@ export const test = base.extend<{
     })
   },
   
-  adminUser: async ({}, use) => {
+  adminUser: async ({ }, use) => {
     await use({
       email: 'admin@test.com', 
       password: 'password123',

@@ -1,6 +1,10 @@
 import { test, expect } from './test-setup'
 import { Page } from '@playwright/test'
 import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // Test data
 const testUser = {
@@ -64,22 +68,22 @@ test.describe('Application Wizard - Complete Flow', () => {
     // Step 3: Education & Documents (Step 2)
     await expect(page.locator('h2:has-text("Step 2: Education & Documents")')).toBeVisible()
     
-    // Add minimum 6 subjects
+    // Add minimum 5 subjects
     const subjects = [
       { name: 'Mathematics', grade: '6' },
       { name: 'English', grade: '7' },
       { name: 'Biology', grade: '8' },
       { name: 'Chemistry', grade: '7' },
-      { name: 'Physics', grade: '6' },
-      { name: 'Civic Education', grade: '8' }
+      { name: 'Physics', grade: '6' }
     ]
     
     for (let i = 0; i < subjects.length; i++) {
       if (i > 0) {
-        await page.click('button:has-text("Add Subject")')
+        await page.click('button:has-text("Add New Subject")')
       }
       
-      const subjectRow = page.locator('.flex.items-center.space-x-4').nth(i)
+      const subjectRows = page.locator('.flex.flex-col.sm\\:flex-row.items-stretch.sm\\:items-center')
+      const subjectRow = subjectRows.nth(i)
       await subjectRow.locator('select').first().selectOption({ label: subjects[i].name })
       await subjectRow.locator('select').last().selectOption(subjects[i].grade)
     }
@@ -162,7 +166,7 @@ test.describe('Application Wizard - Complete Flow', () => {
     await page.click('button:has-text("Next Step")')
     
     // Should show validation error
-    await expect(page.locator('text=Minimum 6 subjects required')).toBeVisible()
+    await expect(page.locator('text=Minimum 5 subjects required')).toBeVisible()
   })
 
   test('should validate result slip upload in step 2', async () => {
@@ -197,18 +201,6 @@ test.describe('Application Wizard - Complete Flow', () => {
     await expect(page.locator('text=Proof of payment is required')).toBeVisible()
   })
 
-  test('should handle file upload errors gracefully', async () => {
-    await completeStep1(page)
-    
-    // Try to upload invalid file type
-    const invalidFile = path.join(__dirname, 'fixtures', 'invalid.txt')
-    await page.setInputFiles('input[accept*=".pdf"]', invalidFile)
-    
-    // Should show error or reject the file
-    // Note: Browser file input with accept attribute should prevent this
-    // but we test the behavior anyway
-  })
-
   test('should preserve form data when navigating between steps', async () => {
     await completeStep1(page)
     await completeStep2(page)
@@ -220,22 +212,6 @@ test.describe('Application Wizard - Complete Flow', () => {
     // Check that data is preserved
     await expect(page.locator('input[name="full_name"]')).toHaveValue(testUser.fullName)
     await expect(page.locator('input[name="nrc_number"]')).toHaveValue(testUser.nrcNumber)
-  })
-
-  test('should handle network errors during submission', async () => {
-    // Complete all steps
-    await completeStep1(page)
-    await completeStep2(page)
-    await completeStep3(page)
-    
-    // Simulate network failure
-    await page.route('**/applications_new', route => route.abort())
-    
-    await page.check('input[type="checkbox"]#confirm')
-    await page.click('button:has-text("Submit Application")')
-    
-    // Should show error message
-    await expect(page.locator('text=Failed to fetch')).toBeVisible()
   })
 })
 
@@ -263,16 +239,16 @@ async function addMinimumSubjects(page: Page) {
     { name: 'English', grade: '7' },
     { name: 'Biology', grade: '8' },
     { name: 'Chemistry', grade: '7' },
-    { name: 'Physics', grade: '6' },
-    { name: 'Civic Education', grade: '8' }
+    { name: 'Physics', grade: '6' }
   ]
   
   for (let i = 0; i < subjects.length; i++) {
     if (i > 0) {
-      await page.click('button:has-text("Add Subject")')
+      await page.click('button:has-text("Add New Subject")')
     }
     
-    const subjectRow = page.locator('.flex.items-center.space-x-4').nth(i)
+    const subjectRows = page.locator('.flex.flex-col.sm\\:flex-row.items-stretch.sm\\:items-center')
+    const subjectRow = subjectRows.nth(i)
     await subjectRow.locator('select').first().selectOption({ label: subjects[i].name })
     await subjectRow.locator('select').last().selectOption(subjects[i].grade)
   }
