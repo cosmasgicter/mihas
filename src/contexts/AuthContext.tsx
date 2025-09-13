@@ -105,48 +105,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                           user.user.email?.split('@')[0] || 
                           'Student'
           
-          const newProfile = {
-            user_id: userId,
-            email: user.user.email || '',
-            full_name: sanitizeForDisplay(fullName),
-            phone: signupData.phone ? sanitizeForDisplay(signupData.phone) : null,
-            date_of_birth: signupData.date_of_birth || null,
-            gender: signupData.gender ? sanitizeForDisplay(signupData.gender) : null,
-            nationality: signupData.nationality ? sanitizeForDisplay(signupData.nationality) : null,
-            address: signupData.address ? sanitizeForDisplay(signupData.address) : null,
-            city: signupData.city ? sanitizeForDisplay(signupData.city) : null,
-            country: signupData.country ? sanitizeForDisplay(signupData.country) : null,
-            emergency_contact_name: signupData.emergency_contact_name ? sanitizeForDisplay(signupData.emergency_contact_name) : null,
-            emergency_contact_phone: signupData.emergency_contact_phone ? sanitizeForDisplay(signupData.emergency_contact_phone) : null,
-            role: 'student'
-          }
-          
           const { data: createdProfile, error: createError } = await supabase
             .rpc('create_user_profile_safe', {
               p_user_id: userId,
-              p_email: user.user.email || '',
               p_full_name: sanitizeForDisplay(fullName),
               p_phone: signupData.phone ? sanitizeForDisplay(signupData.phone) : null,
-              p_date_of_birth: signupData.date_of_birth || null,
-              p_gender: signupData.gender ? sanitizeForDisplay(signupData.gender) : null,
-              p_nationality: signupData.nationality ? sanitizeForDisplay(signupData.nationality) : null,
-              p_address: signupData.address ? sanitizeForDisplay(signupData.address) : null,
-              p_city: signupData.city ? sanitizeForDisplay(signupData.city) : null,
-              p_country: signupData.country ? sanitizeForDisplay(signupData.country) : null,
-              p_emergency_contact_name: signupData.emergency_contact_name ? sanitizeForDisplay(signupData.emergency_contact_name) : null,
-              p_emergency_contact_phone: signupData.emergency_contact_phone ? sanitizeForDisplay(signupData.emergency_contact_phone) : null,
               p_role: 'student'
             })
             
-          if (!createError && createdProfile) {
-            const sanitizedProfile = Object.entries(createdProfile).reduce((acc, [key, value]) => {
+          if (!createError && createdProfile && createdProfile.length > 0) {
+            const profileData = createdProfile[0]
+            const sanitizedProfile = Object.entries(profileData).reduce((acc, [key, value]) => {
               acc[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value
               return acc
             }, {} as UserProfile)
             setProfile(sanitizedProfile)
           } else {
             console.error('Error creating profile on first sign in:', createError)
-            setProfile(null)
+            // Fallback: try direct insert
+            try {
+              const { data: fallbackProfile, error: fallbackError } = await supabase
+                .from('user_profiles')
+                .insert({
+                  user_id: userId,
+                  full_name: sanitizeForDisplay(fullName),
+                  phone: signupData.phone ? sanitizeForDisplay(signupData.phone) : null,
+                  role: 'student'
+                })
+                .select()
+                .single()
+              
+              if (!fallbackError && fallbackProfile) {
+                const sanitizedProfile = Object.entries(fallbackProfile).reduce((acc, [key, value]) => {
+                  acc[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value
+                  return acc
+                }, {} as UserProfile)
+                setProfile(sanitizedProfile)
+              } else {
+                setProfile(null)
+              }
+            } catch (fallbackErr) {
+              console.error('Fallback profile creation failed:', fallbackErr)
+              setProfile(null)
+            }
           }
         } else {
           setProfile(null)

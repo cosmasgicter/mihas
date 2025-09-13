@@ -44,74 +44,111 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+
+
   useEffect(() => {
     const loadDashboardStats = async () => {
       try {
         setLoading(true)
+        setError('')
         
-        // Try to get stats with optimized queries, fallback to individual queries if needed
-        try {
-          // Attempt to use a more efficient approach with fewer queries
-          const [appsResponse, programsResponse, intakesResponse, profilesResponse] = await Promise.all([
-            supabase.from('applications_new').select('status', { count: 'exact' }),
-            supabase.from('programs').select('*', { count: 'exact', head: true }).eq('is_active', true),
-            supabase.from('intakes').select('*', { count: 'exact', head: true }).eq('is_active', true),
-            supabase.from('user_profiles').select('*', { count: 'exact', head: true }).eq('role', 'student')
-          ])
+        // Load stats with graceful error handling
+        const statsPromises = [
+          supabase.from('applications_new').select('*', { count: 'exact', head: true }).then(r => ({ type: 'total_apps', count: r.count || 0, error: r.error })),
+          supabase.from('applications_new').select('*', { count: 'exact', head: true }).eq('status', 'submitted').then(r => ({ type: 'pending_apps', count: r.count || 0, error: r.error })),
+          supabase.from('applications_new').select('*', { count: 'exact', head: true }).eq('status', 'approved').then(r => ({ type: 'approved_apps', count: r.count || 0, error: r.error })),
+          supabase.from('applications_new').select('*', { count: 'exact', head: true }).eq('status', 'rejected').then(r => ({ type: 'rejected_apps', count: r.count || 0, error: r.error })),
+          supabase.from('programs').select('*', { count: 'exact', head: true }).eq('is_active', true).then(r => ({ type: 'programs', count: r.count || 0, error: r.error })),
+          supabase.from('intakes').select('*', { count: 'exact', head: true }).eq('is_active', true).then(r => ({ type: 'intakes', count: r.count || 0, error: r.error })),
+          supabase.from('user_profiles').select('*', { count: 'exact', head: true }).eq('role', 'student').then(r => ({ type: 'students', count: r.count || 0, error: r.error }))
+        ]
 
-          // Count applications by status from the single query
-          const applications = appsResponse.data || []
-          const statusCounts = applications.reduce((acc, app) => {
-            acc[app.status] = (acc[app.status] || 0) + 1
-            return acc
-          }, {} as Record<string, number>)
+        const results = await Promise.allSettled(statsPromises)
+        const newStats = { ...stats }
+        const errors: string[] = []
 
-          setStats({
-            totalApplications: applications.length,
-            pendingApplications: statusCounts.submitted || 0,
-            approvedApplications: statusCounts.approved || 0,
-            rejectedApplications: statusCounts.rejected || 0,
-            totalPrograms: programsResponse.count || 0,
-            activeIntakes: intakesResponse.count || 0,
-            totalStudents: profilesResponse.count || 0
-          })
-        } catch (optimizedError) {
-          // Fallback to original approach if optimized version fails
-          const [totalAppsResponse, pendingResponse, approvedResponse, rejectedResponse, programsResponse, intakesResponse, profilesResponse] = await Promise.all([
-            supabase.from('applications_new').select('*', { count: 'exact', head: true }),
-            supabase.from('applications_new').select('*', { count: 'exact', head: true }).eq('status', 'submitted'),
-            supabase.from('applications_new').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
-            supabase.from('applications_new').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
-            supabase.from('programs').select('*', { count: 'exact', head: true }).eq('is_active', true),
-            supabase.from('intakes').select('*', { count: 'exact', head: true }).eq('is_active', true),
-            supabase.from('user_profiles').select('*', { count: 'exact', head: true }).eq('role', 'student')
-          ])
+        results.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            const { type, count, error } = result.value
+            if (error) {
+              errors.push(`${type}: ${error.message}`)
+            } else {
+              switch (type) {
+                case 'total_apps':
+                  newStats.totalApplications = count
+                  break
+                case 'pending_apps':
+                  newStats.pendingApplications = count
+                  break
+                case 'approved_apps':
+                  newStats.approvedApplications = count
+                  break
+                case 'rejected_apps':
+                  newStats.rejectedApplications = count
+                  break
+                case 'programs':
+                  newStats.totalPrograms = count
+                  break
+                case 'intakes':
+                  newStats.activeIntakes = count
+                  break
+                case 'students':
+                  newStats.totalStudents = count
+                  break
+              }
+            }
+          } else {
+            errors.push(`Query ${index + 1} failed: ${result.reason}`)
+          }
+        })
 
-          setStats({
-            totalApplications: totalAppsResponse.count || 0,
-            pendingApplications: pendingResponse.count || 0,
-            approvedApplications: approvedResponse.count || 0,
-            rejectedApplications: rejectedResponse.count || 0,
-            totalPrograms: programsResponse.count || 0,
-            activeIntakes: intakesResponse.count || 0,
-            totalStudents: profilesResponse.count || 0
-          })
+        setStats(newStats)
+        
+        if (errors.length > 0) {
+          setError(`Some data could not be loaded: ${errors.join(', ')}`)
         }
       } catch (error: any) {
         console.error('Error loading dashboard stats:', error)
-        setError(error.message)
+        setError(`Failed to load dashboard data: ${error.message}`)
       } finally {
         setLoading(false)
       }
     }
 
-    loadDashboardStats()
-  }, [])
+    // Add a small delay to ensure auth is fully loaded
+    const timer = setTimeout(loadDashboardStats, 100)
+    return () => clearTimeout(timer)
+  }, [user, profile])
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" />
+      </div>
+    )
+  }
+
+  // Fallback if user or profile is missing
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Authentication Required</h2>
+          <p className="text-gray-600 mb-4">Please sign in to access the admin dashboard.</p>
+          <Button onClick={() => window.location.href = '/auth/signin'}>Sign In</Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Profile Loading</h2>
+          <p className="text-gray-600 mb-4">Setting up your profile...</p>
+          <LoadingSpinner size="lg" />
+        </div>
       </div>
     )
   }
@@ -144,7 +181,18 @@ export default function AdminDashboard() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
           <div className="rounded-md bg-red-50 p-4 mb-6">
-            <div className="text-sm text-red-700">{error}</div>
+            <div className="text-sm text-red-700">
+              <strong>Error:</strong> {error}
+            </div>
+          </div>
+        )}
+
+        {/* Debug info in development */}
+        {import.meta.env.DEV && (
+          <div className="rounded-md bg-blue-50 p-4 mb-6">
+            <div className="text-sm text-blue-700">
+              <strong>Debug:</strong> User: {user?.email}, Role: {profile?.role}, Profile ID: {profile?.id}
+            </div>
           </div>
         )}
 

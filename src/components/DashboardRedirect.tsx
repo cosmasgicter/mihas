@@ -15,6 +15,8 @@ const ADMIN_ROLES = [
 export function DashboardRedirect() {
   const { user, profile, loading } = useAuth()
 
+
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -27,8 +29,20 @@ export function DashboardRedirect() {
     return <Navigate to="/auth/signin" replace />
   }
 
+  // Wait for profile to load before redirecting
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <LoadingSpinner size="lg" />
+          <p className="mt-4 text-gray-600">Loading your profile...</p>
+        </div>
+      </div>
+    )
+  }
+
   // Check if user email is admin or has admin role
-  const isAdmin = user.email === 'cosmas@beanola.com' || (profile && ADMIN_ROLES.includes(profile.role))
+  const isAdmin = user.email === 'cosmas@beanola.com' || ADMIN_ROLES.includes(profile.role)
   
   if (isAdmin) {
     return <Navigate to="/admin" replace />

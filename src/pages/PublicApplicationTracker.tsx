@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
@@ -64,7 +64,7 @@ export default function PublicApplicationTracker() {
     return /^[a-zA-Z0-9\-_]+$/.test(trimmed)
   }
 
-  const searchApplication = async () => {
+  const searchApplication = useCallback(async () => {
     const trimmedTerm = searchTerm.trim()
     
     if (!trimmedTerm) {
@@ -106,7 +106,7 @@ export default function PublicApplicationTracker() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [searchTerm])
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -163,11 +163,21 @@ export default function PublicApplicationTracker() {
     }
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
+      e.preventDefault()
       searchApplication()
     }
-  }
+  }, [searchApplication])
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setSearchTerm(value)
+    // Clear error when user starts typing
+    if (error) {
+      setError('')
+    }
+  }, [error])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 relative overflow-hidden">
@@ -282,7 +292,7 @@ export default function PublicApplicationTracker() {
                       <Search className="absolute left-4 sm:left-6 top-1/2 transform -translate-y-1/2 h-5 w-5 sm:h-6 sm:w-6 text-secondary/60" />
                       <Input
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={handleInputChange}
                         onKeyPress={handleKeyPress}
                         placeholder="Enter application number..."
                         className="form-input-mobile w-full text-base sm:text-xl py-4 sm:py-6 pl-12 sm:pl-16 pr-4 sm:pr-6 border-3 border-gray-200 focus:border-primary rounded-2xl shadow-lg font-medium"
