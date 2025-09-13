@@ -67,31 +67,53 @@ export interface Application {
   id: string
   application_number: string
   user_id: string
-  program_id: string
-  intake_id: string
-  status: 'pending' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'withdrawn'
-  previous_education?: string
-  previous_institution?: string
-  grades_or_gpa?: string
-  personal_statement?: string
-  work_experience?: string
-  english_proficiency?: string
-  computer_skills?: string
-  references?: string
-  additional_info?: string
-  payment_amount?: number
-  payment_status: 'pending' | 'paid' | 'failed'
-  payment_reference?: string
-  payment_proof_url?: string
+  
+  // Step 1: Basic KYC
+  full_name: string
+  nrc_number?: string
+  passport_number?: string
+  date_of_birth: string
+  sex: 'Male' | 'Female'
+  phone: string
+  email: string
+  residence_town: string
+  guardian_name?: string
+  guardian_phone?: string
+  program: 'Clinical Medicine' | 'Environmental Health' | 'Registered Nursing'
+  intake: string
+  institution: 'KATC' | 'MIHAS'
+  
+  // Step 2: Education & Documents
+  result_slip_url?: string
+  extra_kyc_url?: string
+  
+  // Step 3: Payment
+  application_fee: number
+  payment_method?: string
+  payer_name?: string
+  payer_phone?: string
+  amount?: number
+  paid_at?: string
+  momo_ref?: string
+  pop_url?: string
+  payment_status: 'pending_review' | 'verified' | 'rejected'
+  
+  // Step 4: Status tracking
+  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected'
+  submitted_at?: string
+  
+  // Tracking
+  public_tracking_code?: string
+  created_at: string
+  updated_at: string
+  
+  // Admin fields
   reviewed_by?: string
   reviewed_at?: string
   review_started_at?: string
   review_notes?: string
   decision_reason?: string
   decision_date?: string
-  submitted_at: string
-  created_at: string
-  updated_at: string
 }
 
 export interface ApplicationDocument {
@@ -109,6 +131,28 @@ export interface ApplicationDocument {
   uploaded_at: string
   created_at: string
   updated_at: string
+}
+
+export interface ApplicationWithDetails extends Application {
+  programs?: Program
+  intakes?: Intake
+  documents?: ApplicationDocument[]
+}
+
+export interface Grade12Subject {
+  id: string
+  name: string
+  code?: string
+  is_active: boolean
+  created_at: string
+}
+
+export interface ApplicationGrade {
+  id: string
+  application_id: string
+  subject_id: string
+  grade: number
+  created_at: string
 }
 
 export interface UserRole {

@@ -107,31 +107,29 @@ export default function ApplicationForm() {
 
   // Auto-populate KYC fields from user profile
   useEffect(() => {
-    if (profile && !localStorage.getItem('applicationDraft')) {
-      // Only auto-populate if there's no saved draft
+    if (profile) {
+      console.log('Profile data:', profile)
+      
       const fieldsToPopulate = {
         date_of_birth: profile.date_of_birth || '',
         gender: profile.gender || '',
-        nationality: profile.nationality || 'Zambian',
+        nationality: profile.nationality || profile.country || 'Zambian',
         physical_address: profile.address || '',
-        postal_address: profile.address || '', // Use same address if available
+        postal_address: profile.address || '',
         guardian_name: profile.emergency_contact_name || '',
         guardian_phone: profile.emergency_contact_phone || '',
         guardian_relationship: profile.emergency_contact_name ? 'Emergency Contact' : ''
       }
       
+      console.log('Fields to populate:', fieldsToPopulate)
+      
       // Set form values from profile
       Object.entries(fieldsToPopulate).forEach(([key, value]) => {
-        if (value) {
+        if (value && value.trim() !== '') {
+          console.log(`Setting ${key} to:`, value)
           setValue(key as keyof ApplicationFormData, value)
         }
       })
-      
-      // Show notification about auto-populated fields
-      if (Object.values(fieldsToPopulate).some(v => v)) {
-        setError('')
-        // You could add a success message here if needed
-      }
     }
   }, [profile, setValue])
 
@@ -620,6 +618,11 @@ export default function ApplicationForm() {
           {user && (
             <div className="mt-2 text-sm text-gray-600">
               Logged in as: {user.email}
+              {profile && (
+                <div className="mt-1 text-xs text-blue-600">
+                  Profile loaded: {profile.full_name} | DOB: {profile.date_of_birth || 'Not set'} | Gender: {profile.gender || 'Not set'}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -869,13 +872,13 @@ export default function ApplicationForm() {
                         const fieldsToPopulate = {
                           date_of_birth: profile.date_of_birth || '',
                           gender: profile.gender || '',
-                          nationality: profile.nationality || 'Zambian',
+                          nationality: profile.nationality || profile.country || 'Zambian',
                           physical_address: profile.address || '',
                           postal_address: profile.address || '',
                         }
                         
                         Object.entries(fieldsToPopulate).forEach(([key, value]) => {
-                          if (value) {
+                          if (value && value.trim() !== '') {
                             setValue(key as keyof ApplicationFormData, value)
                           }
                         })
@@ -1021,7 +1024,7 @@ export default function ApplicationForm() {
                         }
                         
                         Object.entries(fieldsToPopulate).forEach(([key, value]) => {
-                          if (value) {
+                          if (value && value.trim() !== '') {
                             setValue(key as keyof ApplicationFormData, value)
                           }
                         })
