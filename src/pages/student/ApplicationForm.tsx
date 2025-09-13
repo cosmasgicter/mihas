@@ -105,6 +105,36 @@ export default function ApplicationForm() {
     return () => clearInterval(autoSaveInterval)
   }, [])
 
+  // Auto-populate KYC fields from user profile
+  useEffect(() => {
+    if (profile && !localStorage.getItem('applicationDraft')) {
+      // Only auto-populate if there's no saved draft
+      const fieldsToPopulate = {
+        date_of_birth: profile.date_of_birth || '',
+        gender: profile.gender || '',
+        nationality: profile.nationality || 'Zambian',
+        physical_address: profile.address || '',
+        postal_address: profile.address || '', // Use same address if available
+        guardian_name: profile.emergency_contact_name || '',
+        guardian_phone: profile.emergency_contact_phone || '',
+        guardian_relationship: profile.emergency_contact_name ? 'Emergency Contact' : ''
+      }
+      
+      // Set form values from profile
+      Object.entries(fieldsToPopulate).forEach(([key, value]) => {
+        if (value) {
+          setValue(key as keyof ApplicationFormData, value)
+        }
+      })
+      
+      // Show notification about auto-populated fields
+      if (Object.values(fieldsToPopulate).some(v => v)) {
+        setError('')
+        // You could add a success message here if needed
+      }
+    }
+  }, [profile, setValue])
+
   useEffect(() => {
     if (selectedProgramId) {
       loadIntakes(selectedProgramId)
@@ -600,6 +630,24 @@ export default function ApplicationForm() {
           </div>
         )}
 
+        {profile && currentStep === 2 && (
+          <div className="rounded-md bg-blue-50 border border-blue-200 p-4 mb-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-blue-700">
+                  <strong>Smart Form:</strong> Some fields have been automatically filled from your profile. 
+                  Fields with a green background contain your saved information - you can edit them if needed.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Progress Bar */}
         <div className="bg-white rounded-lg shadow p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -807,9 +855,43 @@ export default function ApplicationForm() {
           {/* Step 2: Personal Information */}
           {currentStep === 2 && (
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-secondary mb-4">
-                Personal Information
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-secondary">
+                  Personal Information
+                </h2>
+                <div className="flex items-center space-x-3">
+                  {profile && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const fieldsToPopulate = {
+                          date_of_birth: profile.date_of_birth || '',
+                          gender: profile.gender || '',
+                          nationality: profile.nationality || 'Zambian',
+                          physical_address: profile.address || '',
+                          postal_address: profile.address || '',
+                        }
+                        
+                        Object.entries(fieldsToPopulate).forEach(([key, value]) => {
+                          if (value) {
+                            setValue(key as keyof ApplicationFormData, value)
+                          }
+                        })
+                      }}
+                      className="text-blue-600 hover:bg-blue-50"
+                    >
+                      ↻ Fill from Profile
+                    </Button>
+                  )}
+                  {profile && (
+                    <div className="text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                      ✓ Auto-filled from profile
+                    </div>
+                  )}
+                </div>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input
@@ -818,6 +900,7 @@ export default function ApplicationForm() {
                   label="Date of Birth"
                   required
                   error={errors.date_of_birth?.message}
+                  className={profile?.date_of_birth ? 'bg-green-50 border-green-200' : ''}
                 />
 
                 <div>
@@ -826,7 +909,9 @@ export default function ApplicationForm() {
                   </label>
                   <select
                     {...register('gender')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent ${
+                      profile?.gender ? 'bg-green-50 border-green-200' : 'border-gray-300'
+                    }`}
                   >
                     <option value="">Select Gender</option>
                     <option value="Male">Male</option>
@@ -862,6 +947,7 @@ export default function ApplicationForm() {
                   required
                   defaultValue="Zambian"
                   error={errors.nationality?.message}
+                  className={profile?.nationality ? 'bg-green-50 border-green-200' : ''}
                 />
 
                 <Input
@@ -897,6 +983,7 @@ export default function ApplicationForm() {
                   {...register('postal_address')}
                   label="Postal Address"
                   error={errors.postal_address?.message}
+                  className={profile?.address ? 'bg-green-50 border-green-200' : ''}
                 />
               </div>
 
@@ -907,6 +994,7 @@ export default function ApplicationForm() {
                   required
                   rows={3}
                   error={errors.physical_address?.message}
+                  className={profile?.address ? 'bg-green-50 border-green-200' : ''}
                 />
               </div>
             </div>
@@ -915,9 +1003,41 @@ export default function ApplicationForm() {
           {/* Step 3: Guardian Information */}
           {currentStep === 3 && (
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-secondary mb-4">
-                Guardian/Next of Kin Information
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-secondary">
+                  Guardian/Next of Kin Information
+                </h2>
+                <div className="flex items-center space-x-3">
+                  {profile?.emergency_contact_name && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const fieldsToPopulate = {
+                          guardian_name: profile.emergency_contact_name || '',
+                          guardian_phone: profile.emergency_contact_phone || '',
+                          guardian_relationship: profile.emergency_contact_name ? 'Emergency Contact' : ''
+                        }
+                        
+                        Object.entries(fieldsToPopulate).forEach(([key, value]) => {
+                          if (value) {
+                            setValue(key as keyof ApplicationFormData, value)
+                          }
+                        })
+                      }}
+                      className="text-blue-600 hover:bg-blue-50"
+                    >
+                      ↻ Fill from Profile
+                    </Button>
+                  )}
+                  {profile?.emergency_contact_name && (
+                    <div className="text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                      ✓ Auto-filled from profile
+                    </div>
+                  )}
+                </div>
+              </div>
               <p className="text-sm text-gray-600 mb-6">
                 This information is optional but recommended for emergency contact purposes.
               </p>
@@ -927,12 +1047,14 @@ export default function ApplicationForm() {
                   {...register('guardian_name')}
                   label="Guardian/Next of Kin Name"
                   error={errors.guardian_name?.message}
+                  className={profile?.emergency_contact_name ? 'bg-green-50 border-green-200' : ''}
                 />
 
                 <Input
                   {...register('guardian_phone')}
                   label="Guardian Phone Number"
                   error={errors.guardian_phone?.message}
+                  className={profile?.emergency_contact_phone ? 'bg-green-50 border-green-200' : ''}
                 />
 
                 <Input
@@ -940,6 +1062,7 @@ export default function ApplicationForm() {
                   label="Relationship"
                   placeholder="e.g., Parent, Spouse, Sibling"
                   error={errors.guardian_relationship?.message}
+                  className={profile?.emergency_contact_name ? 'bg-green-50 border-green-200' : ''}
                 />
               </div>
             </div>

@@ -90,7 +90,7 @@ export default function SignUpPage() {
       const { confirmPassword, ...userData } = data
       await signUp(data.email, data.password, userData)
       
-      setSuccess('Account created successfully! You can now sign in with your credentials.')
+setSuccess('Account created successfully! Redirecting to sign in...')
     } catch (error) {
       console.error('Sign up error:', error)
       setError(error instanceof Error ? error.message : 'Failed to create account. Please try again.')
