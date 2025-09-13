@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { checkEligibility, getRecommendedSubjects } from '@/lib/eligibility'
-import { ArrowLeft, CheckCircle, ArrowRight, X, Sparkles, FileText, CreditCard, Send, XCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle, ArrowRight, X, Sparkles, FileText, CreditCard, Send, XCircle, AlertTriangle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -343,10 +343,10 @@ export default function ApplicationWizard() {
         return
       }
       
-      // Check eligibility
+      // Check eligibility (advisory only, don't block)
       if (selectedProgram && eligibilityCheck && !eligibilityCheck.eligible) {
-        setError(`Eligibility Error: ${eligibilityCheck.message}`)
-        return
+        // Show warning but allow to continue
+        console.log('Eligibility advisory:', eligibilityCheck.message)
       }
       
       if (!resultSlipFile) {
@@ -835,7 +835,7 @@ export default function ApplicationWizard() {
                         className={`mb-4 p-4 rounded-lg border ${
                           eligibilityCheck.eligible 
                             ? 'bg-green-50 border-green-200' 
-                            : 'bg-red-50 border-red-200'
+                            : 'bg-yellow-50 border-yellow-200'
                         }`}
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -844,12 +844,12 @@ export default function ApplicationWizard() {
                           {eligibilityCheck.eligible ? (
                             <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
                           ) : (
-                            <XCircle className="h-5 w-5 mr-2 text-red-600" />
+                            <AlertTriangle className="h-5 w-5 mr-2 text-yellow-600" />
                           )}
                           <span className={`font-medium ${
-                            eligibilityCheck.eligible ? 'text-green-800' : 'text-red-800'
+                            eligibilityCheck.eligible ? 'text-green-800' : 'text-yellow-800'
                           }`}>
-                            {eligibilityCheck.eligible ? '✓ Eligible for ' + selectedProgram : '✗ Not Eligible for ' + selectedProgram}
+                            {eligibilityCheck.eligible ? '✓ Meets Basic Requirements for ' + selectedProgram : '⚠ Advisory for ' + selectedProgram}
                           </span>
                           {eligibilityCheck.score && (
                             <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
@@ -858,10 +858,17 @@ export default function ApplicationWizard() {
                           )}
                         </div>
                         <p className={`text-sm mb-2 ${
-                          eligibilityCheck.eligible ? 'text-green-700' : 'text-red-700'
+                          eligibilityCheck.eligible ? 'text-green-700' : 'text-yellow-700'
                         }`}>
                           {eligibilityCheck.message}
                         </p>
+                        {!eligibilityCheck.eligible && (
+                          <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                            <p className="text-xs text-blue-800 font-medium">
+                              ℹ️ You can still proceed with your application. Please consult with the institution for guidance on requirements.
+                            </p>
+                          </div>
+                        )}
                         {eligibilityCheck.recommendations && eligibilityCheck.recommendations.length > 0 && (
                           <div className="mt-2">
                             <p className="text-xs font-medium text-gray-600 mb-1">Recommendations:</p>
@@ -1227,15 +1234,15 @@ export default function ApplicationWizard() {
                       {eligibilityCheck && (
                         <div>
                           <p><strong>Eligibility:</strong> 
-                            <span className={eligibilityCheck.eligible ? 'text-green-600' : 'text-red-600'}>
-                              {eligibilityCheck.eligible ? ' ✓ Eligible' : ' ✗ Not Eligible'}
+                            <span className={eligibilityCheck.eligible ? 'text-green-600' : 'text-yellow-600'}>
+                              {eligibilityCheck.eligible ? ' ✓ Meets Requirements' : ' ⚠ Advisory Only'}
                             </span>
                             {eligibilityCheck.score && (
                               <span className="ml-2 text-blue-600">({eligibilityCheck.score}%)</span>
                             )}
                           </p>
                           {!eligibilityCheck.eligible && (
-                            <p className="text-sm text-red-600 mt-1">{eligibilityCheck.message}</p>
+                            <p className="text-sm text-yellow-600 mt-1">{eligibilityCheck.message}</p>
                           )}
                         </div>
                       )}

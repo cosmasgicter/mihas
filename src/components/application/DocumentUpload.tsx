@@ -45,6 +45,7 @@ export function DocumentUpload({
             onChange={onFileUpload}
             className="hidden"
             disabled={uploadingFiles.length > 0}
+            key={uploadedFiles.length} // Force re-render to clear input
           />
           <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 ${
             uploadingFiles.length > 0 
@@ -68,9 +69,11 @@ export function DocumentUpload({
         </label>
         
         {error && (
-          <div className="mt-2 flex items-center text-sm text-red-600">
-            <AlertCircle className="h-4 w-4 mr-1" />
-            {error}
+          <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center text-sm text-red-700">
+              <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
           </div>
         )}
       </div>

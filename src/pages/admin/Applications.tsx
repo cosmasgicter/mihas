@@ -116,6 +116,9 @@ export default function AdminApplications() {
 
     if (status !== 'all') {
       query = query.eq('status', status)
+    } else {
+      // Include all statuses including draft
+      query = query.in('status', ['draft', 'submitted', 'under_review', 'approved', 'rejected'])
     }
 
     if (search) {

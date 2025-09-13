@@ -215,14 +215,47 @@ export default function StudentDashboard() {
                   </div>
                 ) : (
                   <>
-                    {hasDraft && (
-                      <div className="px-6 py-4 hover:bg-gray-50 bg-yellow-50 border-l-4 border-yellow-400">
+                    {/* Show draft applications from database */}
+                    {applications.filter(app => app.status === 'draft').map((application) => (
+                      <div key={`draft-${application.id}`} className="px-6 py-4 hover:bg-gray-50 bg-yellow-50 border-l-4 border-yellow-400">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-2">
                               <Clock className="h-5 w-5 text-yellow-500" />
                               <h4 className="text-sm font-medium text-secondary">
                                 Draft Application
+                              </h4>
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                DRAFT
+                              </span>
+                            </div>
+                            
+                            <div className="text-sm text-secondary space-y-1">
+                              <p>Application #{application.application_number}</p>
+                              <p>Program: {application.program}</p>
+                              <p>Intake: {application.intake}</p>
+                              <p>Created: {formatDate(application.created_at)}</p>
+                            </div>
+                          </div>
+                          
+                          <Link to="/student/application-wizard">
+                            <Button variant="outline" size="sm">
+                              Continue Draft
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* Show localStorage draft if exists */}
+                    {hasDraft && !applications.some(app => app.status === 'draft') && (
+                      <div className="px-6 py-4 hover:bg-gray-50 bg-yellow-50 border-l-4 border-yellow-400">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-2">
+                              <Clock className="h-5 w-5 text-yellow-500" />
+                              <h4 className="text-sm font-medium text-secondary">
+                                Draft Application (Local)
                               </h4>
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                 DRAFT
@@ -246,7 +279,8 @@ export default function StudentDashboard() {
                         </div>
                       </div>
                     )}
-                    {applications.map((application) => (
+                    {/* Show submitted applications */}
+                    {applications.filter(app => app.status !== 'draft').map((application) => (
                       <div key={application.id} className="px-6 py-4 hover:bg-gray-50">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">

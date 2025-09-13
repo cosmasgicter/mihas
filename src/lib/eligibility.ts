@@ -40,30 +40,33 @@ export interface EnhancedEligibilityResult {
 
 export const ELIGIBILITY_RULES: Record<string, EligibilityRule> = {
   'Clinical Medicine': {
-    required: ['English', 'Mathematics', 'Biology', 'Chemistry', 'Physics'],
-    minGrade: 6,
+    required: ['English', 'Mathematics', 'Biology'],
+    minGrade: 5,
     minSubjects: 5,
     additionalRequirements: [
-      'Physics is mandatory for Clinical Medicine',
-      'Minimum grade 6 in all science subjects'
+      'Chemistry and Physics (or Science) are highly recommended',
+      'Strong performance in sciences is preferred',
+      'Please consult with the institution for specific requirements'
     ]
   },
   'Environmental Health': {
-    required: ['English', 'Mathematics', 'Biology', 'Chemistry'],
-    minGrade: 6,
+    required: ['English', 'Mathematics', 'Biology'],
+    minGrade: 5,
     minSubjects: 5,
     additionalRequirements: [
+      'Chemistry (or Science) is highly recommended',
       'Geography or Agricultural Science recommended',
-      'Strong foundation in sciences required'
+      'Please consult with the institution for specific requirements'
     ]
   },
   'Registered Nursing': {
-    required: ['English', 'Mathematics', 'Biology', 'Chemistry'],
-    minGrade: 6,
+    required: ['English', 'Mathematics', 'Biology'],
+    minGrade: 5,
     minSubjects: 5,
     additionalRequirements: [
-      'Biology and Chemistry are critical',
-      'Good communication skills essential'
+      'Chemistry (or Science) is highly recommended',
+      'Good communication skills essential',
+      'Please consult with the institution for specific requirements'
     ]
   }
 }
@@ -101,23 +104,30 @@ export function checkEligibility(
   // Get subject names from grades
   const subjectNames = grades.map(g => g.subject_name).filter(Boolean)
   
-  // Check required subjects
+  // Check required subjects (more flexible approach)
   const missingRequired = rules.required.filter(req => 
     !subjectNames.some(name => name.toLowerCase().includes(req.toLowerCase()))
   )
 
+  // Check for science subjects flexibility (Chemistry/Physics vs Science)
+  const hasChemistry = subjectNames.some(name => name.toLowerCase().includes('chemistry'))
+  const hasPhysics = subjectNames.some(name => name.toLowerCase().includes('physics'))
+  const hasScience = subjectNames.some(name => name.toLowerCase().includes('science'))
+  const hasScienceSubjects = hasChemistry || hasPhysics || hasScience
+
   if (missingRequired.length > 0) {
     return {
-      eligible: false,
-      message: `Missing required subjects: ${missingRequired.join(', ')}`,
+      eligible: true, // Changed to true to allow progression
+      message: `Conditionally eligible - Missing preferred subjects: ${missingRequired.join(', ')}`,
       recommendations: [
-        `Add the following subjects: ${missingRequired.join(', ')}`,
-        'These subjects are mandatory for this program'
+        `Preferred subjects: ${missingRequired.join(', ')}`,
+        'Please consult with the institution about subject requirements',
+        'You may still proceed with your application'
       ]
     }
   }
 
-  // Check grades for required subjects
+  // Check grades for required subjects (more lenient approach)
   const requiredSubjectGrades = grades.filter(g => 
     rules.required.some(req => 
       g.subject_name.toLowerCase().includes(req.toLowerCase())
@@ -129,11 +139,12 @@ export function checkEligibility(
   if (lowGrades.length > 0) {
     const lowGradeSubjects = lowGrades.map(g => `${g.subject_name} (${g.grade})`).join(', ')
     return {
-      eligible: false,
-      message: `Grades below ${rules.minGrade} in required subjects: ${lowGradeSubjects}`,
+      eligible: true, // Changed to true to allow progression
+      message: `Conditionally eligible - Lower grades in: ${lowGradeSubjects}`,
       recommendations: [
-        `Minimum grade ${rules.minGrade} required in all core subjects`,
-        'Consider retaking exams to improve grades'
+        `Consider improving grades in: ${lowGradeSubjects}`,
+        'Please consult with the institution about grade requirements',
+        'You may still proceed with your application'
       ]
     }
   }
@@ -155,9 +166,9 @@ export function getRecommendedSubjects(program: string): string[] {
   if (!rules) return []
   
   const recommended = {
-    'Clinical Medicine': ['English', 'Mathematics', 'Biology', 'Chemistry', 'Physics', 'Additional Mathematics'],
-    'Environmental Health': ['English', 'Mathematics', 'Biology', 'Chemistry', 'Geography', 'Agricultural Science'],
-    'Registered Nursing': ['English', 'Mathematics', 'Biology', 'Chemistry', 'Civic Education', 'Religious Education']
+    'Clinical Medicine': ['English', 'Mathematics', 'Biology', 'Chemistry', 'Physics', 'Science', 'Additional Mathematics'],
+    'Environmental Health': ['English', 'Mathematics', 'Biology', 'Chemistry', 'Science', 'Geography', 'Agricultural Science'],
+    'Registered Nursing': ['English', 'Mathematics', 'Biology', 'Chemistry', 'Science', 'Civic Education', 'Religious Education']
   }
   
   return recommended[program as keyof typeof recommended] || []

@@ -292,22 +292,56 @@ class ApplicationSessionManager {
     progress?: string
     expiresAt?: string
   }> {
-    const draft = await this.loadDraft(userId)
-    
-    if (!draft) {
-      return { exists: false }
-    }
+    try {
+      // Check localStorage first
+      const localDraft = localStorage.getItem('applicationWizardDraft')
+      if (localDraft) {
+        try {
+          const draft = JSON.parse(localDraft)
+          const steps = ['Basic KYC', 'Education', 'Payment', 'Submit']
+          return {
+            exists: true,
+            step: draft.currentStep || 1,
+            lastSaved: draft.savedAt,
+            progress: `Step ${draft.currentStep || 1}/4: ${steps[(draft.currentStep || 1) - 1]}`,
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+          }
+        } catch (error) {
+          localStorage.removeItem('applicationWizardDraft')
+        }
+      }
 
-    const steps = ['Program Selection', 'Personal Info', 'Guardian Info', 'Health & Legal', 
-                  'Professional Info', 'Education', 'Motivation', 'Skills & References', 
-                  'Financial Info', 'Payment', 'Review & Submit']
-    
-    return {
-      exists: true,
-      step: draft.current_step,
-      lastSaved: draft.last_saved_at,
-      progress: `Step ${draft.current_step}/11: ${steps[draft.current_step - 1] || 'Unknown'}`,
-      expiresAt: draft.expires_at
+      // Check database for draft applications
+      const { data: draftApps } = await supabase
+        .from('applications_new')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('status', 'draft')
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (draftApps && draftApps.length > 0) {
+        const app = draftApps[0]
+        const steps = ['Basic KYC', 'Education', 'Payment', 'Submit']
+        let currentStep = 1
+        
+        // Determine step based on what's filled
+        if (app.result_slip_url) currentStep = 3
+        else if (app.program && app.full_name) currentStep = 2
+        
+        return {
+          exists: true,
+          step: currentStep,
+          lastSaved: app.updated_at,
+          progress: `Step ${currentStep}/4: ${steps[currentStep - 1]}`,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        }
+      }
+
+      return { exists: false }
+    } catch (error) {
+      console.error('Error getting draft info:', error)
+      return { exists: false }
     }
   }
 
