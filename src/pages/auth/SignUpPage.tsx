@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -40,6 +40,7 @@ export default function SignUpPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [turnstileToken, setTurnstileToken] = useState('')
+  const [turnstileKey, setTurnstileKey] = useState(0)
   
   const {
     register,
@@ -57,6 +58,22 @@ export default function SignUpPage() {
       return () => clearTimeout(timer)
     }
   }, [success, navigate])
+
+  const handleTurnstileVerify = useCallback((token: string) => {
+    setTurnstileToken(token)
+    setError('')
+  }, [])
+
+  const handleTurnstileError = useCallback(() => {
+    setTurnstileToken('')
+    setError('Security verification failed. Please try again.')
+    setTurnstileKey(prev => prev + 1)
+  }, [])
+
+  const handleTurnstileExpire = useCallback(() => {
+    setTurnstileToken('')
+    setError('Security verification expired. Please verify again.')
+  }, [])
 
   const onSubmit = async (data: SignUpForm) => {
     if (!turnstileToken) {
@@ -77,6 +94,9 @@ export default function SignUpPage() {
     } catch (error) {
       console.error('Sign up error:', error)
       setError(error instanceof Error ? error.message : 'Failed to create account. Please try again.')
+      // Reset Turnstile on error
+      setTurnstileToken('')
+      setTurnstileKey(prev => prev + 1)
     } finally {
       setLoading(false)
     }
@@ -283,10 +303,11 @@ export default function SignUpPage() {
               <h3 className="text-lg font-medium text-secondary mb-4">Security Verification</h3>
               <div className="flex justify-center">
                 <Turnstile
+                  key={turnstileKey}
                   siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
-                  onVerify={setTurnstileToken}
-                  onError={() => setTurnstileToken('')}
-                  onExpire={() => setTurnstileToken('')}
+                  onVerify={handleTurnstileVerify}
+                  onError={handleTurnstileError}
+                  onExpire={handleTurnstileExpire}
                 />
               </div>
             </div>

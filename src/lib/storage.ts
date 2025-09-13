@@ -10,7 +10,7 @@ export interface UploadResult {
 export interface StorageConfig {
   bucket: string
   maxFileSize: number // in bytes
-  allowedTypes: string[]
+  allowedTypes: readonly string[]
 }
 
 export const STORAGE_CONFIGS = {
