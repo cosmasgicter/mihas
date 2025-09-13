@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
@@ -53,7 +53,7 @@ export default function AdminDashboard() {
         try {
           // Attempt to use a more efficient approach with fewer queries
           const [appsResponse, programsResponse, intakesResponse, profilesResponse] = await Promise.all([
-            supabase.from('applications').select('status', { count: 'exact' }),
+            supabase.from('applications_new').select('status', { count: 'exact' }),
             supabase.from('programs').select('*', { count: 'exact', head: true }).eq('is_active', true),
             supabase.from('intakes').select('*', { count: 'exact', head: true }).eq('is_active', true),
             supabase.from('user_profiles').select('*', { count: 'exact', head: true }).eq('role', 'student')
@@ -68,7 +68,7 @@ export default function AdminDashboard() {
 
           setStats({
             totalApplications: applications.length,
-            pendingApplications: statusCounts.pending || 0,
+            pendingApplications: statusCounts.submitted || 0,
             approvedApplications: statusCounts.approved || 0,
             rejectedApplications: statusCounts.rejected || 0,
             totalPrograms: programsResponse.count || 0,
@@ -78,10 +78,10 @@ export default function AdminDashboard() {
         } catch (optimizedError) {
           // Fallback to original approach if optimized version fails
           const [totalAppsResponse, pendingResponse, approvedResponse, rejectedResponse, programsResponse, intakesResponse, profilesResponse] = await Promise.all([
-            supabase.from('applications').select('*', { count: 'exact', head: true }),
-            supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-            supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
-            supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
+            supabase.from('applications_new').select('*', { count: 'exact', head: true }),
+            supabase.from('applications_new').select('*', { count: 'exact', head: true }).eq('status', 'submitted'),
+            supabase.from('applications_new').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+            supabase.from('applications_new').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
             supabase.from('programs').select('*', { count: 'exact', head: true }).eq('is_active', true),
             supabase.from('intakes').select('*', { count: 'exact', head: true }).eq('is_active', true),
             supabase.from('user_profiles').select('*', { count: 'exact', head: true }).eq('role', 'student')
@@ -116,23 +116,23 @@ export default function AdminDashboard() {
     )
   }
 
-  const COLOR_CLASSES = useMemo(() => ({
+  const COLOR_CLASSES = {
     blue: 'bg-primary text-white',
     yellow: 'bg-yellow-500 text-white',
     green: 'bg-green-500 text-white',
     red: 'bg-red-500 text-white',
     purple: 'bg-purple-500 text-white',
     indigo: 'bg-indigo-500 text-white'
-  } as const), [])
+  } as const
 
-  const statCards = useMemo(() => [
+  const statCards = [
     { title: 'Total Applications', value: stats.totalApplications, icon: FileText, color: 'blue' as const },
     { title: 'Pending Reviews', value: stats.pendingApplications, icon: Clock, color: 'yellow' as const },
     { title: 'Approved', value: stats.approvedApplications, icon: CheckCircle, color: 'green' as const },
     { title: 'Rejected', value: stats.rejectedApplications, icon: XCircle, color: 'red' as const },
     { title: 'Active Programs', value: stats.totalPrograms, icon: GraduationCap, color: 'purple' as const },
     { title: 'Active Intakes', value: stats.activeIntakes, icon: Calendar, color: 'indigo' as const }
-  ], [stats])
+  ]
 
   const gridClasses = isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
 

@@ -67,18 +67,18 @@ export function ApplicationsTable({
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm font-medium text-secondary">
-                  {application.user_profiles?.full_name}
+                  {application.full_name}
                 </div>
                 <div className="text-sm text-secondary">
-                  {application.user_profiles?.email}
+                  {application.email}
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm text-secondary">
-                  {application.programs?.name}
+                  {application.program}
                 </div>
                 <div className="text-sm text-secondary">
-                  {application.intakes?.name}
+                  {application.intake}
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">

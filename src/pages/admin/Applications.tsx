@@ -24,21 +24,40 @@ import {
   ChevronRight
 } from 'lucide-react'
 
-interface ApplicationWithDetails extends Application {
-  user_profiles?: {
-    full_name: string
-    email: string
-    phone?: string
-  }
-  programs?: Program
-  intakes?: Intake
+interface ApplicationWithDetails {
+  id: string
+  application_number: string
+  user_id: string
+  full_name: string
+  nrc_number?: string
+  passport_number?: string
+  date_of_birth: string
+  sex: string
+  phone: string
+  email: string
+  residence_town: string
+  guardian_name?: string
+  guardian_phone?: string
+  program: string
+  intake: string
+  institution: string
+  result_slip_url?: string
+  extra_kyc_url?: string
+  application_fee?: number
+  payment_method?: string
+  payer_name?: string
+  payer_phone?: string
+  amount?: number
+  paid_at?: string
+  momo_ref?: string
+  pop_url?: string
+  payment_status: string
+  status: string
+  submitted_at?: string
+  public_tracking_code?: string
+  created_at: string
+  updated_at: string
   document_count?: number
-  date_of_birth?: string
-  gender?: string
-  nationality?: string
-  province?: string
-  physical_address?: string
-  postal_address?: string
 }
 
 const PAGE_SIZE = 20
@@ -61,13 +80,9 @@ export default function AdminApplications() {
     const end = start + PAGE_SIZE - 1
     
     let query = supabase
-      .from('applications')
+      .from('applications_new')
       .select(`
-        *,
-        user_profiles!inner(full_name, email, phone),
-        programs(name, duration_years),
-        intakes(name, year),
-        documents(count)
+        *
       `, { count: 'exact' })
       .range(start, end)
       .order('created_at', { ascending: false })
@@ -79,19 +94,13 @@ export default function AdminApplications() {
     if (search) {
       // Sanitize search input to prevent SQL injection
       const sanitizedSearch = search.replace(/[%_\\]/g, '\\$&').replace(/'/g, "''")
-      query = query.or(`user_profiles.full_name.ilike.%${sanitizedSearch}%,user_profiles.email.ilike.%${sanitizedSearch}%,application_number.ilike.%${sanitizedSearch}%`)
+      query = query.or(`full_name.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%,application_number.ilike.%${sanitizedSearch}%`)
     }
 
     const { data, error, count } = await query
     if (error) throw error
 
-    // Map applications with document counts from the joined query
-    const applicationsWithCounts = (data || []).map(app => ({
-      ...app,
-      document_count: app.documents?.length || 0
-    }))
-
-    return { applications: applicationsWithCounts, totalCount: count || 0 }
+    return { applications: data || [], totalCount: count || 0 }
   }
 
   const { data, isLoading, error } = useQuery({
@@ -122,7 +131,7 @@ export default function AdminApplications() {
       }
 
       const { error } = await supabase
-        .from('applications')
+        .from('applications_new')
         .update(updateData)
         .eq('id', applicationId)
 
@@ -160,7 +169,7 @@ export default function AdminApplications() {
       setFeedbackLoading(true)
       
       const { error } = await supabase
-        .from('applications')
+        .from('applications_new')
         .update({
           admin_feedback: feedbackText,
           admin_feedback_date: new Date().toISOString(),
@@ -334,10 +343,10 @@ export default function AdminApplications() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className="text-sm font-medium text-secondary">
-                            {application.user_profiles?.full_name}
+                            {application.full_name}
                           </div>
                           <div className="text-sm text-secondary">
-                            {application.user_profiles?.email}
+                            {application.email}
                           </div>
                           <div className="text-xs text-secondary">
                             #{application.application_number}
@@ -346,10 +355,10 @@ export default function AdminApplications() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-secondary">
-                          {application.programs?.name}
+                          {application.program}
                         </div>
                         <div className="text-sm text-secondary">
-                          {application.intakes?.name}
+                          {application.intake}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -366,7 +375,7 @@ export default function AdminApplications() {
                         {formatDate(application.submitted_at)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary">
-                        {application.document_count || 0} files
+                        {(application.result_slip_url ? 1 : 0) + (application.extra_kyc_url ? 1 : 0) + (application.pop_url ? 1 : 0)} files
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end space-x-2">
@@ -495,15 +504,15 @@ export default function AdminApplications() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-secondary">Name:</span>
-                    <span className="ml-2 font-medium">{selectedApplication.user_profiles?.full_name}</span>
+                    <span className="ml-2 font-medium">{selectedApplication.full_name}</span>
                   </div>
                   <div>
                     <span className="text-secondary">Email:</span>
-                    <span className="ml-2 font-medium">{selectedApplication.user_profiles?.email}</span>
+                    <span className="ml-2 font-medium">{selectedApplication.email}</span>
                   </div>
                   <div>
                     <span className="text-secondary">Phone:</span>
-                    <span className="ml-2 font-medium">{selectedApplication.user_profiles?.phone || 'Not provided'}</span>
+                    <span className="ml-2 font-medium">{selectedApplication.phone || 'Not provided'}</span>
                   </div>
                   <div>
                     <span className="text-secondary">Application Date:</span>
@@ -518,71 +527,56 @@ export default function AdminApplications() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-secondary">Program:</span>
-                    <span className="ml-2 font-medium">{selectedApplication.programs?.name}</span>
+                    <span className="ml-2 font-medium">{selectedApplication.program}</span>
                   </div>
                   <div>
                     <span className="text-secondary">Intake:</span>
-                    <span className="ml-2 font-medium">{selectedApplication.intakes?.name}</span>
+                    <span className="ml-2 font-medium">{selectedApplication.intake}</span>
                   </div>
                 </div>
               </div>
 
               {/* Application Content */}
               <div>
-                <h3 className="text-lg font-medium text-secondary mb-3">Application Content</h3>
+                <h3 className="text-lg font-medium text-secondary mb-3">Application Details</h3>
                 <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium text-secondary">Personal Statement</h4>
-                    <p className="text-sm text-secondary mt-1">{selectedApplication.personal_statement}</p>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-secondary">Educational Background</h4>
-                    <p className="text-sm text-secondary mt-1">{selectedApplication.previous_education}</p>
-                  </div>
-                  {selectedApplication.work_experience && (
-                    <div>
-                      <h4 className="text-sm font-medium text-secondary">Work Experience</h4>
-                      <p className="text-sm text-secondary mt-1">{selectedApplication.work_experience}</p>
-                    </div>
-                  )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="text-sm font-medium text-secondary">English Proficiency</h4>
-                      <p className="text-sm text-secondary mt-1">{selectedApplication.english_proficiency}</p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-secondary">Computer Skills</h4>
-                      <p className="text-sm text-secondary mt-1">{selectedApplication.computer_skills}</p>
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-secondary">References</h4>
-                    <p className="text-sm text-secondary mt-1 whitespace-pre-wrap">{selectedApplication.references}</p>
-                  </div>
-                  {selectedApplication.additional_info && (
-                    <div>
-                      <h4 className="text-sm font-medium text-secondary">Additional Information</h4>
-                      <p className="text-sm text-secondary mt-1 whitespace-pre-wrap">{selectedApplication.additional_info}</p>
-                    </div>
-                  )}
-                  
-                  {/* Enhanced Application Fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-200">
                     <div>
                       <h4 className="text-sm font-medium text-secondary">Personal Details</h4>
                       <div className="text-xs text-secondary mt-1 space-y-1">
                         <p><strong>Date of Birth:</strong> {selectedApplication.date_of_birth || 'Not provided'}</p>
-                        <p><strong>Gender:</strong> {selectedApplication.gender || 'Not provided'}</p>
-                        <p><strong>Nationality:</strong> {selectedApplication.nationality || 'Not provided'}</p>
-                        <p><strong>Province:</strong> {selectedApplication.province || 'Not provided'}</p>
+                        <p><strong>Sex:</strong> {selectedApplication.sex || 'Not provided'}</p>
+                        <p><strong>NRC:</strong> {selectedApplication.nrc_number || 'Not provided'}</p>
+                        <p><strong>Passport:</strong> {selectedApplication.passport_number || 'Not provided'}</p>
                       </div>
                     </div>
                     <div>
                       <h4 className="text-sm font-medium text-secondary">Contact Information</h4>
                       <div className="text-xs text-secondary mt-1 space-y-1">
-                        <p><strong>Phone:</strong> {selectedApplication.user_profiles?.phone || 'Not provided'}</p>
-                        <p><strong>Physical Address:</strong> {selectedApplication.physical_address || 'Not provided'}</p>
-                        <p><strong>Postal Address:</strong> {selectedApplication.postal_address || 'Not provided'}</p>
+                        <p><strong>Phone:</strong> {selectedApplication.phone || 'Not provided'}</p>
+                        <p><strong>Email:</strong> {selectedApplication.email || 'Not provided'}</p>
+                        <p><strong>Residence:</strong> {selectedApplication.residence_town || 'Not provided'}</p>
+                        <p><strong>Guardian:</strong> {selectedApplication.guardian_name || 'Not provided'}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-200">
+                    <div>
+                      <h4 className="text-sm font-medium text-secondary">Payment Information</h4>
+                      <div className="text-xs text-secondary mt-1 space-y-1">
+                        <p><strong>Method:</strong> {selectedApplication.payment_method || 'Not provided'}</p>
+                        <p><strong>Amount:</strong> K{selectedApplication.amount || selectedApplication.application_fee || 'Not provided'}</p>
+                        <p><strong>Payer:</strong> {selectedApplication.payer_name || 'Not provided'}</p>
+                        <p><strong>Status:</strong> {selectedApplication.payment_status || 'Not provided'}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-secondary">Documents</h4>
+                      <div className="text-xs text-secondary mt-1 space-y-1">
+                        <p><strong>Result Slip:</strong> {selectedApplication.result_slip_url ? '✓ Uploaded' : '✗ Not uploaded'}</p>
+                        <p><strong>Extra KYC:</strong> {selectedApplication.extra_kyc_url ? '✓ Uploaded' : '✗ Not uploaded'}</p>
+                        <p><strong>Proof of Payment:</strong> {selectedApplication.pop_url ? '✓ Uploaded' : '✗ Not uploaded'}</p>
                       </div>
                     </div>
                   </div>
@@ -670,10 +664,10 @@ export default function AdminApplications() {
             <div className="p-6">
               <div className="mb-4">
                 <p className="text-sm text-secondary mb-2">
-                  <strong>Applicant:</strong> {selectedApplication.user_profiles?.full_name}
+                  <strong>Applicant:</strong> {selectedApplication.full_name}
                 </p>
                 <p className="text-sm text-secondary mb-4">
-                  <strong>Program:</strong> {selectedApplication.programs?.name}
+                  <strong>Program:</strong> {selectedApplication.program}
                 </p>
               </div>
               

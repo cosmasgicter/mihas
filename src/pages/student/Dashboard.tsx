@@ -61,7 +61,7 @@ export default function StudentDashboard() {
       
       // Load user's applications using profile user_id
       const { data: applicationsData, error: applicationsError } = await supabase
-        .from('applications')
+        .from('applications_new')
         .select('*')
         .eq('user_id', profile?.user_id || user?.id)
         .order('created_at', { ascending: false })
@@ -101,14 +101,12 @@ export default function StudentDashboard() {
     }
   }
 
-  const getProgramName = (programId: string) => {
-    const program = programs.find(p => p.id === programId)
-    return program?.name || 'Unknown Program'
+  const getProgramName = (programName: string) => {
+    return programName || 'Unknown Program'
   }
 
-  const getIntakeName = (intakeId: string) => {
-    const intake = intakes.find(i => i.id === intakeId)
-    return intake?.name || 'Unknown Intake'
+  const getIntakeName = (intakeName: string) => {
+    return intakeName || 'Unknown Intake'
   }
 
   const getDraftTimestamp = () => {
@@ -246,7 +244,7 @@ export default function StudentDashboard() {
                             <div className="flex items-center space-x-3 mb-2">
                               {getStatusIcon(application.status)}
                               <h4 className="text-sm font-medium text-secondary">
-                                {getProgramName(application.program_id)}
+                                {getProgramName(application.program)}
                               </h4>
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                 getStatusColor(application.status)
@@ -257,7 +255,7 @@ export default function StudentDashboard() {
                             
                             <div className="text-sm text-secondary space-y-1">
                               <p>Application #{application.application_number}</p>
-                              <p>Intake: {getIntakeName(application.intake_id)}</p>
+                              <p>Intake: {getIntakeName(application.intake)}</p>
                               <p>Submitted: {formatDate(application.submitted_at)}</p>
                             </div>
                           </div>

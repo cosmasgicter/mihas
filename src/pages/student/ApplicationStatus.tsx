@@ -36,7 +36,7 @@ export default function ApplicationStatus() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [application, setApplication] = useState<ApplicationWithDetails | null>(null)
-  const [documents, setDocuments] = useState<any[]>([])
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -46,11 +46,9 @@ export default function ApplicationStatus() {
       
       // Load application with program and intake details
       const { data: applicationData, error: applicationError } = await supabase
-        .from('applications')
+        .from('applications_new')
         .select(`
-          *,
-          programs(*),
-          intakes(*)
+          *
         `)
         .eq('id', id)
         .eq('user_id', user?.id) // Ensure user can only see their own applications
@@ -62,18 +60,7 @@ export default function ApplicationStatus() {
 
       setApplication(applicationData)
 
-      // Load associated documents
-      const { data: documentsData, error: documentsError } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('application_id', id)
-        .order('created_at', { ascending: false })
 
-      if (documentsError) {
-        console.error('Error loading documents:', documentsError)
-      } else {
-        setDocuments(documentsData || [])
-      }
     } catch (error: any) {
       console.error('Error loading application details:', error)
       setError(error.message)
@@ -151,28 +138,7 @@ export default function ApplicationStatus() {
     return timeline
   }
 
-  const downloadDocument = async (documentId: string, fileName: string, filePath: string) => {
-    try {
-      const { data, error } = await supabase.storage
-        .from('application-documents')
-        .download(filePath)
 
-      if (error) throw error
-
-      // Create download link
-      const url = URL.createObjectURL(data)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = fileName
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    } catch (error: any) {
-      console.error('Error downloading document:', error)
-      setError(`Failed to download ${fileName}: ${error.message || 'Unknown error'}`)
-    }
-  }
 
   if (loading) {
     return (
@@ -221,10 +187,10 @@ export default function ApplicationStatus() {
                   Application #{application.application_number}
                 </h1>
                 <p className="text-lg text-secondary mb-1">
-                  {application.programs?.name}
+                  {application.program}
                 </p>
                 <p className="text-sm text-secondary">
-                  {application.intakes?.name} • Submitted on {formatDate(application.submitted_at)}
+                  {application.intake} • Submitted on {formatDate(application.submitted_at)}
                 </p>
               </div>
               <div className="flex items-center space-x-2">
@@ -282,55 +248,37 @@ export default function ApplicationStatus() {
                 Application Details
               </h2>
               <div className="space-y-6">
-                <div>
-                  <h3 className="text-sm font-medium text-secondary mb-2">Personal Statement</h3>
-                  <p className="text-secondary text-sm leading-relaxed">
-                    {application.personal_statement}
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-secondary mb-2">Educational Background</h3>
-                  <p className="text-secondary text-sm leading-relaxed">
-                    {application.previous_education}
-                  </p>
-                </div>
-                
-                {application.work_experience && (
-                  <div>
-                    <h3 className="text-sm font-medium text-secondary mb-2">Work Experience</h3>
-                    <p className="text-secondary text-sm leading-relaxed">
-                      {application.work_experience}
-                    </p>
-                  </div>
-                )}
-                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <h3 className="text-sm font-medium text-secondary mb-2">English Proficiency</h3>
-                    <p className="text-secondary text-sm">{application.english_proficiency}</p>
+                    <h3 className="text-sm font-medium text-secondary mb-2">Personal Information</h3>
+                    <div className="text-secondary text-sm space-y-1">
+                      <p><strong>Full Name:</strong> {application.full_name}</p>
+                      <p><strong>Date of Birth:</strong> {application.date_of_birth}</p>
+                      <p><strong>Sex:</strong> {application.sex}</p>
+                      <p><strong>Phone:</strong> {application.phone}</p>
+                      <p><strong>Email:</strong> {application.email}</p>
+                    </div>
                   </div>
                   <div>
-                    <h3 className="text-sm font-medium text-secondary mb-2">Computer Skills</h3>
-                    <p className="text-secondary text-sm">{application.computer_skills}</p>
+                    <h3 className="text-sm font-medium text-secondary mb-2">Contact Information</h3>
+                    <div className="text-secondary text-sm space-y-1">
+                      <p><strong>Residence:</strong> {application.residence_town}</p>
+                      <p><strong>NRC:</strong> {application.nrc_number || 'Not provided'}</p>
+                      <p><strong>Passport:</strong> {application.passport_number || 'Not provided'}</p>
+                      <p><strong>Guardian:</strong> {application.guardian_name || 'Not provided'}</p>
+                    </div>
                   </div>
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-secondary mb-2">References</h3>
-                  <p className="text-secondary text-sm leading-relaxed">
-                    {application.references}
-                  </p>
-                </div>
-                
-                {application.additional_info && (
-                  <div>
-                    <h3 className="text-sm font-medium text-secondary mb-2">Additional Information</h3>
-                    <p className="text-secondary text-sm leading-relaxed">
-                      {application.additional_info}
-                    </p>
+                  <h3 className="text-sm font-medium text-secondary mb-2">Payment Information</h3>
+                  <div className="text-secondary text-sm space-y-1">
+                    <p><strong>Payment Method:</strong> {application.payment_method || 'Not provided'}</p>
+                    <p><strong>Amount Paid:</strong> K{application.amount || application.application_fee || 'Not provided'}</p>
+                    <p><strong>Payment Status:</strong> {application.payment_status}</p>
+                    <p><strong>Payer:</strong> {application.payer_name || 'Not provided'}</p>
                   </div>
-                )}
+                </div>
               </div>
             </div>
 
@@ -339,50 +287,76 @@ export default function ApplicationStatus() {
               <h2 className="text-lg font-semibold text-secondary mb-6">
                 Supporting Documents
               </h2>
-              {documents.length === 0 ? (
-                <p className="text-secondary text-center py-6">
-                  No documents uploaded
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {documents.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <FileText className="h-5 w-5 text-primary" />
-                        <div>
-                          <p className="text-sm font-medium text-secondary">
-                            {doc.document_name || doc.file_name}
-                          </p>
-                          <p className="text-xs text-secondary">
-                            {doc.file_size && `${Math.round(doc.file_size / 1024)} KB`} • 
-                            Uploaded {formatDate(doc.created_at)}
-                          </p>
-                          {doc.verdict && (
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-1 ${
-                              doc.verdict === 'approved' 
-                                ? 'bg-green-100 text-green-800'
-                                : doc.verdict === 'rejected'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {doc.verdict}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => downloadDocument(doc.id, doc.file_name, doc.file_path)}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
+              <div className="space-y-3">
+                {application.result_slip_url && (
+                  <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <FileText className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-sm font-medium text-secondary">Result Slip</p>
+                        <p className="text-xs text-secondary">Uploaded</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.open(application.result_slip_url, '_blank')}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
+                {application.extra_kyc_url && (
+                  <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <FileText className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-sm font-medium text-secondary">Extra KYC Documents</p>
+                        <p className="text-xs text-secondary">Uploaded</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.open(application.extra_kyc_url, '_blank')}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
+                {application.pop_url && (
+                  <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <FileText className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-sm font-medium text-secondary">Proof of Payment</p>
+                        <p className="text-xs text-secondary">Uploaded</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.open(application.pop_url, '_blank')}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
+                {!application.result_slip_url && !application.extra_kyc_url && !application.pop_url && (
+                  <p className="text-secondary text-center py-6">
+                    No documents uploaded
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -398,11 +372,11 @@ export default function ApplicationStatus() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-secondary">Program:</span>
-                  <span className="font-medium text-right">{application.programs?.name}</span>
+                  <span className="font-medium text-right">{application.program}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-secondary">Intake:</span>
-                  <span className="font-medium">{application.intakes?.name}</span>
+                  <span className="font-medium">{application.intake}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-secondary">Submitted:</span>

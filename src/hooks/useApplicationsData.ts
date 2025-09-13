@@ -9,12 +9,9 @@ export function useApplicationsData(currentPage: number, statusFilter: string, s
     const end = start + PAGE_SIZE - 1
     
     let query = supabase
-      .from('applications')
+      .from('applications_new')
       .select(`
-        *,
-        user_profiles!inner(full_name, email, phone),
-        programs(name, duration_years),
-        intakes(name, year)
+        *
       `, { count: 'exact' })
       .range(start, end)
       .order('created_at', { ascending: false })
@@ -26,7 +23,7 @@ export function useApplicationsData(currentPage: number, statusFilter: string, s
     if (search) {
       // Sanitize search input to prevent SQL injection
       const sanitizedSearch = search.replace(/[%_\\]/g, '\\$&').replace(/'/g, "''")
-      query = query.or(`user_profiles.full_name.ilike.%${sanitizedSearch}%,user_profiles.email.ilike.%${sanitizedSearch}%,application_number.ilike.%${sanitizedSearch}%`)
+      query = query.or(`full_name.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%,application_number.ilike.%${sanitizedSearch}%`)
     }
 
     const { data, error, count } = await query

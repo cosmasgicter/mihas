@@ -7,13 +7,9 @@ export function useApplicationsWithCounts() {
     queryFn: async () => {
       // Single optimized query with document counts
       const { data, error } = await supabase
-        .from('applications')
+        .from('applications_new')
         .select(`
-          *,
-          user_profiles!inner(full_name, email),
-          programs!inner(name),
-          intakes!inner(name),
-          document_count:application_documents(count)
+          *
         `)
         .order('created_at', { ascending: false })
 
