@@ -1,0 +1,122 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]: "[plugin:vite:react-babel]"
+    - generic [ref=e6]: "/home/cosmas/Documents/Visual Code/mihas/src/pages/admin/Applications.tsx: Expected corresponding JSX closing tag for <motion.tr>. (958:22) 961 | </tbody>"
+  - generic [ref=e8] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/src/pages/admin/Applications.tsx:958:22
+  - generic [ref=e9]: "956| </div> 957| </td> 958| </tr> | ^ 959| ))} 960| </AnimatePresence>"
+  - generic [ref=e10]:
+    - text: at constructor (
+    - generic [ref=e11] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:367:19
+    - text: ) at TypeScriptParserMixin.raise (
+    - generic [ref=e12] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:6630:19
+    - text: ) at TypeScriptParserMixin.jsxParseElementAt (
+    - generic [ref=e13] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:4760:16
+    - text: ) at TypeScriptParserMixin.jsxParseElement (
+    - generic [ref=e14] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:4782:17
+    - text: ) at TypeScriptParserMixin.parseExprAtom (
+    - generic [ref=e15] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:4792:19
+    - text: ) at TypeScriptParserMixin.parseExprSubscripts (
+    - generic [ref=e16] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:11085:23
+    - text: ) at TypeScriptParserMixin.parseUpdate (
+    - generic [ref=e17] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:11070:21
+    - text: ) at TypeScriptParserMixin.parseMaybeUnary (
+    - generic [ref=e18] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:11050:23
+    - text: ) at TypeScriptParserMixin.parseMaybeUnary (
+    - generic [ref=e19] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:9857:18
+    - text: ) at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (
+    - generic [ref=e20] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:10903:61
+    - text: ) at TypeScriptParserMixin.parseExprOps (
+    - generic [ref=e21] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:10908:23
+    - text: ) at TypeScriptParserMixin.parseMaybeConditional (
+    - generic [ref=e22] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:10885:23
+    - text: ) at TypeScriptParserMixin.parseMaybeAssign (
+    - generic [ref=e23] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:10835:21
+    - text: ) at
+    - generic [ref=e24] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:9795:39
+    - text: at TypeScriptParserMixin.tryParse (
+    - generic [ref=e25] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:6938:20
+    - text: ) at TypeScriptParserMixin.parseMaybeAssign (
+    - generic [ref=e26] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:9795:18
+    - text: ) at
+    - generic [ref=e27] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:10804:39
+    - text: at TypeScriptParserMixin.allowInAnd (
+    - generic [ref=e28] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:12436:12
+    - text: ) at TypeScriptParserMixin.parseMaybeAssignAllowIn (
+    - generic [ref=e29] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:10804:17
+    - text: ) at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (
+    - generic [ref=e30] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:12503:17
+    - text: ) at TypeScriptParserMixin.parseParenAndDistinguishExpression (
+    - generic [ref=e31] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:11683:28
+    - text: ) at TypeScriptParserMixin.parseExprAtom (
+    - generic [ref=e32] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:11335:23
+    - text: ) at TypeScriptParserMixin.parseExprAtom (
+    - generic [ref=e33] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:4797:20
+    - text: ) at TypeScriptParserMixin.parseExprSubscripts (
+    - generic [ref=e34] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:11085:23
+    - text: ) at TypeScriptParserMixin.parseUpdate (
+    - generic [ref=e35] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:11070:21
+    - text: ) at TypeScriptParserMixin.parseMaybeUnary (
+    - generic [ref=e36] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:11050:23
+    - text: ) at TypeScriptParserMixin.parseMaybeUnary (
+    - generic [ref=e37] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:9857:18
+    - text: ) at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (
+    - generic [ref=e38] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:10903:61
+    - text: ) at TypeScriptParserMixin.parseExprOps (
+    - generic [ref=e39] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:10908:23
+    - text: ) at TypeScriptParserMixin.parseMaybeConditional (
+    - generic [ref=e40] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:10885:23
+    - text: ) at TypeScriptParserMixin.parseMaybeAssign (
+    - generic [ref=e41] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:10835:21
+    - text: ) at TypeScriptParserMixin.parseMaybeAssign (
+    - generic [ref=e42] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:9806:20
+    - text: ) at TypeScriptParserMixin.parseFunctionBody (
+    - generic [ref=e43] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:12103:24
+    - text: ) at TypeScriptParserMixin.parseArrowExpression (
+    - generic [ref=e44] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:12085:10
+    - text: ) at TypeScriptParserMixin.parseParenAndDistinguishExpression (
+    - generic [ref=e45] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:11695:12
+    - text: ) at TypeScriptParserMixin.parseExprAtom (
+    - generic [ref=e46] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:11335:23
+    - text: ) at TypeScriptParserMixin.parseExprAtom (
+    - generic [ref=e47] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:4797:20
+    - text: ) at TypeScriptParserMixin.parseExprSubscripts (
+    - generic [ref=e48] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:11085:23
+    - text: ) at TypeScriptParserMixin.parseUpdate (
+    - generic [ref=e49] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:11070:21
+    - text: ) at TypeScriptParserMixin.parseMaybeUnary (
+    - generic [ref=e50] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:11050:23
+    - text: ) at TypeScriptParserMixin.parseMaybeUnary (
+    - generic [ref=e51] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:9857:18
+    - text: ) at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (
+    - generic [ref=e52] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:10903:61
+    - text: ) at TypeScriptParserMixin.parseExprOps (
+    - generic [ref=e53] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:10908:23
+    - text: ) at TypeScriptParserMixin.parseMaybeConditional (
+    - generic [ref=e54] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:10885:23
+    - text: ) at TypeScriptParserMixin.parseMaybeAssign (
+    - generic [ref=e55] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:10835:21
+    - text: ) at TypeScriptParserMixin.parseMaybeAssign (
+    - generic [ref=e56] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:9806:20
+    - text: ) at
+    - generic [ref=e57] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:10804:39
+    - text: at TypeScriptParserMixin.allowInAnd (
+    - generic [ref=e58] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:12436:12
+    - text: ) at TypeScriptParserMixin.parseMaybeAssignAllowIn (
+    - generic [ref=e59] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:10804:17
+    - text: ) at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (
+    - generic [ref=e60] [cursor=pointer]: /home/cosmas/Documents/Visual Code/mihas/node_modules/@babel/parser/lib/index.js:12503:17
+  - generic [ref=e61]:
+    - text: Click outside, press
+    - generic [ref=e62]: Esc
+    - text: key, or fix the code to dismiss.
+    - text: You can also disable this overlay by setting
+    - code [ref=e63]: server.hmr.overlay
+    - text: to
+    - code [ref=e64]: "false"
+    - text: in
+    - code [ref=e65]: vite.config.ts
+    - text: .
+```

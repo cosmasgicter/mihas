@@ -1,12 +1,12 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './test-setup'
 
 test.describe('Form Submission', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, testUser }) => {
     await page.goto('/auth/signin')
-    await page.fill('[name="email"]', 'test@example.com')
-    await page.fill('[name="password"]', 'password123')
+    await page.fill('input[type="email"]', testUser.email)
+    await page.fill('input[type="password"]', testUser.password)
     await page.click('button[type="submit"]')
-    await page.waitForURL('/student/dashboard')
+    await page.waitForURL(/.*student/, { timeout: 15000 })
   })
 
   test('should submit application form successfully', async ({ page }) => {

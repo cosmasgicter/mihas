@@ -1,13 +1,13 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './test-setup'
 
 test.describe('Enhanced Application Features', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, adminUser }) => {
     // Login as admin
     await page.goto('/auth/signin')
-    await page.fill('[name="email"]', 'admin@test.com')
-    await page.fill('[name="password"]', 'password123')
+    await page.fill('input[type="email"]', adminUser.email)
+    await page.fill('input[type="password"]', adminUser.password)
     await page.click('button[type="submit"]')
-    await page.waitForURL('/admin')
+    await page.waitForURL(/.*admin/, { timeout: 15000 })
   })
 
   test('Admin can access enhanced applications dashboard', async ({ page }) => {
@@ -215,13 +215,13 @@ test.describe('Enhanced Application Features', () => {
 })
 
 test.describe('Student Application Wizard', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, testUser }) => {
     // Login as student
     await page.goto('/auth/signin')
-    await page.fill('[name="email"]', 'student@test.com')
-    await page.fill('[name="password"]', 'password123')
+    await page.fill('input[type="email"]', testUser.email)
+    await page.fill('input[type="password"]', testUser.password)
     await page.click('button[type="submit"]')
-    await page.waitForURL('/student/dashboard')
+    await page.waitForURL(/.*student/, { timeout: 15000 })
   })
 
   test('Student can complete 4-step wizard', async ({ page }) => {

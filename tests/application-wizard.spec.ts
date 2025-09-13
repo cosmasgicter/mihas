@@ -1,4 +1,5 @@
-import { test, expect, Page } from '@playwright/test'
+import { test, expect } from './test-setup'
+import { Page } from '@playwright/test'
 import path from 'path'
 
 // Test data

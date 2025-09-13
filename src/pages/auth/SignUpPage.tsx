@@ -138,23 +138,23 @@ setSuccess('Account created successfully! Redirecting to sign in...')
   return (
     <div className="min-h-screen bg-gray-50 py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-2xl">
-        <Link to="/" className="flex items-center justify-center text-primary hover:text-primary mb-6">
+        <Link to="/" className="flex items-center justify-center text-blue-600 hover:text-blue-700 mb-6">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Home
         </Link>
         
         <div className="flex items-center justify-center mb-6">
-          <GraduationCap className="h-12 w-12 text-primary" />
+          <GraduationCap className="h-12 w-12 text-blue-600" />
         </div>
         
-        <h2 className="mt-6 text-center text-3xl font-bold text-secondary">
+        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
           Create your account
         </h2>
-        <p className="mt-2 text-center text-sm text-secondary">
+        <p className="mt-2 text-center text-sm text-gray-600">
           Already have an account?{' '}
           <Link
             to="/auth/signin"
-            className="font-medium text-primary hover:text-primary"
+            className="font-medium text-blue-600 hover:text-blue-700"
           >
             Sign in here
           </Link>
