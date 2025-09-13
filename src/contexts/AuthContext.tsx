@@ -96,22 +96,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Create profile if it doesn't exist
         const { data: user } = await supabase.auth.getUser()
         if (user.user) {
+          // Get signup data from user metadata
+          const signupData = user.user.user_metadata?.signup_data ? 
+            JSON.parse(user.user.user_metadata.signup_data) : {}
+          
+          const fullName = user.user.user_metadata?.full_name || 
+                          signupData.full_name || 
+                          user.user.email?.split('@')[0] || 
+                          'Student'
+          
           const newProfile = {
             user_id: userId,
             email: user.user.email || '',
-            full_name: user.user.user_metadata?.full_name || user.user.email?.split('@')[0] || 'Student',
+            full_name: sanitizeForDisplay(fullName),
+            phone: signupData.phone ? sanitizeForDisplay(signupData.phone) : null,
+            date_of_birth: signupData.date_of_birth || null,
+            gender: signupData.gender ? sanitizeForDisplay(signupData.gender) : null,
+            nationality: signupData.nationality ? sanitizeForDisplay(signupData.nationality) : null,
+            address: signupData.address ? sanitizeForDisplay(signupData.address) : null,
+            city: signupData.city ? sanitizeForDisplay(signupData.city) : null,
+            country: signupData.country ? sanitizeForDisplay(signupData.country) : null,
+            emergency_contact_name: signupData.emergency_contact_name ? sanitizeForDisplay(signupData.emergency_contact_name) : null,
+            emergency_contact_phone: signupData.emergency_contact_phone ? sanitizeForDisplay(signupData.emergency_contact_phone) : null,
             role: 'student'
           }
           
           const { data: createdProfile, error: createError } = await supabase
-            .from('user_profiles')
-            .insert(newProfile)
-            .select()
-            .single()
+            .rpc('create_user_profile_safe', {
+              p_user_id: userId,
+              p_email: user.user.email || '',
+              p_full_name: sanitizeForDisplay(fullName),
+              p_phone: signupData.phone ? sanitizeForDisplay(signupData.phone) : null,
+              p_date_of_birth: signupData.date_of_birth || null,
+              p_gender: signupData.gender ? sanitizeForDisplay(signupData.gender) : null,
+              p_nationality: signupData.nationality ? sanitizeForDisplay(signupData.nationality) : null,
+              p_address: signupData.address ? sanitizeForDisplay(signupData.address) : null,
+              p_city: signupData.city ? sanitizeForDisplay(signupData.city) : null,
+              p_country: signupData.country ? sanitizeForDisplay(signupData.country) : null,
+              p_emergency_contact_name: signupData.emergency_contact_name ? sanitizeForDisplay(signupData.emergency_contact_name) : null,
+              p_emergency_contact_phone: signupData.emergency_contact_phone ? sanitizeForDisplay(signupData.emergency_contact_phone) : null,
+              p_role: 'student'
+            })
             
           if (!createError && createdProfile) {
-            setProfile(createdProfile)
+            const sanitizedProfile = Object.entries(createdProfile).reduce((acc, [key, value]) => {
+              acc[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value
+              return acc
+            }, {} as UserProfile)
+            setProfile(sanitizedProfile)
           } else {
+            console.error('Error creating profile on first sign in:', createError)
             setProfile(null)
           }
         } else {
@@ -131,39 +165,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function signUp(email: string, password: string, userData: any) {
     const { data, error } = await supabase.auth.signUp({
       email,
-      password
+      password,
+      options: {
+        data: {
+          full_name: userData.full_name || email.split('@')[0],
+          signup_data: JSON.stringify(userData) // Store signup data for later profile creation
+        }
+      }
     })
 
     if (error) {
       throw error
-    }
-
-    // Create user profile
-    if (data.user) {
-      const sanitizedUserData = {
-        user_id: data.user.id,
-        email: email,
-        full_name: userData.full_name ? sanitizeForDisplay(userData.full_name) : null,
-        phone: userData.phone ? sanitizeForDisplay(userData.phone) : null,
-        date_of_birth: userData.date_of_birth,
-        gender: userData.gender ? sanitizeForDisplay(userData.gender) : null,
-        nationality: userData.nationality ? sanitizeForDisplay(userData.nationality) : null,
-        address: userData.address ? sanitizeForDisplay(userData.address) : null,
-        city: userData.city ? sanitizeForDisplay(userData.city) : null,
-        country: userData.country ? sanitizeForDisplay(userData.country) : null,
-        emergency_contact_name: userData.emergency_contact_name ? sanitizeForDisplay(userData.emergency_contact_name) : null,
-        emergency_contact_phone: userData.emergency_contact_phone ? sanitizeForDisplay(userData.emergency_contact_phone) : null,
-        role: 'student'
-      }
-      
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .insert(sanitizedUserData)
-
-      if (profileError) {
-        console.error('Error creating profile:', sanitizeForLog(profileError.message || 'unknown error'))
-        throw profileError
-      }
     }
 
     return data

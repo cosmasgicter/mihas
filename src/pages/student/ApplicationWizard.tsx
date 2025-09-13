@@ -164,42 +164,65 @@ export default function ApplicationWizard() {
 
   const nextStep = async () => {
     if (currentStep === 1) {
-      const isValid = await handleSubmit(async (data) => {
-        try {
-          setLoading(true)
-          setError('')
-          
-          const { data: app, error } = await supabase
-            .from('applications_new')
-            .insert({
-              user_id: user?.id,
-              full_name: data.full_name,
-              nrc_number: data.nrc_number || null,
-              passport_number: data.passport_number || null,
-              date_of_birth: data.date_of_birth,
-              sex: data.sex,
-              phone: data.phone,
-              email: data.email,
-              residence_town: data.residence_town,
-              guardian_name: data.guardian_name || null,
-              guardian_phone: data.guardian_phone || null,
-              program: data.program,
-              intake: data.intake,
-              status: 'draft'
-            })
-            .select()
-            .single()
+      // Validate form first
+      const formData = watch()
+      const requiredFields = ['full_name', 'date_of_birth', 'sex', 'phone', 'email', 'residence_town', 'program', 'intake']
+      const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData])
+      
+      if (missingFields.length > 0) {
+        setError(`Please fill in all required fields: ${missingFields.join(', ')}`)
+        return
+      }
+      
+      if (!formData.nrc_number && !formData.passport_number) {
+        setError('Either NRC or Passport number is required')
+        return
+      }
+      
+      try {
+        setLoading(true)
+        setError('')
+        
+        // Generate application number and tracking code
+        const applicationNumber = `APP${Date.now().toString().slice(-8)}`
+        const trackingCode = `TRK${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+        
+        // Determine institution based on program
+        const institution = ['Clinical Medicine', 'Environmental Health'].includes(formData.program) ? 'KATC' : 'MIHAS'
+        
+        const { data: app, error } = await supabase
+          .from('applications_new')
+          .insert({
+            application_number: applicationNumber,
+            public_tracking_code: trackingCode,
+            user_id: user?.id,
+            full_name: formData.full_name,
+            nrc_number: formData.nrc_number || null,
+            passport_number: formData.passport_number || null,
+            date_of_birth: formData.date_of_birth,
+            sex: formData.sex,
+            phone: formData.phone,
+            email: formData.email,
+            residence_town: formData.residence_town,
+            guardian_name: formData.guardian_name || null,
+            guardian_phone: formData.guardian_phone || null,
+            program: formData.program,
+            intake: formData.intake,
+            institution: institution,
+            status: 'draft'
+          })
+          .select()
+          .single()
 
-          if (error) throw error
-          
-          setApplicationId(app.id)
-          setCurrentStep(2)
-        } catch (err: any) {
-          setError(err.message)
-        } finally {
-          setLoading(false)
-        }
-      })()
+        if (error) throw error
+        
+        setApplicationId(app.id)
+        setCurrentStep(2)
+      } catch (err: any) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
       return
     }
     
@@ -287,24 +310,27 @@ export default function ApplicationWizard() {
       const popUrl = await uploadFileWithProgress(popFile, 'proof_of_payment')
       setUploadedFiles(prev => ({ ...prev, proof_of_payment: true }))
       
-      await supabase
+      const { error: updateError } = await supabase
         .from('applications_new')
         .update({
-          payment_method: data.payment_method,
-          payer_name: data.payer_name,
-          payer_phone: data.payer_phone,
-          amount: data.amount,
-          paid_at: data.paid_at,
-          momo_ref: data.momo_ref,
+          payment_method: data.payment_method || null,
+          payer_name: data.payer_name || null,
+          payer_phone: data.payer_phone || null,
+          amount: data.amount || 150,
+          paid_at: data.paid_at ? new Date(data.paid_at).toISOString() : null,
+          momo_ref: data.momo_ref || null,
           pop_url: popUrl,
           status: 'submitted',
           submitted_at: new Date().toISOString()
         })
         .eq('id', applicationId)
       
+      if (updateError) throw updateError
+      
       setSuccess(true)
     } catch (err: any) {
-      setError(err.message)
+      console.error('Submission error:', err)
+      setError(err.message || 'Failed to submit application')
     } finally {
       setLoading(false)
     }
@@ -381,10 +407,10 @@ export default function ApplicationWizard() {
         </div>
 
         {/* Fancy Progress Steps */}
-        <div className="mb-8">
+        <div className="mb-6 lg:mb-8">
           <div className="relative">
-            <div className="absolute top-4 left-0 w-full h-0.5 bg-gray-200"></div>
-            <div className="flex items-center justify-between relative">
+            <div className="absolute top-4 left-0 w-full h-0.5 bg-gray-200 hidden sm:block"></div>
+            <div className="flex items-center justify-between relative overflow-x-auto pb-2 sm:pb-0">
               {[
                 { num: 1, title: 'Basic KYC', icon: FileText },
                 { num: 2, title: 'Education', icon: Sparkles },
@@ -398,7 +424,7 @@ export default function ApplicationWizard() {
                 return (
                   <motion.div 
                     key={step.num} 
-                    className="flex flex-col items-center bg-gray-50 relative"
+                    className="flex flex-col items-center bg-gray-50 relative min-w-0 flex-shrink-0 px-2 sm:px-0"
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: step.num * 0.1 }}
@@ -420,7 +446,7 @@ export default function ApplicationWizard() {
                         <Icon className="h-5 w-5" />
                       )}
                     </motion.div>
-                    <div className={`mt-2 text-xs font-medium text-center ${
+                    <div className={`mt-2 text-xs font-medium text-center whitespace-nowrap ${
                       isActive ? 'text-blue-600' : 'text-gray-500'
                     }`}>
                       {step.title}
@@ -442,7 +468,7 @@ export default function ApplicationWizard() {
           </motion.div>
         )}
 
-        <form onSubmit={handleSubmit(submitApplication)} className="space-y-8">
+        <form onSubmit={handleSubmit(submitApplication)} className="space-y-6 lg:space-y-8">
           <AnimatePresence mode="wait">
             {/* Step 1: Basic KYC */}
             {currentStep === 1 && (
@@ -458,8 +484,8 @@ export default function ApplicationWizard() {
                   Step 1: Basic KYC Information
                 </h2>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="md:col-span-2">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="lg:col-span-2">
                     <Input
                       {...register('full_name')}
                       label="Full Name"
@@ -624,62 +650,91 @@ export default function ApplicationWizard() {
                 
                 <div className="space-y-6">
                   <div>
-                    <div className="flex justify-between items-center mb-4">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
                       <h3 className="text-md font-medium text-gray-900">
                         Grade 12 Subjects (Minimum 6 required)
                       </h3>
-                      <Button type="button" onClick={addGrade} disabled={selectedGrades.length >= 10}>
+                      <Button 
+                        type="button" 
+                        onClick={addGrade} 
+                        disabled={selectedGrades.length >= 10}
+                        className="w-full sm:w-auto"
+                      >
                         Add Subject
                       </Button>
                     </div>
                     
-                    {selectedGrades.map((grade, index) => (
-                      <motion.div 
-                        key={index} 
-                        className="flex items-center space-x-4 mb-3"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                      >
-                        <select
-                          value={grade.subject_id}
-                          onChange={(e) => updateGrade(index, 'subject_id', e.target.value)}
-                          className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    {selectedGrades.length > 0 && (
+                      <div className="hidden sm:grid grid-cols-12 gap-3 mb-2 text-xs font-medium text-gray-500 uppercase tracking-wide">
+                        <div className="col-span-8">Subject</div>
+                        <div className="col-span-2">Grade</div>
+                        <div className="col-span-2">Action</div>
+                      </div>
+                    )}
+                    
+                    <div className="space-y-3">
+                      {selectedGrades.map((grade, index) => (
+                        <motion.div 
+                          key={index} 
+                          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
                         >
-                          <option value="">Select subject</option>
-                          {subjects.map((subject) => {
-                            const isUsed = getUsedSubjects().includes(subject.id) && grade.subject_id !== subject.id
-                            return (
-                              <option key={subject.id} value={subject.id} disabled={isUsed}>
-                                {subject.name} {isUsed ? '(Already selected)' : ''}
-                              </option>
-                            )
-                          })}
-                        </select>
-                        
-                        <select
-                          value={grade.grade}
-                          onChange={(e) => updateGrade(index, 'grade', parseInt(e.target.value))}
-                          className="w-20 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        >
-                          {[1,2,3,4,5,6,7,8,9].map(g => (
-                            <option key={g} value={g}>{g}</option>
-                          ))}
-                        </select>
-                        
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeGrade(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </motion.div>
-                    ))}
+                          <div className="flex-1 min-w-0">
+                            <label className="block text-xs font-medium text-gray-700 mb-1 sm:hidden">
+                              Subject
+                            </label>
+                            <select
+                              value={grade.subject_id}
+                              onChange={(e) => updateGrade(index, 'subject_id', e.target.value)}
+                              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                              <option value="">Select subject</option>
+                              {subjects.map((subject) => {
+                                const isUsed = getUsedSubjects().includes(subject.id) && grade.subject_id !== subject.id
+                                return (
+                                  <option key={subject.id} value={subject.id} disabled={isUsed}>
+                                    {subject.name} {isUsed ? '(Already selected)' : ''}
+                                  </option>
+                                )
+                              })}
+                            </select>
+                          </div>
+                          
+                          <div className="w-full sm:w-24">
+                            <label className="block text-xs font-medium text-gray-700 mb-1 sm:hidden">
+                              Grade
+                            </label>
+                            <select
+                              value={grade.grade}
+                              onChange={(e) => updateGrade(index, 'grade', parseInt(e.target.value))}
+                              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                              {[1,2,3,4,5,6,7,8,9].map(g => (
+                                <option key={g} value={g}>{g}</option>
+                              ))}
+                            </select>
+                          </div>
+                          
+                          <div className="w-full sm:w-auto">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeGrade(index)}
+                              className="w-full sm:w-auto"
+                            >
+                              <X className="h-4 w-4 sm:mr-0 mr-2" />
+                              <span className="sm:hidden">Remove</span>
+                            </Button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Result Slip <span className="text-red-500">*</span>
@@ -809,7 +864,7 @@ export default function ApplicationWizard() {
                     </p>
                   </motion.div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div>
                       <Input
                         {...register('payment_method')}
@@ -953,18 +1008,24 @@ export default function ApplicationWizard() {
 
           {/* Navigation */}
           <motion.div 
-            className="flex justify-between items-center pt-6"
+            className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 pt-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <div>
+            <div className="order-2 sm:order-1">
               {currentStep > 1 && (
                 <motion.div
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Button type="button" variant="outline" onClick={prevStep}>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={prevStep}
+                    className="w-full sm:w-auto"
+                    disabled={loading || uploading}
+                  >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Previous
                   </Button>
@@ -972,34 +1033,52 @@ export default function ApplicationWizard() {
               )}
             </div>
             
-            <div>
+            <div className="order-1 sm:order-2">
               {currentStep < 4 ? (
                 <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: loading || uploading ? 1 : 1.05 }}
+                  whileTap={{ scale: loading || uploading ? 1 : 0.95 }}
                 >
                   <Button 
                     type="button" 
                     onClick={nextStep}
                     loading={loading || uploading}
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                    disabled={loading || uploading}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Next Step
-                    <ArrowRight className="h-4 w-4 ml-2" />
+                    {loading || uploading ? (
+                      <>
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Next Step
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </>
+                    )}
                   </Button>
                 </motion.div>
               ) : (
                 <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: loading ? 1 : 1.05 }}
+                  whileTap={{ scale: loading ? 1 : 0.95 }}
                 >
                   <Button 
                     type="submit" 
                     loading={loading}
-                    className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                    disabled={loading}
+                    className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Send className="h-4 w-4 mr-2" />
-                    Submit Application
+                    {loading ? (
+                      <>
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2" />
+                        Submit Application
+                      </>
+                    )}
                   </Button>
                 </motion.div>
               )}
