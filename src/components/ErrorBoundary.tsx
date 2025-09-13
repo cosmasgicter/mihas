@@ -32,17 +32,20 @@ export class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Sanitize strings to prevent log injection
+    const sanitize = (str: string) => str.replace(/[\r\n\t]/g, ' ');
+    
     // Comprehensive error logging
     const errorReport = {
       timestamp: new Date().toISOString(),
       error: {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
+        name: sanitize(error.name),
+        message: sanitize(error.message),
+        stack: error.stack ? sanitize(error.stack) : undefined
       },
       errorInfo,
-      userAgent: navigator.userAgent,
-      url: window.location.href
+      userAgent: sanitize(navigator.userAgent),
+      url: sanitize(window.location.href)
     };
     
     console.error('Error caught by boundary:', errorReport);

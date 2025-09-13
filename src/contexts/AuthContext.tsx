@@ -121,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }, {} as UserProfile)
             setProfile(sanitizedProfile)
           } else {
-            console.error('Error creating profile on first sign in:', createError)
+            console.error('Error creating profile on first sign in:', sanitizeForLog(createError?.message || 'unknown error'))
             // Fallback: try direct insert
             try {
               const { data: fallbackProfile, error: fallbackError } = await supabase
@@ -164,13 +164,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signUp(email: string, password: string, userData: any) {
+    const sanitizedUserData = Object.entries(userData).reduce((acc, [key, value]) => {
+      acc[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value
+      return acc
+    }, {} as any)
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          full_name: userData.full_name || email.split('@')[0],
-          signup_data: JSON.stringify(userData) // Store signup data for later profile creation
+          full_name: sanitizeForDisplay(sanitizedUserData.full_name || email.split('@')[0]),
+          signup_data: JSON.stringify(sanitizedUserData)
         }
       }
     })
@@ -197,11 +202,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('User authentication failed, please sign in again')
     }
 
+    // Whitelist allowed profile fields to prevent prototype pollution
+    const allowedFields = ['full_name', 'phone', 'role', 'avatar_url', 'bio']
+    
     const sanitizedUpdates = Object.entries(updates).reduce((acc, [key, value]) => {
+      // Validate key is safe string and allowed
+      if (typeof key !== 'string' || !allowedFields.includes(key) || key.includes('__proto__') || key.includes('constructor') || key.includes('prototype')) {
+        return acc
+      }
+      
       if (value === null || value === undefined) {
         acc[key] = value
       } else if (typeof value === 'string') {
-        // Enhanced sanitization for profile updates
         acc[key] = sanitizeForDisplay(value.trim())
       } else {
         acc[key] = value

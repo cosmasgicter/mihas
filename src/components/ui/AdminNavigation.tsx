@@ -15,7 +15,8 @@ import {
   GraduationCap,
   Calendar,
   Users,
-  Shield
+  Shield,
+  BarChart3
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -74,6 +75,7 @@ export function AdminNavigation({ className }: AdminNavigationProps) {
     { href: '/admin/programs', label: 'Programs', icon: GraduationCap },
     { href: '/admin/intakes', label: 'Intakes', icon: Calendar },
     { href: '/admin/users', label: 'Users', icon: Users },
+    { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
     { href: '/admin/settings', label: 'Settings', icon: Settings },
   ]
 

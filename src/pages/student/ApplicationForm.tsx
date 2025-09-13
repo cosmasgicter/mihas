@@ -9,20 +9,50 @@ import { Input } from '@/components/ui/Input'
 import { TextArea } from '@/components/ui/TextArea'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { AuthenticatedNavigation } from '@/components/ui/AuthenticatedNavigation'
+import { SaveStatus } from '@/components/ui/SaveStatus'
+import { ConflictResolution } from '@/components/ui/ConflictResolution'
+import { SaveNotification } from '@/components/ui/SaveNotification'
+import { SessionWarning } from '@/components/application/SessionWarning'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { ArrowLeft, Upload, X, FileText, CheckCircle, ArrowRight, CreditCard, Phone, Save } from 'lucide-react'
+import { ArrowLeft, Upload, X, FileText, CheckCircle, ArrowRight, CreditCard, Phone, Save, AlertTriangle, Edit, Eye } from 'lucide-react'
+import { useErrorHandling } from '@/hooks/useErrorHandling'
 import { Link } from 'react-router-dom'
-import { DEFAULT_PROGRAMS, DEFAULT_INTAKES, applicationSchema, ApplicationFormData, UploadedFile } from '@/forms/applicationSchema'
+import { DEFAULT_PROGRAMS, DEFAULT_INTAKES, applicationSchema, ApplicationFormData, UploadedFile, Subject, ProfileData } from '@/forms/applicationSchema'
+import { DataPopulationConfirmation } from '@/components/ui/DataPopulationConfirmation'
+import { SubjectSelection } from '@/components/ui/SubjectSelection'
+import { applicationSessionManager, SessionWarning as SessionWarningType } from '@/lib/applicationSession'
+import { SubmissionStatus as Status, SubmissionResult } from '@/types/submission'
+import { submitWithRetry, generateReferenceNumber, generateTrackingCode, validateSubmissionData, sendEmailReceipt, saveSubmissionStatus } from '@/lib/submissionUtils'
+import { SubmissionStatus } from '@/components/ui/SubmissionStatus'
+import { SubmissionConfirmation } from '@/components/ui/SubmissionConfirmation'
+import { EligibilityChecker } from '@/components/application/EligibilityChecker'
+import { EligibilityAssessment } from '@/lib/eligibilityEngine'
+import { useAnalytics } from '@/hooks/useAnalytics'
 
 interface StepValidation {
   isValid: boolean
   errors: string[]
 }
 
+interface ValidationError {
+  field: string
+  message: string
+  step: number
+  stepTitle: string
+}
+
+interface CompletionItem {
+  id: string
+  title: string
+  completed: boolean
+  required: boolean
+}
+
 export default function ApplicationForm() {
   const isMobile = useIsMobile()
   const navigate = useNavigate()
   const { user, profile, loading: authLoading } = useAuth()
+  const { trackFormStart, trackFormSubmit, trackDocumentUpload } = useAnalytics()
   
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -51,13 +81,31 @@ export default function ApplicationForm() {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [uploadingFiles, setUploadingFiles] = useState<string[]>([])
   const [uploadProgress, setUploadProgress] = useState<{[key: string]: number}>({})
-  const [error, setError] = useState('')
+  const { executeWithErrorHandling, errorState, clearError, retryLastOperation } = useErrorHandling()
   const [success, setSuccess] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [stepValidations, setStepValidations] = useState<{[key: number]: StepValidation}>({})
+  const [sessionWarning, setSessionWarning] = useState<SessionWarningType | null>(null)
   const [isDraftSaving, setIsDraftSaving] = useState(false)
   const [draftSaved, setDraftSaved] = useState(false)
-  const totalSteps = 11
+  const [saveError, setSaveError] = useState<string | undefined>()
+  const [showConflict, setShowConflict] = useState(false)
+  const [conflictData, setConflictData] = useState<{ serverVersion: number; localVersion: number } | null>(null)
+  const [showSaveNotification, setShowSaveNotification] = useState(false)
+  const [saveNotificationType, setSaveNotificationType] = useState<'success' | 'error' | 'info'>('success')
+  const [saveNotificationMessage, setSaveNotificationMessage] = useState('')
+  const [showValidationReport, setShowValidationReport] = useState(false)
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([])
+  const [showReviewSummary, setShowReviewSummary] = useState(false)
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [digitalSignature, setDigitalSignature] = useState('')
+  const [showDataConfirmation, setShowDataConfirmation] = useState(false)
+  const [selectedSubjects, setSelectedSubjects] = useState<Subject[]>([])
+  const [submissionStatus, setSubmissionStatus] = useState<Status | null>(null)
+  const [submissionResult, setSubmissionResult] = useState<SubmissionResult | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [eligibilityAssessment, setEligibilityAssessment] = useState<EligibilityAssessment | null>(null)
+  const totalSteps = 12
 
   const stepTitles = [
     'Program Selection',
@@ -66,6 +114,7 @@ export default function ApplicationForm() {
     'Health & Legal',
     'Professional Info',
     'Education',
+    'Subject Selection',
     'Motivation',
     'Skills & References',
     'Financial Info',
@@ -91,25 +140,112 @@ export default function ApplicationForm() {
   const paymentMethod = watch('payment_method')
   const criminalRecord = watch('criminal_record')
 
+  // Initialize session management
+  useEffect(() => {
+    applicationSessionManager.initialize(
+      (warning) => setSessionWarning(warning),
+      () => {
+        // Handle session expiry
+        saveDraft()
+        setSessionWarning({
+          type: 'expiry',
+          message: 'Your session has expired, but your progress has been saved. You can continue from where you left off.',
+          timeRemaining: 0,
+          canExtend: false
+        })
+      }
+    )
+    
+    return () => {
+      applicationSessionManager.cleanup()
+    }
+  }, [])
+
   useEffect(() => {
     loadPrograms()
     loadDraft()
-    
-    // Auto-save draft every 30 seconds
-    const autoSaveInterval = setInterval(() => {
-      if (currentStep > 1) {
-        saveDraft()
-      }
-    }, 30000)
-    
-    return () => clearInterval(autoSaveInterval)
   }, [])
 
-  // Auto-populate KYC fields from user profile
-  useEffect(() => {
-    if (profile) {
-      console.log('Profile data:', profile)
+  const loadDraft = async () => {
+    if (!user) return
+    
+    try {
+      const draft = await applicationSessionManager.loadDraft(profile?.user_id || user.id)
+      if (draft) {
+        // Restore form data
+        Object.keys(draft.form_data).forEach(key => {
+          setValue(key as keyof ApplicationFormData, draft.form_data[key])
+        })
+        
+        // Restore current step
+        setCurrentStep(draft.current_step)
+        
+        // Restore uploaded files
+        if (draft.uploaded_files) {
+          setUploadedFiles(draft.uploaded_files)
+        }
+        
+        // Restore selected subjects
+        if (draft.selected_subjects) {
+          setSelectedSubjects(draft.selected_subjects)
+        }
+        
+        console.log('Draft loaded successfully')
+      }
+    } catch (error) {
+      console.error('Error loading draft:', error)
+    }
+  }
+
+  const saveDraft = async () => {
+    if (!user || isDraftSaving) return
+    
+    try {
+      setIsDraftSaving(true)
+      const formData = getValues()
       
+      const result = await applicationSessionManager.saveDraft(
+        profile?.user_id || user.id,
+        formData,
+        currentStep,
+        uploadedFiles,
+        selectedSubjects
+      )
+      
+      if (result.success) {
+        setDraftSaved(true)
+        setTimeout(() => setDraftSaved(false), 2000)
+      }
+    } catch (error) {
+      console.error('Error saving draft:', error)
+    } finally {
+      setIsDraftSaving(false)
+    }
+  }
+
+  const handleExtendSession = async () => {
+    if (!user) return
+    
+    try {
+      await applicationSessionManager.extendSession(profile?.user_id || user.id)
+    } catch (error) {
+      console.error('Error extending session:', error)
+    }
+  }
+
+  // Auto-populate KYC fields from user profile with confirmation
+  useEffect(() => {
+    if (profile && currentStep === 2) {
+      const hasPopulatableData = profile.date_of_birth || profile.gender || profile.address || profile.emergency_contact_name
+      
+      if (hasPopulatableData && !localStorage.getItem('dataPopulationHandled')) {
+        setShowDataConfirmation(true)
+      }
+    }
+  }, [profile, currentStep])
+
+  const handleDataPopulationConfirm = () => {
+    if (profile) {
       const fieldsToPopulate = {
         date_of_birth: profile.date_of_birth || '',
         gender: profile.gender || '',
@@ -121,17 +257,26 @@ export default function ApplicationForm() {
         guardian_relationship: profile.emergency_contact_name ? 'Emergency Contact' : ''
       }
       
-      console.log('Fields to populate:', fieldsToPopulate)
-      
-      // Set form values from profile
       Object.entries(fieldsToPopulate).forEach(([key, value]) => {
         if (value && value.trim() !== '') {
-          console.log(`Setting ${key} to:`, value)
           setValue(key as keyof ApplicationFormData, value)
         }
       })
     }
-  }, [profile, setValue])
+    
+    localStorage.setItem('dataPopulationHandled', 'true')
+    setShowDataConfirmation(false)
+  }
+
+  const handleDataPopulationEdit = () => {
+    localStorage.setItem('dataPopulationHandled', 'true')
+    setShowDataConfirmation(false)
+  }
+
+  const handleDataPopulationSkip = () => {
+    localStorage.setItem('dataPopulationHandled', 'true')
+    setShowDataConfirmation(false)
+  }
 
   useEffect(() => {
     if (selectedProgramId) {
@@ -157,33 +302,38 @@ export default function ApplicationForm() {
   }, [validateCurrentStep])
 
   const loadPrograms = async () => {
-    try {
-      setProgramsLoading(true)
-      const { data, error } = await supabase
-        .from('programs')
-        .select('*')
-        .eq('is_active', true)
-        .order('name')
+    setProgramsLoading(true)
+    
+    const result = await executeWithErrorHandling(
+      async () => {
+        const { data, error } = await supabase
+          .from('programs')
+          .select('*')
+          .eq('is_active', true)
+          .order('name')
 
-      if (error) throw error
+        if (error) throw error
 
-      if (data && data.length > 0) {
-        const filteredPrograms = data.filter(program => 
-          program.name.includes('Clinical Medicine') ||
-          program.name.includes('Environmental Health') ||
-          program.name.includes('Nursing')
-        )
-        setPrograms(filteredPrograms.length > 0 ? filteredPrograms : DEFAULT_PROGRAMS)
-      } else {
-        setPrograms(DEFAULT_PROGRAMS)
-      }
-    } catch (error: any) {
-      console.error('Error loading programs:', error)
+        if (data && data.length > 0) {
+          const filteredPrograms = data.filter(program => 
+            program.name.includes('Clinical Medicine') ||
+            program.name.includes('Environmental Health') ||
+            program.name.includes('Nursing')
+          )
+          return filteredPrograms.length > 0 ? filteredPrograms : DEFAULT_PROGRAMS
+        }
+        return DEFAULT_PROGRAMS
+      },
+      'load_programs'
+    )
+    
+    if (result) {
+      setPrograms(result)
+    } else {
       setPrograms(DEFAULT_PROGRAMS)
-      setError('Failed to load programs')
-    } finally {
-      setProgramsLoading(false)
     }
+    
+    setProgramsLoading(false)
   }
 
   const loadIntakes = async (programId: string) => {
@@ -195,34 +345,20 @@ export default function ApplicationForm() {
     }
   }
 
-  const loadDraft = () => {
-    try {
-      const savedDraft = localStorage.getItem('applicationDraft')
-      if (savedDraft) {
-        const draftData = JSON.parse(savedDraft)
+  // Auto-save on form changes
+  useEffect(() => {
+    const subscription = watch(() => {
+      if (currentStep > 1) {
+        const timeoutId = setTimeout(() => {
+          saveDraft()
+        }, 2000) // Save 2 seconds after user stops typing
         
-        // Restore form data
-        Object.keys(draftData).forEach(key => {
-          if (key !== 'currentStep' && key !== 'savedAt' && key !== 'uploadedFiles') {
-            setValue(key as keyof ApplicationFormData, draftData[key])
-          }
-        })
-        
-        // Restore current step
-        if (draftData.currentStep) {
-          setCurrentStep(draftData.currentStep)
-        }
-        
-        // Restore uploaded files
-        if (draftData.uploadedFiles) {
-          setUploadedFiles(draftData.uploadedFiles)
-        }
+        return () => clearTimeout(timeoutId)
       }
-    } catch (error) {
-      console.error('Error loading draft:', error)
-      localStorage.removeItem('applicationDraft')
-    }
-  }
+    })
+    
+    return () => subscription.unsubscribe()
+  }, [watch, currentStep])
 
   const getStepFields = (step: number): (keyof ApplicationFormData)[] => {
     switch (step) {
@@ -232,11 +368,12 @@ export default function ApplicationForm() {
       case 4: return ['criminal_record']
       case 5: return ['employment_status']
       case 6: return ['previous_education', 'grades_or_gpa']
-      case 7: return ['motivation_letter', 'career_goals']
-      case 8: return ['english_proficiency', 'computer_skills', 'references']
-      case 9: return ['financial_sponsor']
-      case 10: return ['payment_method']
-      case 11: return ['declaration', 'information_accuracy', 'professional_conduct']
+      case 7: return [] // Subject selection validation handled separately
+      case 8: return ['motivation_letter', 'career_goals']
+      case 9: return ['english_proficiency', 'computer_skills', 'references']
+      case 10: return ['financial_sponsor']
+      case 11: return ['payment_method']
+      case 12: return ['declaration', 'information_accuracy', 'professional_conduct']
       default: return []
     }
   }
@@ -261,7 +398,11 @@ export default function ApplicationForm() {
     }
     
     if (currentStep === 1) return watch('program_id') && watch('intake_id')
-    if (currentStep === 10) {
+    if (currentStep === 7) {
+      // Subject selection step - require minimum 5 subjects
+      return selectedSubjects.length >= 5
+    }
+    if (currentStep === 11) {
       const paymentMethod = watch('payment_method')
       if (!paymentMethod) return false
       if (paymentMethod === 'pay_now') {
@@ -269,26 +410,189 @@ export default function ApplicationForm() {
       }
       return true
     }
-    if (currentStep === 11) {
+    if (currentStep === 12) {
       // For final step, check all declarations are accepted
-      return watch('declaration') && watch('information_accuracy') && watch('professional_conduct')
+      return watch('declaration') && watch('information_accuracy') && watch('professional_conduct') && termsAccepted && digitalSignature.trim() !== ''
     }
     
     return true
   }
 
-  const nextStep = async () => {
-    await validateCurrentStep()
+  const validateAllSteps = (): ValidationError[] => {
+    const errors: ValidationError[] = []
+    
+    for (let step = 1; step <= totalSteps; step++) {
+      const stepFields = getStepFields(step)
+      
+      stepFields.forEach(field => {
+        const value = watch(field)
+        if (!value || (typeof value === 'string' && value.trim() === '')) {
+          errors.push({
+            field,
+            message: `${field.replace(/_/g, ' ')} is required`,
+            step,
+            stepTitle: stepTitles[step - 1]
+          })
+        }
+      })
+      
+      // Special validations
+      if (step === 2) {
+        const nrc = watch('nrc_number')
+        const passport = watch('passport_number')
+        if (!nrc?.trim() && !passport?.trim()) {
+          errors.push({
+            field: 'identification',
+            message: 'Either NRC Number or Passport Number is required',
+            step: 2,
+            stepTitle: stepTitles[1]
+          })
+        }
+      }
+      
+      if (step === 7 && selectedSubjects.length < 5) {
+        errors.push({
+          field: 'subjects',
+          message: 'At least 5 subjects are required',
+          step: 7,
+          stepTitle: stepTitles[6]
+        })
+      }
+      
+      if (step === 11 && watch('payment_method') === 'pay_now') {
+        if (!watch('payment_reference')?.trim()) {
+          errors.push({
+            field: 'payment_reference',
+            message: 'Payment reference is required when paying now',
+            step: 11,
+            stepTitle: stepTitles[10]
+          })
+        }
+        if (!uploadedFiles.some(f => f.name.toLowerCase().includes('payment'))) {
+          errors.push({
+            field: 'payment_proof',
+            message: 'Payment proof screenshot is required',
+            step: 11,
+            stepTitle: stepTitles[10]
+          })
+        }
+      }
+    }
+    
+    return errors
+  }
+
+  const getCompletionChecklist = (): CompletionItem[] => {
+    return [
+      {
+        id: 'program_selection',
+        title: 'Program and intake selected',
+        completed: !!(watch('program_id') && watch('intake_id')),
+        required: true
+      },
+      {
+        id: 'personal_info',
+        title: 'Personal information completed',
+        completed: !!(watch('date_of_birth') && watch('gender') && watch('nationality') && watch('physical_address')),
+        required: true
+      },
+      {
+        id: 'identification',
+        title: 'Identification provided (NRC or Passport)',
+        completed: !!(watch('nrc_number')?.trim() || watch('passport_number')?.trim()),
+        required: true
+      },
+      {
+        id: 'health_legal',
+        title: 'Health and legal information provided',
+        completed: watch('criminal_record') !== undefined,
+        required: true
+      },
+      {
+        id: 'education',
+        title: 'Educational background provided',
+        completed: !!(watch('previous_education') && watch('grades_or_gpa')),
+        required: true
+      },
+      {
+        id: 'subjects',
+        title: 'Academic subjects selected (minimum 5)',
+        completed: selectedSubjects.length >= 5,
+        required: true
+      },
+      {
+        id: 'motivation',
+        title: 'Motivation letter and career goals',
+        completed: !!(watch('motivation_letter') && watch('career_goals')),
+        required: true
+      },
+      {
+        id: 'skills',
+        title: 'Skills and references provided',
+        completed: !!(watch('english_proficiency') && watch('computer_skills') && watch('references')),
+        required: true
+      },
+      {
+        id: 'payment',
+        title: 'Payment method selected',
+        completed: !!watch('payment_method'),
+        required: true
+      },
+      {
+        id: 'payment_proof',
+        title: 'Payment completed (if paying now)',
+        completed: watch('payment_method') !== 'pay_now' || (!!watch('payment_reference') && uploadedFiles.some(f => f.name.toLowerCase().includes('payment'))),
+        required: watch('payment_method') === 'pay_now'
+      },
+      {
+        id: 'documents',
+        title: 'Supporting documents uploaded',
+        completed: uploadedFiles.length > 0,
+        required: false
+      },
+      {
+        id: 'declarations',
+        title: 'All declarations accepted',
+        completed: !!(watch('declaration') && watch('information_accuracy') && watch('professional_conduct')),
+        required: true
+      },
+      {
+        id: 'terms',
+        title: 'Terms and conditions accepted',
+        completed: termsAccepted,
+        required: true
+      },
+      {
+        id: 'signature',
+        title: 'Digital signature provided',
+        completed: digitalSignature.trim() !== '',
+        required: true
+      }
+    ]
+  }
+
+  const performPreSubmissionValidation = () => {
+    const errors = validateAllSteps()
+    setValidationErrors(errors)
+    setShowValidationReport(true)
+    return errors.length === 0
+  }
+
+  const nextStep = () => {
     if (canProceedToNextStep() && currentStep < totalSteps) {
       setCurrentStep(currentStep + 1)
+      saveDraft() // Auto-save when moving to next step
     }
   }
 
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1)
+      saveDraft() // Auto-save when moving to previous step
     }
   }
+
+
 
   const goToStep = (step: number) => {
     // Only allow going to previous steps or current step
@@ -330,14 +634,14 @@ export default function ApplicationForm() {
     for (const file of Array.from(files)) {
       // Validate file size (10MB limit)
       if (file.size > 10 * 1024 * 1024) {
-        setError(`File is too large. Maximum size is 10MB.`)
+        setSaveError(`File is too large. Maximum size is 10MB.`)
         continue
       }
 
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']
       if (!allowedTypes.includes(file.type)) {
-        setError(`File type not supported. Please upload JPG, PNG, or PDF files.`)
+        setSaveError(`File type not supported. Please upload JPG, PNG, or PDF files.`)
         continue
       }
 
@@ -351,7 +655,7 @@ export default function ApplicationForm() {
         // Verify user authentication for file upload
         const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
         if (authError || !currentUser) {
-          setError('Authentication session expired. Please sign in again.')
+          setSaveError('Authentication session expired. Please sign in again.')
           continue
         }
         
@@ -402,7 +706,7 @@ export default function ApplicationForm() {
         }, 1000)
       } catch (error: any) {
         console.error('Error uploading file:', error)
-        setError(`Failed to upload ${file.name}: ${error.message || 'Upload failed'}`)
+        setSaveError(`Failed to upload ${file.name}: ${error.message || 'Upload failed'}`)
         if (progressInterval) {
           clearInterval(progressInterval)
         }
@@ -427,176 +731,206 @@ export default function ApplicationForm() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
-  const saveDraft = async () => {
-    try {
-      setIsDraftSaving(true)
-      const formData = getValues()
-      
-      // Save to localStorage with timestamp and current step
-      const draftData = {
-        ...formData,
-        currentStep,
-        savedAt: new Date().toISOString(),
-        uploadedFiles
+
+
+  const performSubmission = async (data: ApplicationFormData): Promise<SubmissionResult> => {
+    return await executeWithErrorHandling(
+      async () => {
+        const validationErrors = validateSubmissionData(data)
+        if (validationErrors.length > 0) {
+          throw new Error(`Validation failed: ${validationErrors.join(', ')}`)
+        }
+
+        if (!user?.id) {
+          throw new Error('User not authenticated. Please sign in and try again.')
+        }
+
+        const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
+        if (authError || !currentUser) {
+          throw new Error('Authentication session expired. Please sign in again.')
+        }
+
+        const referenceNumber = generateReferenceNumber()
+        const trackingCode = generateTrackingCode()
+          
+        const applicationData = {
+          application_number: referenceNumber,
+          public_tracking_code: trackingCode,
+          user_id: currentUser.id,
+          program_id: data.program_id,
+          intake_id: data.intake_id,
+          nrc_number: data.nrc_number || null,
+          passport_number: data.passport_number || null,
+          date_of_birth: data.date_of_birth,
+          gender: data.gender,
+          marital_status: data.marital_status,
+          nationality: data.nationality,
+          province: data.province,
+          district: data.district,
+          postal_address: data.postal_address || null,
+          physical_address: data.physical_address,
+          guardian_name: data.guardian_name || null,
+          guardian_phone: data.guardian_phone || null,
+          guardian_relationship: data.guardian_relationship || null,
+          medical_conditions: data.medical_conditions || null,
+          disabilities: data.disabilities || null,
+          criminal_record: data.criminal_record || false,
+          criminal_record_details: data.criminal_record_details || null,
+          professional_registration_number: data.professional_registration_number || null,
+          professional_body: data.professional_body || null,
+          employment_status: data.employment_status,
+          employer_name: data.employer_name || null,
+          employer_address: data.employer_address || null,
+          years_of_experience: data.years_of_experience || 0,
+          previous_education: data.previous_education,
+          grades_or_gpa: data.grades_or_gpa,
+          motivation_letter: data.motivation_letter,
+          career_goals: data.career_goals,
+          english_proficiency: data.english_proficiency,
+          computer_skills: data.computer_skills,
+          references: data.references,
+          financial_sponsor: data.financial_sponsor,
+          sponsor_relationship: data.sponsor_relationship || null,
+          additional_info: data.additional_info || null,
+          payment_amount: 150,
+          payment_status: data.payment_method === 'pay_now' ? 'pending' : 'deferred',
+          payment_reference: data.payment_reference || null,
+          status: 'submitted',
+          submitted_at: new Date().toISOString()
+        }
+
+        const { data: application, error: applicationError } = await supabase
+          .from('applications')
+          .insert(applicationData)
+          .select()
+          .single()
+
+        if (applicationError) {
+          throw new Error(applicationError.message || 'Failed to submit application')
+        }
+
+        if (uploadedFiles.length > 0) {
+          const documentInserts = uploadedFiles.map(file => ({
+            application_id: application.id,
+            document_type: file.name.toLowerCase().includes('payment') ? 'payment_proof' : 'supporting_document',
+            document_name: file.name,
+            file_name: file.name,
+            file_path: file.url || '',
+            file_size: file.size,
+            mime_type: file.type,
+            uploader_id: currentUser.id
+          }))
+
+          const { error: documentsError } = await supabase
+            .from('documents')
+            .insert(documentInserts)
+
+          if (documentsError) {
+            console.warn('Error saving document records:', documentsError)
+          }
+        }
+
+        if (user.email) {
+          await sendEmailReceipt({
+            to: user.email,
+            subject: `Application Confirmation - ${referenceNumber}`,
+            applicationNumber: referenceNumber,
+            trackingCode: trackingCode,
+            programName: selectedProgram?.name || 'Unknown Program',
+            submissionDate: new Date().toISOString(),
+            paymentStatus: data.payment_method === 'pay_now' ? 'pending' : 'deferred'
+          })
+        }
+
+        return {
+          success: true,
+          applicationId: application.id,
+          referenceNumber: referenceNumber,
+          trackingCode: trackingCode
+        }
+      },
+      'submit_application',
+      {
+        maxRetries: 2,
+        rollbackOperation: async () => {
+          console.log('Rolling back application submission')
+        }
       }
-      localStorage.setItem('applicationDraft', JSON.stringify(draftData))
-      
-      setDraftSaved(true)
-      setTimeout(() => setDraftSaved(false), 3000)
-    } catch (error: any) {
-      console.error('Error saving draft:', error)
-      setError('Failed to save draft')
-    } finally {
-      setIsDraftSaving(false)
-    }
+    ) || { success: false, error: 'Submission failed' }
   }
 
   const onSubmit = async (data: ApplicationFormData) => {
-    try {
-      setLoading(true)
-      setError('')
+    setIsSubmitting(true)
+    setSubmissionStatus(null)
 
-      // Validate user authentication
-      if (!user?.id) {
-        setError('User not authenticated. Please sign in and try again.')
-        return
-      }
-
-      // Verify current session
-      const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
-      if (authError || !currentUser) {
-        setError('Authentication session expired. Please sign in again.')
-        return
-      }
-
-      const applicationNumber = `MIHAS${Date.now().toString().slice(-6)}`
-      const trackingCode = `MIHAS${Math.random().toString(36).substr(2, 6).toUpperCase()}`
-      
-      const applicationData = {
-        application_number: applicationNumber,
-        public_tracking_code: trackingCode,
-        user_id: currentUser.id,
-        program_id: data.program_id,
-        intake_id: data.intake_id,
-        nrc_number: data.nrc_number || null,
-        passport_number: data.passport_number || null,
-        date_of_birth: data.date_of_birth,
-        gender: data.gender,
-        marital_status: data.marital_status,
-        nationality: data.nationality,
-        province: data.province,
-        district: data.district,
-        postal_address: data.postal_address || null,
-        physical_address: data.physical_address,
-        guardian_name: data.guardian_name || null,
-        guardian_phone: data.guardian_phone || null,
-        guardian_relationship: data.guardian_relationship || null,
-        medical_conditions: data.medical_conditions || null,
-        disabilities: data.disabilities || null,
-        criminal_record: data.criminal_record || false,
-        criminal_record_details: data.criminal_record_details || null,
-        professional_registration_number: data.professional_registration_number || null,
-        professional_body: data.professional_body || null,
-        employment_status: data.employment_status,
-        employer_name: data.employer_name || null,
-        employer_address: data.employer_address || null,
-        years_of_experience: data.years_of_experience || 0,
-        previous_education: data.previous_education,
-        grades_or_gpa: data.grades_or_gpa,
-        motivation_letter: data.motivation_letter,
-        career_goals: data.career_goals,
-        english_proficiency: data.english_proficiency,
-        computer_skills: data.computer_skills,
-        references: data.references,
-        financial_sponsor: data.financial_sponsor,
-        sponsor_relationship: data.sponsor_relationship || null,
-        additional_info: data.additional_info || null,
-        payment_amount: 150,
-        payment_status: data.payment_method === 'pay_now' ? 'pending' : 'deferred',
-        payment_reference: data.payment_reference || null,
-        status: 'submitted',
-        submitted_at: new Date().toISOString()
-      }
-
-      console.log('Submitting application data:', { 
-        ...applicationData, 
-        user_id: applicationData.user_id ? 'present' : 'missing' 
-      })
-
-      const { data: application, error: applicationError } = await supabase
-        .from('applications')
-        .insert(applicationData)
-        .select()
-        .single()
-
-      if (applicationError) {
-        console.error('Application submission error:', applicationError)
-        throw applicationError
-      }
-
-      console.log('Application submitted successfully:', application.id)
-
-      if (uploadedFiles.length > 0) {
-        const documentInserts = uploadedFiles.map(file => ({
-          application_id: application.id,
-          document_type: file.name.toLowerCase().includes('payment') ? 'payment_proof' : 'supporting_document',
-          document_name: file.name,
-          file_name: file.name,
-          file_path: file.url || '',
-          file_size: file.size,
-          mime_type: file.type,
-          uploader_id: currentUser.id
-        }))
-
-        const { error: documentsError } = await supabase
-          .from('documents')
-          .insert(documentInserts)
-
-        if (documentsError) {
-          console.error('Error saving document records:', documentsError)
+    const result = await submitWithRetry(
+      () => performSubmission(data),
+      (status) => {
+        setSubmissionStatus(status)
+        if (status.status !== 'failed' && result?.applicationId) {
+          saveSubmissionStatus(result.applicationId, status)
         }
       }
+    )
 
-      // Clear draft
-      localStorage.removeItem('applicationDraft')
+    if (result.success) {
+      setSubmissionResult(result)
+      await applicationSessionManager.deleteDraft(profile?.user_id || user.id)
       setSuccess(true)
-    } catch (error: any) {
-      console.error('Error submitting application:', error)
-      setError(error.message || 'Failed to submit application')
-    } finally {
-      setLoading(false)
     }
+    
+    setIsSubmitting(false)
   }
 
-  if (success) {
+  const downloadReceipt = () => {
+    if (!submissionResult) return
+    
+    const receiptData = {
+      referenceNumber: submissionResult.referenceNumber,
+      trackingCode: submissionResult.trackingCode,
+      programName: selectedProgram?.name || 'Unknown Program',
+      submissionDate: new Date().toLocaleDateString(),
+      paymentStatus: watch('payment_method') === 'pay_now' ? 'Pending' : 'Deferred',
+      userEmail: user?.email || ''
+    }
+    
+    const content = `
+APPLICATION RECEIPT
+==================
+
+Reference Number: ${receiptData.referenceNumber}
+Tracking Code: ${receiptData.trackingCode}
+Program: ${receiptData.programName}
+Submission Date: ${receiptData.submissionDate}
+Payment Status: ${receiptData.paymentStatus}
+Email: ${receiptData.userEmail}
+
+Thank you for your application!
+    `
+    
+    const blob = new Blob([content], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `receipt-${receiptData.referenceNumber}.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  if (success && submissionResult) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
-        <div className="max-w-md w-full">
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-secondary mb-4">
-              Application Submitted Successfully!
-            </h2>
-            <p className="text-secondary mb-6">
-              Your application has been received and will be reviewed by our admissions team.
-            </p>
-            <div className="space-y-3">
-              <Link to="/student/dashboard">
-                <Button className="w-full">
-                  Go to Dashboard
-                </Button>
-              </Link>
-              <Link to="/track-application">
-                <Button variant="outline" className="w-full">
-                  Track Application
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+      <SubmissionConfirmation
+        referenceNumber={submissionResult.referenceNumber || ''}
+        trackingCode={submissionResult.trackingCode || ''}
+        applicationId={submissionResult.applicationId || ''}
+        programName={selectedProgram?.name || 'Unknown Program'}
+        submissionDate={new Date().toISOString()}
+        paymentStatus={watch('payment_method') === 'pay_now' ? 'pending' : 'deferred'}
+        userEmail={user?.email || ''}
+        onDownloadReceipt={downloadReceipt}
+        onTrackApplication={() => navigate('/track-application')}
+        onGoToDashboard={() => navigate('/student/dashboard')}
+      />
     )
   }
 
@@ -627,9 +961,46 @@ export default function ApplicationForm() {
           )}
         </div>
 
-        {error && (
-          <div className="rounded-md bg-red-50 p-4 mb-6">
-            <div className="text-sm text-red-700">{error}</div>
+        {errorState.hasError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center">
+              <AlertTriangle className="w-5 h-5 text-red-500 mr-2" />
+              <div className="flex-1">
+                <span className="text-red-700">{errorState.error?.message}</span>
+                {errorState.operation && (
+                  <p className="text-sm text-red-600 mt-1">Operation: {errorState.operation}</p>
+                )}
+              </div>
+              <div className="flex space-x-2">
+                {errorState.canRetry && (
+                  <button
+                    onClick={retryLastOperation}
+                    className="text-red-600 hover:text-red-800 text-sm underline"
+                  >
+                    Retry
+                  </button>
+                )}
+                <button
+                  onClick={clearError}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {submissionStatus && (
+          <div className="mb-6">
+            <SubmissionStatus
+              status={submissionStatus}
+              onRetry={() => {
+                const formData = getValues()
+                onSubmit(formData)
+              }}
+              onCancel={() => setSubmissionStatus(null)}
+            />
           </div>
         )}
 
@@ -658,50 +1029,29 @@ export default function ApplicationForm() {
               Step {currentStep} of {totalSteps}: {stepTitles[currentStep - 1]}
             </h2>
             <div className="flex items-center space-x-4">
-              {draftSaved && (
-                <span className="text-sm text-green-600 flex items-center animate-pulse">
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  Draft saved automatically
-                </span>
+              {isDraftSaving && (
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  <span>Saving...</span>
+                </div>
               )}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={async () => {
-                  const { data: { user }, error } = await supabase.auth.getUser()
-                  console.log('Auth test:', { user: user?.id, error })
-                  alert(`User ID: ${user?.id || 'Not authenticated'}`)
-                }}
-                className="hover:bg-blue-50 text-blue-600"
-              >
-                Test Auth
-              </Button>
+              {draftSaved && (
+                <div className="flex items-center space-x-2 text-sm text-green-600">
+                  <CheckCircle className="h-4 w-4" />
+                  <span>Saved</span>
+                </div>
+              )}
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={saveDraft}
-                loading={isDraftSaving}
+                disabled={isDraftSaving}
                 className="hover:bg-primary/10"
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save Draft
+                Save Now
               </Button>
-              {localStorage.getItem('applicationDraft') && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    localStorage.removeItem('applicationDraft')
-                    window.location.reload()
-                  }}
-                  className="text-red-600 hover:bg-red-50"
-                >
-                  Clear Draft
-                </Button>
-              )}
             </div>
           </div>
           
@@ -746,6 +1096,21 @@ export default function ApplicationForm() {
             })}
           </div>
         </div>
+
+        {/* Session Warning */}
+        <SessionWarning
+          warning={sessionWarning}
+          onExtend={handleExtendSession}
+          onDismiss={() => setSessionWarning(null)}
+        />
+
+        {/* Save Notification */}
+        <SaveNotification
+          show={showSaveNotification}
+          type={saveNotificationType}
+          message={saveNotificationMessage}
+          onClose={() => setShowSaveNotification(false)}
+        />
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
           {/* Step 1: Program Selection */}
@@ -1238,8 +1603,42 @@ export default function ApplicationForm() {
             </div>
           )}
 
-          {/* Step 7: Motivation */}
+          {/* Step 7: Subject Selection */}
           {currentStep === 7 && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-lg font-semibold text-secondary mb-4">
+                  Academic Subjects
+                </h2>
+                <p className="text-sm text-gray-600 mb-6">
+                  Select at least 5 subjects from your previous education. You can add grades and scores for better evaluation.
+                </p>
+                
+                <SubjectSelection
+                  selectedSubjects={selectedSubjects}
+                  onSubjectsChange={setSelectedSubjects}
+                  error={selectedSubjects.length < 5 ? 'At least 5 subjects are required' : undefined}
+                />
+              </div>
+
+              {/* Real-time Eligibility Assessment */}
+              {selectedSubjects.length >= 5 && selectedProgramId && user && (
+                <EligibilityChecker
+                  applicationId={user.id} // Use user ID as temporary application ID
+                  programId={selectedProgramId}
+                  grades={selectedSubjects.map(subject => ({
+                    subject_id: subject.id,
+                    subject_name: subject.name,
+                    grade: typeof subject.grade === 'number' ? subject.grade : (typeof subject.grade === 'string' ? parseFloat(subject.grade) || 0 : 0)
+                  }))}
+                  onEligibilityChange={setEligibilityAssessment}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Step 8: Motivation */}
+          {currentStep === 8 && (
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-lg font-semibold text-secondary mb-4">
                 Motivation & Goals
@@ -1267,8 +1666,8 @@ export default function ApplicationForm() {
             </div>
           )}
 
-          {/* Step 8: Skills & References */}
-          {currentStep === 8 && (
+          {/* Step 9: Skills & References */}
+          {currentStep === 9 && (
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-lg font-semibold text-secondary mb-4">
                 Skills & References
@@ -1324,8 +1723,8 @@ export default function ApplicationForm() {
             </div>
           )}
 
-          {/* Step 9: Financial Information */}
-          {currentStep === 9 && (
+          {/* Step 10: Financial Information */}
+          {currentStep === 10 && (
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-lg font-semibold text-secondary mb-4">
                 Financial Information
@@ -1358,8 +1757,8 @@ export default function ApplicationForm() {
             </div>
           )}
 
-          {/* Step 10: Payment */}
-          {currentStep === 10 && (
+          {/* Step 11: Payment */}
+          {currentStep === 11 && (
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center space-x-2 mb-4">
                 <CreditCard className="h-6 w-6 text-primary" />
@@ -1571,72 +1970,388 @@ export default function ApplicationForm() {
             </div>
           )}
 
-          {/* Step 11: Review & Submit */}
-          {currentStep === 11 && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-secondary mb-4">
-                Review & Submit
-              </h2>
-              
-              <div className="space-y-6">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="font-medium text-blue-800 mb-2">Declaration</h3>
-                  <p className="text-sm text-blue-700 mb-4">
-                    Please read and accept the following declarations before submitting your application:
-                  </p>
-                  
-                  <div className="space-y-3">
-                    <label className="flex items-start space-x-3">
-                      <input
-                        type="checkbox"
-                        {...register('declaration')}
-                        className="mt-1"
-                      />
-                      <span className="text-sm text-blue-700">
-                        I declare that all information provided in this application is true and accurate to the best of my knowledge.
+          {/* Step 12: Review & Submit */}
+          {currentStep === 12 && (
+            <div className="space-y-6">
+              {/* Pre-Submission Validation */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-secondary">
+                    Pre-Submission Validation
+                  </h2>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={performPreSubmissionValidation}
+                    className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Validate Application
+                  </Button>
+                </div>
+                
+                {/* Completion Checklist */}
+                <div className="space-y-3">
+                  <h3 className="font-medium text-secondary mb-3">Completion Checklist</h3>
+                  {getCompletionChecklist().map((item) => (
+                    <div key={item.id} className="flex items-center space-x-3">
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                        item.completed 
+                          ? 'bg-green-500 text-white' 
+                          : item.required 
+                          ? 'bg-red-100 border-2 border-red-300' 
+                          : 'bg-gray-100 border-2 border-gray-300'
+                      }`}>
+                        {item.completed ? '✓' : item.required ? '!' : '○'}
+                      </div>
+                      <span className={`text-sm ${
+                        item.completed 
+                          ? 'text-green-700' 
+                          : item.required 
+                          ? 'text-red-700' 
+                          : 'text-gray-600'
+                      }`}>
+                        {item.title}
+                        {item.required && !item.completed && ' (Required)'}
                       </span>
-                    </label>
-                    {errors.declaration && (
-                      <p className="text-sm text-red-600">{errors.declaration.message}</p>
-                    )}
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-                    <label className="flex items-start space-x-3">
-                      <input
-                        type="checkbox"
-                        {...register('information_accuracy')}
-                        className="mt-1"
-                      />
-                      <span className="text-sm text-blue-700">
-                        I understand that providing false information may result in the rejection of my application or cancellation of admission.
-                      </span>
-                    </label>
-                    {errors.information_accuracy && (
-                      <p className="text-sm text-red-600">{errors.information_accuracy.message}</p>
-                    )}
-
-                    <label className="flex items-start space-x-3">
-                      <input
-                        type="checkbox"
-                        {...register('professional_conduct')}
-                        className="mt-1"
-                      />
-                      <span className="text-sm text-blue-700">
-                        I agree to abide by the professional conduct standards and regulations of the institution and relevant professional bodies.
-                      </span>
-                    </label>
-                    {errors.professional_conduct && (
-                      <p className="text-sm text-red-600">{errors.professional_conduct.message}</p>
-                    )}
+              {/* Validation Report Modal */}
+              {showValidationReport && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-secondary">
+                          Validation Report
+                        </h3>
+                        <button
+                          onClick={() => setShowValidationReport(false)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="h-6 w-6" />
+                        </button>
+                      </div>
+                      
+                      {validationErrors.length === 0 ? (
+                        <div className="text-center py-8">
+                          <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                          <h4 className="text-xl font-semibold text-green-700 mb-2">
+                            Validation Passed!
+                          </h4>
+                          <p className="text-green-600">
+                            Your application is ready for submission.
+                          </p>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex items-center space-x-2 mb-4">
+                            <AlertTriangle className="h-5 w-5 text-red-500" />
+                            <span className="text-red-700 font-medium">
+                              {validationErrors.length} issue(s) found
+                            </span>
+                          </div>
+                          
+                          <div className="space-y-4">
+                            {validationErrors.map((error, index) => (
+                              <div key={index} className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <p className="font-medium text-red-800">
+                                      Step {error.step}: {error.stepTitle}
+                                    </p>
+                                    <p className="text-sm text-red-700 mt-1">
+                                      {error.message}
+                                    </p>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setCurrentStep(error.step)
+                                      setShowValidationReport(false)
+                                    }}
+                                    className="text-red-600 hover:bg-red-100"
+                                  >
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Fix
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="flex justify-end mt-6">
+                        <Button
+                          type="button"
+                          onClick={() => setShowValidationReport(false)}
+                        >
+                          Close
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
+              )}
 
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <h3 className="font-medium text-green-800 mb-2">Application Summary</h3>
-                  <div className="text-sm text-green-700 space-y-1">
-                    <p><strong>Program:</strong> {selectedProgram?.name}</p>
-                    <p><strong>Intake:</strong> {intakes.find(i => i.id === watch('intake_id'))?.name}</p>
-                    <p><strong>Payment Method:</strong> {paymentMethod === 'pay_now' ? 'Pay Now' : 'Pay Later'}</p>
-                    <p><strong>Documents Uploaded:</strong> {uploadedFiles.length} files</p>
+              {/* Application Summary */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-secondary">
+                    Application Summary
+                  </h2>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowReviewSummary(true)}
+                    className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Review Details
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Program</p>
+                      <p className="text-secondary">{selectedProgram?.name || 'Not selected'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Intake</p>
+                      <p className="text-secondary">{intakes.find(i => i.id === watch('intake_id'))?.name || 'Not selected'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Payment Method</p>
+                      <p className="text-secondary">{paymentMethod === 'pay_now' ? 'Pay Now' : paymentMethod === 'pay_later' ? 'Pay Later' : 'Not selected'}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Documents Uploaded</p>
+                      <p className="text-secondary">{uploadedFiles.length} files</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Application Fee</p>
+                      <p className="text-secondary">K150</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Status</p>
+                      <p className="text-secondary">Ready for submission</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Review Summary Modal */}
+              {showReviewSummary && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-xl font-semibold text-secondary">
+                          Application Review Summary
+                        </h3>
+                        <button
+                          onClick={() => setShowReviewSummary(false)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="h-6 w-6" />
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-6">
+                        {/* Program Information */}
+                        <div className="border-b pb-4">
+                          <h4 className="font-semibold text-secondary mb-3">Program Information</h4>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div><strong>Program:</strong> {selectedProgram?.name}</div>
+                            <div><strong>Intake:</strong> {intakes.find(i => i.id === watch('intake_id'))?.name}</div>
+                          </div>
+                        </div>
+                        
+                        {/* Personal Information */}
+                        <div className="border-b pb-4">
+                          <h4 className="font-semibold text-secondary mb-3">Personal Information</h4>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div><strong>Date of Birth:</strong> {watch('date_of_birth')}</div>
+                            <div><strong>Gender:</strong> {watch('gender')}</div>
+                            <div><strong>Nationality:</strong> {watch('nationality')}</div>
+                            <div><strong>NRC:</strong> {watch('nrc_number') || 'Not provided'}</div>
+                            <div><strong>Passport:</strong> {watch('passport_number') || 'Not provided'}</div>
+                          </div>
+                        </div>
+                        
+                        {/* Education & Career */}
+                        <div className="border-b pb-4">
+                          <h4 className="font-semibold text-secondary mb-3">Education & Career</h4>
+                          <div className="text-sm space-y-2">
+                            <div><strong>Previous Education:</strong> {watch('previous_education')?.substring(0, 100)}...</div>
+                            <div><strong>Employment Status:</strong> {watch('employment_status')}</div>
+                          </div>
+                        </div>
+                        
+                        {/* Payment Information */}
+                        <div className="border-b pb-4">
+                          <h4 className="font-semibold text-secondary mb-3">Payment Information</h4>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div><strong>Payment Method:</strong> {watch('payment_method')}</div>
+                            <div><strong>Amount:</strong> K150</div>
+                            {watch('payment_method') === 'pay_now' && (
+                              <div><strong>Reference:</strong> {watch('payment_reference')}</div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Documents */}
+                        <div>
+                          <h4 className="font-semibold text-secondary mb-3">Uploaded Documents</h4>
+                          <div className="space-y-2">
+                            {uploadedFiles.map((file, index) => (
+                              <div key={index} className="text-sm flex items-center space-x-2">
+                                <FileText className="h-4 w-4 text-gray-400" />
+                                <span>{file.name}</span>
+                                <span className="text-gray-500">({formatFileSize(file.size)})</span>
+                              </div>
+                            ))}
+                            {uploadedFiles.length === 0 && (
+                              <p className="text-sm text-gray-500">No documents uploaded</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-end mt-6">
+                        <Button
+                          type="button"
+                          onClick={() => setShowReviewSummary(false)}
+                        >
+                          Close Review
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Declarations */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-lg font-semibold text-secondary mb-4">
+                  Declarations
+                </h2>
+                
+                <div className="space-y-4">
+                  <label className="flex items-start space-x-3">
+                    <input
+                      type="checkbox"
+                      {...register('declaration')}
+                      className="mt-1"
+                    />
+                    <span className="text-sm text-secondary">
+                      I declare that all information provided in this application is true and accurate to the best of my knowledge.
+                    </span>
+                  </label>
+                  {errors.declaration && (
+                    <p className="text-sm text-red-600">{errors.declaration.message}</p>
+                  )}
+
+                  <label className="flex items-start space-x-3">
+                    <input
+                      type="checkbox"
+                      {...register('information_accuracy')}
+                      className="mt-1"
+                    />
+                    <span className="text-sm text-secondary">
+                      I understand that providing false information may result in the rejection of my application or cancellation of admission.
+                    </span>
+                  </label>
+                  {errors.information_accuracy && (
+                    <p className="text-sm text-red-600">{errors.information_accuracy.message}</p>
+                  )}
+
+                  <label className="flex items-start space-x-3">
+                    <input
+                      type="checkbox"
+                      {...register('professional_conduct')}
+                      className="mt-1"
+                    />
+                    <span className="text-sm text-secondary">
+                      I agree to abide by the professional conduct standards and regulations of the institution and relevant professional bodies.
+                    </span>
+                  </label>
+                  {errors.professional_conduct && (
+                    <p className="text-sm text-red-600">{errors.professional_conduct.message}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Terms and Conditions */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-lg font-semibold text-secondary mb-4">
+                  Terms and Conditions
+                </h2>
+                
+                <div className="bg-gray-50 border rounded-lg p-4 mb-4 max-h-40 overflow-y-auto">
+                  <div className="text-sm text-gray-700 space-y-2">
+                    <p><strong>1. Application Processing:</strong> Applications will be processed within 14 working days of submission.</p>
+                    <p><strong>2. Document Verification:</strong> All submitted documents must be authentic and verifiable.</p>
+                    <p><strong>3. Payment Policy:</strong> Application fees are non-refundable once submitted.</p>
+                    <p><strong>4. Academic Requirements:</strong> Meeting minimum requirements does not guarantee admission.</p>
+                    <p><strong>5. Communication:</strong> All official communication will be sent to the provided email address.</p>
+                    <p><strong>6. Data Protection:</strong> Personal information will be handled in accordance with our privacy policy.</p>
+                    <p><strong>7. Admission Validity:</strong> Admission offers are valid for the specified intake period only.</p>
+                    <p><strong>8. Code of Conduct:</strong> Students must adhere to institutional policies and professional standards.</p>
+                  </div>
+                </div>
+                
+                <label className="flex items-start space-x-3">
+                  <input
+                    type="checkbox"
+                    checked={termsAccepted}
+                    onChange={(e) => setTermsAccepted(e.target.checked)}
+                    className="mt-1"
+                  />
+                  <span className="text-sm text-secondary">
+                    I have read, understood, and agree to the terms and conditions stated above.
+                  </span>
+                </label>
+              </div>
+
+              {/* Digital Signature */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-lg font-semibold text-secondary mb-4">
+                  Digital Signature
+                </h2>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-secondary mb-2">
+                      Full Name (Digital Signature) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={digitalSignature}
+                      onChange={(e) => setDigitalSignature(e.target.value)}
+                      placeholder="Type your full name as digital signature"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      By typing your name, you are providing a digital signature equivalent to a handwritten signature.
+                    </p>
+                  </div>
+                  
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-sm text-blue-700">
+                      <strong>Date:</strong> {new Date().toLocaleDateString()}<br />
+                      <strong>Time:</strong> {new Date().toLocaleTimeString()}<br />
+                      <strong>IP Address:</strong> [Recorded for security]
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1666,14 +2381,25 @@ export default function ApplicationForm() {
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               ) : (
-                <Button 
-                  type="submit" 
-                  loading={loading}
-                  disabled={!canProceedToNextStep()}
-                  className={`${!canProceedToNextStep() ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
-                >
-                  Submit Application
-                </Button>
+                <div className="flex items-center space-x-4">
+                  <Button 
+                    type="button"
+                    onClick={performPreSubmissionValidation}
+                    variant="outline"
+                    className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Final Validation
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    loading={loading || isSubmitting}
+                    disabled={!canProceedToNextStep() || validationErrors.length > 0 || isSubmitting}
+                    className={`${!canProceedToNextStep() || validationErrors.length > 0 || isSubmitting ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                  </Button>
+                </div>
               )}
               {!canProceedToNextStep() && (
                 <p className="text-sm text-red-600 flex items-center">
@@ -1683,6 +2409,15 @@ export default function ApplicationForm() {
             </div>
           </div>
         </form>
+
+        {/* Data Population Confirmation Modal */}
+        <DataPopulationConfirmation
+          profileData={profile as ProfileData}
+          onConfirm={handleDataPopulationConfirm}
+          onEdit={handleDataPopulationEdit}
+          onSkip={handleDataPopulationSkip}
+          isVisible={showDataConfirmation}
+        />
       </div>
     </div>
   )

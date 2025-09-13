@@ -8,7 +8,8 @@ import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { ArrowLeft, CheckCircle, ArrowRight, X, Sparkles, FileText, CreditCard, Send } from 'lucide-react'
+import { checkEligibility, getRecommendedSubjects } from '@/lib/eligibility'
+import { ArrowLeft, CheckCircle, ArrowRight, X, Sparkles, FileText, CreditCard, Send, XCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -71,7 +72,7 @@ export default function ApplicationWizard() {
   const [uploadedFiles, setUploadedFiles] = useState<{[key: string]: boolean}>({})
   const [popFile, setPopFile] = useState<File | null>(null)
   
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<WizardFormData>({
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<WizardFormData>({
     resolver: zodResolver(wizardSchema),
     defaultValues: { amount: 150 }
   })
@@ -83,6 +84,53 @@ export default function ApplicationWizard() {
       navigate('/auth/signin?redirect=/student/application-wizard')
     }
   }, [user, authLoading, navigate])
+
+  // Auto-populate form with user data
+  useEffect(() => {
+    if (user) {
+      setValue('email', user.email || '')
+    }
+  }, [user, setValue])
+
+  // Load saved application draft
+  useEffect(() => {
+    const savedDraft = localStorage.getItem('applicationWizardDraft')
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft)
+        if (draft.formData) {
+          Object.keys(draft.formData).forEach(key => {
+            setValue(key as keyof WizardFormData, draft.formData[key])
+          })
+        }
+        if (draft.selectedGrades) {
+          setSelectedGrades(draft.selectedGrades)
+        }
+        if (draft.currentStep) {
+          setCurrentStep(draft.currentStep)
+        }
+        if (draft.applicationId) {
+          setApplicationId(draft.applicationId)
+        }
+      } catch (error) {
+        console.error('Error loading draft:', error)
+        localStorage.removeItem('applicationWizardDraft')
+      }
+    }
+  }, [])
+
+  // Save draft on form changes
+  useEffect(() => {
+    const formData = watch()
+    const draft = {
+      formData,
+      selectedGrades,
+      currentStep,
+      applicationId,
+      savedAt: new Date().toISOString()
+    }
+    localStorage.setItem('applicationWizardDraft', JSON.stringify(draft))
+  }, [watch(), selectedGrades, currentStep, applicationId])
 
   useEffect(() => {
     loadSubjects()
@@ -109,6 +157,21 @@ export default function ApplicationWizard() {
     }
   }
 
+  // Get eligibility check with enhanced subject data
+  const eligibilityCheck = selectedProgram ? checkEligibility(
+    selectedProgram, 
+    selectedGrades.map(g => {
+      const subject = subjects.find(s => s.id === g.subject_id)
+      return {
+        subject_id: g.subject_id,
+        subject_name: subject?.name || '',
+        grade: g.grade
+      }
+    })
+  ) : null
+
+  const recommendedSubjects = selectedProgram ? getRecommendedSubjects(selectedProgram) : []
+
   const getUsedSubjects = () => {
     return selectedGrades.map(g => g.subject_id).filter(Boolean)
   }
@@ -124,7 +187,18 @@ export default function ApplicationWizard() {
   }
 
   const uploadFileWithProgress = async (file: File, path: string): Promise<string> => {
-    const fileName = `applications/${user?.id}/${applicationId}/${path}/${Date.now()}-${file.name}`
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error('File size must be less than 10MB')
+    }
+
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error('Only PDF, JPG, JPEG, and PNG files are allowed')
+    }
+
+    const fileName = `${user?.id}/${applicationId}/${path}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
     
     const progressInterval = setInterval(() => {
       setUploadProgress(prev => {
@@ -137,19 +211,29 @@ export default function ApplicationWizard() {
     }, 200)
     
     try {
+      // Use app_docs bucket instead of application-documents
       const { error: uploadError } = await supabase.storage
-        .from('application-documents')
-        .upload(fileName, file)
+        .from('app_docs')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
 
-      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`)
+      if (uploadError) {
+        console.error('Upload error:', uploadError)
+        throw new Error(`Upload failed: ${uploadError.message}`)
+      }
 
       setUploadProgress(prev => ({ ...prev, [path]: 100 }))
       
       const { data: { publicUrl } } = supabase.storage
-        .from('application-documents')
+        .from('app_docs')
         .getPublicUrl(fileName)
 
       return publicUrl
+    } catch (error) {
+      console.error('File upload error:', error)
+      throw error
     } finally {
       clearInterval(progressInterval)
       setTimeout(() => {
@@ -227,8 +311,14 @@ export default function ApplicationWizard() {
     }
     
     if (currentStep === 2) {
-      if (selectedGrades.length < 6) {
-        setError('Minimum 6 subjects required')
+      if (selectedGrades.length < 5) {
+        setError('Minimum 5 subjects required')
+        return
+      }
+      
+      // Check eligibility
+      if (selectedProgram && eligibilityCheck && !eligibilityCheck.eligible) {
+        setError(`Eligibility Error: ${eligibilityCheck.message}`)
         return
       }
       
@@ -327,9 +417,12 @@ export default function ApplicationWizard() {
       
       if (updateError) throw updateError
       
+      // Clear saved draft on successful submission
+      localStorage.removeItem('applicationWizardDraft')
       setSuccess(true)
     } catch (err: any) {
-      console.error('Submission error:', err)
+      const sanitizedMessage = err instanceof Error ? err.message.replace(/[\r\n\t]/g, ' ') : 'Unknown error'
+      console.error('Submission error:', sanitizedMessage)
       setError(err.message || 'Failed to submit application')
     } finally {
       setLoading(false)
@@ -652,17 +745,86 @@ export default function ApplicationWizard() {
                   <div>
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
                       <h3 className="text-md font-medium text-gray-900">
-                        Grade 12 Subjects (Minimum 6 required)
+                        Grade 12 Subjects (Minimum 5 required)
                       </h3>
                       <Button 
                         type="button" 
                         onClick={addGrade} 
                         disabled={selectedGrades.length >= 10}
-                        className="w-full sm:w-auto"
+                        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
                       >
-                        Add Subject
+                        + Add New Subject
                       </Button>
                     </div>
+                    
+                    {/* Eligibility Status */}
+                    {eligibilityCheck && selectedGrades.length >= 5 && (
+                      <motion.div 
+                        className={`mb-4 p-4 rounded-lg border ${
+                          eligibilityCheck.eligible 
+                            ? 'bg-green-50 border-green-200' 
+                            : 'bg-red-50 border-red-200'
+                        }`}
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                      >
+                        <div className="flex items-center mb-2">
+                          {eligibilityCheck.eligible ? (
+                            <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
+                          ) : (
+                            <XCircle className="h-5 w-5 mr-2 text-red-600" />
+                          )}
+                          <span className={`font-medium ${
+                            eligibilityCheck.eligible ? 'text-green-800' : 'text-red-800'
+                          }`}>
+                            {eligibilityCheck.eligible ? '✓ Eligible for ' + selectedProgram : '✗ Not Eligible for ' + selectedProgram}
+                          </span>
+                          {eligibilityCheck.score && (
+                            <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                              Score: {eligibilityCheck.score}%
+                            </span>
+                          )}
+                        </div>
+                        <p className={`text-sm mb-2 ${
+                          eligibilityCheck.eligible ? 'text-green-700' : 'text-red-700'
+                        }`}>
+                          {eligibilityCheck.message}
+                        </p>
+                        {eligibilityCheck.recommendations && eligibilityCheck.recommendations.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs font-medium text-gray-600 mb-1">Recommendations:</p>
+                            <ul className="text-xs text-gray-600 space-y-1">
+                              {eligibilityCheck.recommendations.map((rec, idx) => (
+                                <li key={idx} className="flex items-start">
+                                  <span className="mr-1">•</span>
+                                  <span>{rec}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                    
+                    {/* Recommended Subjects */}
+                    {selectedProgram && recommendedSubjects.length > 0 && (
+                      <motion.div 
+                        className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                      >
+                        <h4 className="text-sm font-medium text-blue-800 mb-2">
+                          Recommended subjects for {selectedProgram}:
+                        </h4>
+                        <div className="flex flex-wrap gap-1">
+                          {recommendedSubjects.map((subject, idx) => (
+                            <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                              {subject}
+                            </span>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                     
                     {selectedGrades.length > 0 && (
                       <div className="hidden sm:grid grid-cols-12 gap-3 mb-2 text-xs font-medium text-gray-500 uppercase tracking-wide">
@@ -990,6 +1152,21 @@ export default function ApplicationWizard() {
                       <p><strong>Program:</strong> {watch('program')}</p>
                       <p><strong>Intake:</strong> {watch('intake')}</p>
                       <p><strong>Subjects:</strong> {selectedGrades.length} subjects selected</p>
+                      {eligibilityCheck && (
+                        <div>
+                          <p><strong>Eligibility:</strong> 
+                            <span className={eligibilityCheck.eligible ? 'text-green-600' : 'text-red-600'}>
+                              {eligibilityCheck.eligible ? ' ✓ Eligible' : ' ✗ Not Eligible'}
+                            </span>
+                            {eligibilityCheck.score && (
+                              <span className="ml-2 text-blue-600">({eligibilityCheck.score}%)</span>
+                            )}
+                          </p>
+                          {!eligibilityCheck.eligible && (
+                            <p className="text-sm text-red-600 mt-1">{eligibilityCheck.message}</p>
+                          )}
+                        </div>
+                      )}
                       <p><strong>Documents:</strong> {resultSlipFile ? '✓' : '✗'} Result slip, {extraKycFile ? '✓' : '✗'} Extra KYC</p>
                       <p><strong>Payment:</strong> {popFile ? '✓' : '✗'} Proof of payment uploaded</p>
                     </div>

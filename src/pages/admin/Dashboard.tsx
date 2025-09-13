@@ -15,9 +15,11 @@ import {
   Calendar,
   Settings,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  BarChart3
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useAnalytics } from '@/hooks/useAnalytics'
 
 interface DashboardStats {
   totalApplications: number
@@ -32,6 +34,7 @@ interface DashboardStats {
 export default function AdminDashboard() {
   const isMobile = useIsMobile()
   const { user, profile, signOut } = useAuth()
+  const { trackPageView } = useAnalytics()
   const [stats, setStats] = useState<DashboardStats>({
     totalApplications: 0,
     pendingApplications: 0,
@@ -251,6 +254,13 @@ export default function AdminDashboard() {
                     <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center space-y-2">
                       <Users className="h-6 w-6" />
                       <span>Manage Users</span>
+                    </Button>
+                  </Link>
+                  
+                  <Link to="/admin/analytics">
+                    <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center space-y-2">
+                      <BarChart3 className="h-6 w-6" />
+                      <span>Analytics & Reports</span>
                     </Button>
                   </Link>
                 </div>

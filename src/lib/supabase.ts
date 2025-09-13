@@ -15,8 +15,19 @@ export interface UserProfile {
   id: string
   user_id: string
   full_name?: string
+  email?: string
   phone?: string
   role: string
+  date_of_birth?: string
+  gender?: string
+  nationality?: string
+  country?: string
+  address?: string
+  city?: string
+  emergency_contact_name?: string
+  emergency_contact_phone?: string
+  avatar_url?: string
+  bio?: string
   created_at: string
   updated_at: string
 }
@@ -165,6 +176,30 @@ export interface SystemSetting {
   description?: string
   is_public: boolean
   updated_by?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ApplicationDraft {
+  id: string
+  user_id: string
+  form_data: Record<string, any>
+  uploaded_files: any[]
+  current_step: number
+  version: number
+  is_offline_sync: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ApplicationDraft {
+  id: string
+  user_id: string
+  form_data: Record<string, any>
+  uploaded_files: any[]
+  current_step: number
+  version: number
+  is_offline_sync: boolean
   created_at: string
   updated_at: string
 }

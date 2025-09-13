@@ -1,9 +1,12 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { AdminRoute } from '@/components/AdminRoute'
+import { FeedbackWidget } from '@/components/ui/FeedbackWidget'
+import { monitoring } from '@/lib/monitoring'
+import { offlineSyncService } from '@/services/offlineSync'
 
 // Pages
 import LandingPage from '@/pages/LandingPage'
@@ -23,6 +26,7 @@ import AdminPrograms from '@/pages/admin/Programs'
 import AdminIntakes from '@/pages/admin/Intakes'
 import AdminUsers from '@/pages/admin/Users'
 import AdminSettings from '@/pages/admin/Settings'
+import AdminAnalytics from '@/pages/admin/Analytics'
 import PublicApplicationTracker from '@/pages/PublicApplicationTracker'
 import NotFoundPage from '@/pages/NotFoundPage'
 
@@ -37,6 +41,25 @@ const queryClient = new QueryClient({
 })
 
 function App() {
+  useEffect(() => {
+    monitoring.startMonitoring()
+    offlineSyncService.init()
+    
+    const trackPageLoad = () => {
+      monitoring.trackMetric('page_load', 1, { 
+        page: window.location.pathname
+      })
+    }
+    
+    trackPageLoad()
+    window.addEventListener('popstate', trackPageLoad)
+    
+    return () => {
+      monitoring.stopMonitoring()
+      window.removeEventListener('popstate', trackPageLoad)
+    }
+  }, [])
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
@@ -117,11 +140,17 @@ function App() {
                   <AdminSettings />
                 </AdminRoute>
               } />
+              <Route path="/admin/analytics" element={
+                <AdminRoute>
+                  <AdminAnalytics />
+                </AdminRoute>
+              } />
               
               {/* 404 */}
               <Route path="/404" element={<NotFoundPage />} />
               <Route path="*" element={<Navigate to="/404" replace />} />
             </Routes>
+            <FeedbackWidget />
           </div>
         </Router>
       </AuthProvider>

@@ -115,7 +115,7 @@ export function useApplicationSubmit(user: any, uploadedFiles: UploadedFile[]) {
 
       setSuccess(true)
     } catch (error) {
-      console.error('Error submitting application:', error)
+      console.error('Error submitting application')
       
       let errorMessage = 'Failed to submit application'
       

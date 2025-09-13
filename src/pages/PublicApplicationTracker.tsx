@@ -82,19 +82,20 @@ export default function PublicApplicationTracker() {
       setError('')
       setApplication(null)
 
-      // Search by application number or tracking code using separate ilike calls
+      // Search by application number or tracking code using exact match
       const { data, error: searchError } = await supabase
         .from('public_application_status')
         .select('*')
-        .or(`application_number.ilike.%${trimmedTerm}%,public_tracking_code.ilike.%${trimmedTerm}%`)
-        .single()
+        .or(`application_number.eq.${trimmedTerm},public_tracking_code.eq.${trimmedTerm}`)
+        .maybeSingle()
 
       if (searchError) {
-        if (searchError.code === 'PGRST116') {
-          setError('Application not found. Please check your application number or tracking code.')
-        } else {
-          throw searchError
-        }
+        throw searchError
+      }
+
+      if (!data) {
+        setError('Application not found. Please check your application number or tracking code.')
+        setSearched(true)
         return
       }
 
@@ -174,6 +175,17 @@ export default function PublicApplicationTracker() {
     const value = e.target.value
     setSearchTerm(value)
     // Clear error when user starts typing
+    if (error) {
+      setError('')
+    }
+  }, [error])
+
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault()
+    const pasted = e.clipboardData.getData('text')
+    const sanitized = pasted.replace(/[^a-zA-Z0-9\-_]/g, '').trim()
+    setSearchTerm(sanitized)
+    // Clear error when pasting
     if (error) {
       setError('')
     }
@@ -293,6 +305,7 @@ export default function PublicApplicationTracker() {
                       <Input
                         value={searchTerm}
                         onChange={handleInputChange}
+                        onPaste={handlePaste}
                         onKeyPress={handleKeyPress}
                         placeholder="Enter application number..."
                         className="form-input-mobile w-full text-base sm:text-xl py-4 sm:py-6 pl-12 sm:pl-16 pr-4 sm:pr-6 border-3 border-gray-200 focus:border-primary rounded-2xl shadow-lg font-medium"

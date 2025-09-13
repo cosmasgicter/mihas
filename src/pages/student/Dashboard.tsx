@@ -5,6 +5,7 @@ import { supabase, Application, Program, Intake } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { AuthenticatedNavigation } from '@/components/ui/AuthenticatedNavigation'
+import { ContinueApplication } from '@/components/application/ContinueApplication'
 import { formatDate, getStatusColor } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { 
@@ -13,7 +14,8 @@ import {
   Clock, 
   CheckCircle, 
   XCircle, 
-  Plus
+  Plus,
+  X
 } from 'lucide-react'
 
 export default function StudentDashboard() {
@@ -25,6 +27,7 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [hasDraft, setHasDraft] = useState(false)
+  const [draftData, setDraftData] = useState<any>(null)
 
   useEffect(() => {
     if (user) {
@@ -35,8 +38,20 @@ export default function StudentDashboard() {
   // Listen for storage changes to update draft status
   useEffect(() => {
     const handleStorageChange = () => {
-      const savedDraft = localStorage.getItem('applicationDraft')
-      setHasDraft(!!savedDraft)
+      const savedDraft = localStorage.getItem('applicationWizardDraft')
+      if (savedDraft) {
+        try {
+          const draft = JSON.parse(savedDraft)
+          setHasDraft(true)
+          setDraftData(draft)
+        } catch (error) {
+          setHasDraft(false)
+          setDraftData(null)
+        }
+      } else {
+        setHasDraft(false)
+        setDraftData(null)
+      }
     }
 
     // Listen for storage events from other tabs/windows
@@ -55,9 +70,30 @@ export default function StudentDashboard() {
     try {
       setLoading(true)
       
-      // Check for saved draft
-      const savedDraft = localStorage.getItem('applicationDraft')
-      setHasDraft(!!savedDraft)
+      // Check for saved draft in localStorage
+      const savedDraft = localStorage.getItem('applicationWizardDraft')
+      if (savedDraft) {
+        try {
+          const draft = JSON.parse(savedDraft)
+          setHasDraft(true)
+          setDraftData(draft)
+        } catch (error) {
+          console.error('Error parsing draft:', error)
+          localStorage.removeItem('applicationWizardDraft')
+          setHasDraft(false)
+        }
+      } else {
+        setHasDraft(false)
+      }
+      
+      // Also check for database draft
+      const { data: dbDraft } = await supabase
+        .rpc('get_application_draft', { p_user_id: profile?.user_id || user?.id })
+      
+      if (dbDraft && dbDraft.length > 0) {
+        setHasDraft(true)
+        setDraftData(dbDraft[0])
+      }
       
       // Load user's applications using profile user_id
       const { data: applicationsData, error: applicationsError } = await supabase
@@ -110,21 +146,21 @@ export default function StudentDashboard() {
   }
 
   const getDraftTimestamp = () => {
-    try {
-      const savedDraft = localStorage.getItem('applicationDraft')
-      if (!savedDraft) return 'Unknown'
-      
-      const draft = JSON.parse(savedDraft)
-      if (!draft || typeof draft !== 'object') {
-        return 'Unknown'
-      }
-      
-      return draft.savedAt ? formatDate(draft.savedAt) : 'Unknown'
-    } catch (error) {
-      console.error('Error parsing draft timestamp:', error)
-      localStorage.removeItem('applicationDraft')
-      return 'Unknown'
+    if (draftData?.savedAt) {
+      return formatDate(draftData.savedAt)
     }
+    if (draftData?.updated_at) {
+      return formatDate(draftData.updated_at)
+    }
+    return 'Unknown'
+  }
+
+  const getDraftProgress = () => {
+    if (!draftData) return 'No progress'
+    
+    const step = draftData.currentStep || draftData.step_completed || 1
+    const steps = ['KYC Info', 'Education', 'Payment', 'Review']
+    return `Step ${step}/4: ${steps[step - 1] || 'Unknown'}`
   }
 
   if (loading) {
@@ -147,39 +183,9 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* Quick Actions */}
+        {/* Continue Application */}
         <div className="mb-8">
-          <div className="bg-primary border border-primary/20 rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-primary mb-2">
-                  {hasDraft ? 'Continue Your Application' : 'Ready to Apply?'}
-                </h2>
-                <p className="text-primary">
-                  {hasDraft 
-                    ? 'You have a saved draft. Continue where you left off or start a new application.'
-                    : 'Start your application to join programs at Kalulushi Training Centre or Mukuba Institute of Health and Applied Sciences'
-                  }
-                </p>
-              </div>
-              <div className="flex space-x-3">
-                {hasDraft && (
-                  <Link to="/apply">
-                    <Button className="bg-yellow-600 hover:bg-yellow-700">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Continue Draft
-                    </Button>
-                  </Link>
-                )}
-                <Link to="/student/application-wizard">
-                  <Button className="bg-primary hover:bg-primary">
-                    <Plus className="h-4 w-4 mr-2" />
-                    {hasDraft ? 'New Wizard Application' : 'Start New Application'}
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
+          <ContinueApplication />
         </div>
 
         <div className={`grid ${isMobile ? 'grid-cols-1 gap-6' : 'grid-cols-1 lg:grid-cols-3 gap-8'}`}>
@@ -224,12 +230,15 @@ export default function StudentDashboard() {
                             </div>
                             
                             <div className="text-sm text-secondary space-y-1">
-                              <p>You have an unsaved application draft</p>
+                              <p>Progress: {getDraftProgress()}</p>
                               <p>Last saved: {getDraftTimestamp()}</p>
+                              {draftData?.formData?.program && (
+                                <p>Program: {draftData.formData.program}</p>
+                              )}
                             </div>
                           </div>
                           
-                          <Link to="/apply">
+                          <Link to="/student/application-wizard">
                             <Button variant="outline" size="sm">
                               Continue Draft
                             </Button>
@@ -323,18 +332,25 @@ export default function StudentDashboard() {
               <div className="space-y-2">
                 {hasDraft ? (
                   <>
-                    <Link to="/apply" className="block">
+                    <Link to="/student/application-wizard" className="block">
                       <Button variant="ghost" size="sm" className="w-full justify-start">
                         <FileText className="h-4 w-4 mr-2" />
                         Continue Draft
                       </Button>
                     </Link>
-                    <Link to="/student/application-wizard" className="block">
-                      <Button variant="ghost" size="sm" className="w-full justify-start">
-                        <Plus className="h-4 w-4 mr-2" />
-                        New Wizard Application
-                      </Button>
-                    </Link>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => {
+                        localStorage.removeItem('applicationWizardDraft')
+                        setHasDraft(false)
+                        setDraftData(null)
+                      }}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Clear Draft
+                    </Button>
                   </>
                 ) : (
                   <Link to="/student/application-wizard" className="block">

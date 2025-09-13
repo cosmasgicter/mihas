@@ -90,6 +90,14 @@ export const applicationSchema = z.object({
   years_of_experience: z.number().min(0).optional(),
   previous_education: z.string().optional(),
   grades_or_gpa: z.string().optional(),
+  subjects: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    code: z.string(),
+    category: z.enum(['core', 'elective']),
+    grade: z.string().optional(),
+    score: z.number().optional()
+  })).min(5, 'At least 5 subjects are required').optional(),
   motivation_letter: z.string().optional(),
   career_goals: z.string().optional(),
   english_proficiency: z.enum(['Basic', 'Intermediate', 'Advanced', 'Fluent']).optional(),
@@ -132,4 +140,24 @@ export interface UploadedFile {
   size: number
   type: string
   url: string
+}
+
+export interface Subject {
+  id: string
+  name: string
+  code: string
+  category: 'core' | 'elective'
+  grade?: string
+  score?: number
+}
+
+export interface ProfileData {
+  date_of_birth?: string
+  gender?: string
+  nationality?: string
+  country?: string
+  address?: string
+  emergency_contact_name?: string
+  emergency_contact_phone?: string
+  full_name?: string
 }

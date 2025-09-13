@@ -2,6 +2,7 @@ import React from 'react'
 import { useEmailNotifications } from '@/hooks/useEmailNotifications'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { sanitizeForDisplay } from '@/lib/sanitize'
 import { Mail, CheckCircle, XCircle, Clock } from 'lucide-react'
 
 export default function EmailNotifications() {
@@ -59,20 +60,20 @@ export default function EmailNotifications() {
                   <div className="flex items-center space-x-2 mb-2">
                     {getStatusIcon(notification.status)}
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(notification.status)}`}>
-                      {notification.status.toUpperCase()}
+                      {sanitizeForDisplay(notification.status.toUpperCase())}
                     </span>
                   </div>
                   
                   <h4 className="text-sm font-medium text-gray-900 mb-1">
-                    {notification.subject}
+                    {sanitizeForDisplay(notification.subject)}
                   </h4>
                   
                   <p className="text-sm text-gray-600 mb-2">
-                    To: {notification.recipient_email}
+                    To: {sanitizeForDisplay(notification.recipient_email)}
                   </p>
                   
                   <p className="text-xs text-gray-500 mb-2">
-                    {notification.body}
+                    {sanitizeForDisplay(notification.body)}
                   </p>
                   
                   <p className="text-xs text-gray-400">

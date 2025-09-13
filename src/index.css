@@ -164,6 +164,20 @@
   z-index: 50;
 }
 
+/* Mobile navigation menu improvements */
+.mobile-menu-item {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.025em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.mobile-menu-backdrop {
+  background: rgba(17, 24, 39, 0.95);
+  backdrop-filter: blur(8px);
+}
+
 @media (min-width: 768px) {
   .mobile-nav {
     position: static;
@@ -525,6 +539,28 @@ img {
   background-clip: text;
 }
 
+.gradient-text {
+  background: linear-gradient(135deg, #14B8A6, #9333EA, #F97316);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+}
+
+/* High contrast text for mobile */
+.text-high-contrast {
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .text-high-contrast {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    font-weight: 700;
+  }
+}
+
 /* Perspective for 3D effects */
 .perspective-1000 {
   perspective: 1000px;
@@ -537,13 +573,46 @@ img {
 
 .focus-ring:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
 }
 
-/* Touch targets - minimum 44px */
+/* Mobile navigation focus improvements */
+.mobile-nav-focus:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.6);
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+.mobile-nav-focus:focus-visible {
+  outline: 2px solid #14B8A6;
+  outline-offset: 2px;
+}
+
+/* Touch targets - minimum 44px, improved for mobile nav */
 .touch-target {
   min-height: 44px;
   min-width: 44px;
+}
+
+.mobile-nav-item {
+  min-height: 56px;
+  min-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 1.25rem 1.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-decoration: none;
+  border-radius: 0.75rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-nav-item:active {
+  transform: scale(0.98);
+  transition-duration: 0.1s;
 }
 
 /* Mobile button sizing */
@@ -715,6 +784,43 @@ img {
   scroll-behavior: smooth;
 }
 
+/* Mobile navigation accessibility */
+@media (max-width: 768px) {
+  /* Ensure minimum touch target sizes */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Improve text legibility on mobile */
+  .mobile-nav-text {
+    font-size: 1.125rem;
+    line-height: 1.5;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+  }
+  
+  /* High contrast backgrounds for mobile */
+  .mobile-nav-bg {
+    background: rgba(17, 24, 39, 0.98);
+    backdrop-filter: blur(12px);
+  }
+  
+  /* Enhanced shadows for depth */
+  .mobile-nav-shadow {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Prevent text selection on navigation items */
+.nav-item {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Mobile safe areas */
 .safe-area-top {
   padding-top: env(safe-area-inset-top);
@@ -762,5 +868,23 @@ img {
   
   .particle {
     display: none;
+  }
+  
+  .mobile-nav-item {
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .mobile-nav-item {
+    border: 2px solid currentColor;
+    background-color: transparent;
+  }
+  
+  .mobile-nav-item:hover,
+  .mobile-nav-item:focus {
+    background-color: currentColor;
+    color: white;
   }
 }
