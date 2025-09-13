@@ -11,7 +11,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { checkEligibility, getRecommendedSubjects } from '@/lib/eligibility'
 import { ArrowLeft, CheckCircle, ArrowRight, X, Sparkles, FileText, CreditCard, Send, XCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+// import { motion, AnimatePresence } from 'framer-motion'
 
 const wizardSchema = z.object({
   full_name: z.string().min(2, 'Full name is required'),
