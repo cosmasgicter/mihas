@@ -14,6 +14,7 @@ import { DEFAULT_PROGRAMS, DEFAULT_INTAKES, applicationSchema, ApplicationFormDa
 import { StepNavigation } from '@/components/application/StepNavigation'
 import { DocumentUpload } from '@/components/application/DocumentUpload'
 import { useApplicationSubmit } from '@/hooks/useApplicationSubmit'
+import { uploadFile, STORAGE_CONFIGS } from '@/lib/storage'
 
 export default function ApplicationFormMultiStep() {
   const navigate = useNavigate()
@@ -151,35 +152,29 @@ export default function ApplicationFormMultiStep() {
     const uploadPromises = fileArray.map(async (file, i) => {
       const fileId = newFileIds[i]
       
-      // Verify user authentication for file upload
-      const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
-      if (authError || !currentUser) {
-        throw new Error('Authentication session expired')
-      }
-      
-      const fileName = `${currentUser.id}/${Date.now()}-${file.name}`
-      
       try {
-        const { error: uploadError } = await supabase.storage
-          .from('application-documents')
-          .upload(fileName, file)
+        // Update progress to show upload starting
+        setUploadProgress(prev => ({ ...prev, [fileId]: 10 }))
+        
+        // Use the new storage utility
+        const result = await uploadFile(file, STORAGE_CONFIGS.applicationDocuments, `${user?.id}/${Date.now()}-${file.name}`)
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Upload failed')
+        }
 
-        if (uploadError) throw uploadError
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('application-documents')
-          .getPublicUrl(fileName)
+        // Update progress to complete
+        setUploadProgress(prev => ({ ...prev, [fileId]: 100 }))
 
         return {
           id: fileId,
           name: file.name,
           size: file.size,
           type: file.type,
-          url: publicUrl
+          url: result.url || ''
         }
       } catch (error) {
         console.error('Error uploading file:', error)
-        console.error(`Failed to upload ${file.name}:`, error)
         setUploadingFiles(prev => prev.filter(id => id !== fileId))
         setUploadProgress(prev => {
           const { [fileId]: removed, ...rest } = prev

@@ -37,9 +37,23 @@ export default function PublicApplicationTracker() {
   const [error, setError] = useState('')
   const [searched, setSearched] = useState(false)
 
+  const validateSearchTerm = (term: string): boolean => {
+    const trimmed = term.trim()
+    if (!trimmed) return false
+    if (trimmed.length > 50) return false
+    return /^[a-zA-Z0-9\-_]+$/.test(trimmed)
+  }
+
   const searchApplication = async () => {
-    if (!searchTerm.trim()) {
+    const trimmedTerm = searchTerm.trim()
+    
+    if (!trimmedTerm) {
       setError('Please enter an application number or tracking code')
+      return
+    }
+
+    if (!validateSearchTerm(trimmedTerm)) {
+      setError('Invalid search term. Use only letters, numbers, hyphens, and underscores (max 50 characters)')
       return
     }
 
@@ -48,11 +62,11 @@ export default function PublicApplicationTracker() {
       setError('')
       setApplication(null)
 
-      // Search by application number or tracking code
+      // Search by application number or tracking code using separate ilike calls
       const { data, error: searchError } = await supabase
         .from('public_application_status')
         .select('*')
-        .or(`application_number.ilike.%${searchTerm}%,public_tracking_code.ilike.%${searchTerm}%`)
+        .or(`application_number.ilike.%${trimmedTerm}%,public_tracking_code.ilike.%${trimmedTerm}%`)
         .single()
 
       if (searchError) {

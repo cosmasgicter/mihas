@@ -4,6 +4,7 @@ import { supabase, UserProfile } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { ArrowLeft, Users, Shield, User } from 'lucide-react'
+import { sanitizeForLog } from '@/lib/sanitize'
 
 export default function AdminUsers() {
   const [users, setUsers] = useState<UserProfile[]>([])
@@ -25,9 +26,9 @@ export default function AdminUsers() {
         .order('created_at', { ascending: false })
       if (error) throw error
       setUsers(data || [])
-    } catch (err: any) {
-      console.error('Failed to load users:', err)
-      const errorMessage = err.message || 'Failed to load users. Please try again.'
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load users. Please try again.'
+      console.error('Failed to load users:', sanitizeForLog(errorMessage))
       setError(errorMessage)
       setUsers([]) // Reset users on error
     } finally {
@@ -44,8 +45,10 @@ export default function AdminUsers() {
         .eq('user_id', userId)
       if (error) throw error
       await loadUsers()
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update user role'
+      console.error('Failed to update user role:', sanitizeForLog(errorMessage))
+      setError(errorMessage)
     } finally {
       setUpdating(null)
     }

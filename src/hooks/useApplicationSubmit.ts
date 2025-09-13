@@ -45,7 +45,7 @@ export function useApplicationSubmit(user: any, uploadedFiles: UploadedFile[]) {
       }
 
       const applicationNumber = `MIHAS${Date.now().toString().slice(-6)}`
-      const trackingCode = `MIHAS${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+      const trackingCode = `MIHAS${crypto.randomUUID().slice(0, 6).toUpperCase()}`
       
       const applicationData = {
         application_number: applicationNumber,
@@ -90,8 +90,9 @@ export function useApplicationSubmit(user: any, uploadedFiles: UploadedFile[]) {
         submitted_at: new Date().toISOString()
       }
 
-      console.log('Submitting application data:', { 
-        ...applicationData, 
+      console.log('Submitting application:', { 
+        application_number: applicationData.application_number,
+        tracking_code: applicationData.public_tracking_code,
         user_id: applicationData.user_id ? 'present' : 'missing' 
       })
 
@@ -106,7 +107,7 @@ export function useApplicationSubmit(user: any, uploadedFiles: UploadedFile[]) {
         throw applicationError
       }
 
-      console.log('Application submitted successfully:', application.id)
+      console.log('Application submitted successfully:', { id: application.id, tracking_code: application.public_tracking_code })
 
       if (uploadedFiles.length > 0) {
         await insertDocuments(application.id, currentUser.id)

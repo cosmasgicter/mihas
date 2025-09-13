@@ -96,15 +96,29 @@ class SecurityManager {
     }
   }
 
+  // Generate nonce for inline scripts/styles
+  generateNonce(): string {
+    const array = new Uint8Array(16)
+    crypto.getRandomValues(array)
+    return btoa(String.fromCharCode(...array))
+  }
+
   // Content Security Policy headers for production
-  getCSPHeaders(): Record<string, string> {
+  getCSPHeaders(nonce?: string): Record<string, string> {
+    const nonceDirective = nonce ? `'nonce-${nonce}'` : ''
+    
     return {
       'Content-Security-Policy': [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        // Removed 'unsafe-inline' and 'unsafe-eval' - use nonces for inline content
+        `script-src 'self' ${nonceDirective} https://challenges.cloudflare.com`,
+        `style-src 'self' ${nonceDirective} https://fonts.googleapis.com`,
         "font-src 'self' https://fonts.gstatic.com",
         "img-src 'self' data: https:",
+        // Expected external sources documented:
+        // - Supabase: Database and auth services
+        // - Cloudflare: Turnstile CAPTCHA
+        // - Google Fonts: Typography
         "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
         "frame-src https://challenges.cloudflare.com",
         "object-src 'none'",
@@ -155,7 +169,7 @@ export async function logSecurityEvent(
       entity_type: 'security',
       entity_id: userId,
       changes: details,
-      ip_address: await getClientIP(),
+      ip_address: await ipLookupService.getClientIP(),
       user_agent: navigator.userAgent,
       created_at: new Date().toISOString()
     })
@@ -164,12 +178,43 @@ export async function logSecurityEvent(
   }
 }
 
-async function getClientIP(): Promise<string> {
-  try {
-    const response = await fetch('https://api.ipify.org?format=json')
-    const data = await response.json()
-    return data.ip
-  } catch {
-    return 'unknown'
+interface IPLookupConfig {
+  enabled: boolean
+  service: string
+  timeout: number
+}
+
+class IPLookupService {
+  private config: IPLookupConfig
+
+  constructor() {
+    this.config = {
+      enabled: import.meta.env.VITE_IP_LOOKUP_ENABLED !== 'false',
+      service: import.meta.env.VITE_IP_LOOKUP_SERVICE || 'https://api.ipify.org?format=json',
+      timeout: parseInt(import.meta.env.VITE_IP_LOOKUP_TIMEOUT || '3000')
+    }
+  }
+
+  async getClientIP(): Promise<string> {
+    if (!this.config.enabled) {
+      return 'disabled'
+    }
+
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), this.config.timeout)
+      
+      const response = await fetch(this.config.service, {
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeoutId)
+      const data = await response.json()
+      return data.ip || 'unknown'
+    } catch {
+      return 'unknown'
+    }
   }
 }
+
+const ipLookupService = new IPLookupService()
