@@ -133,7 +133,8 @@ export default defineConfig(({ mode }) => {
             vendor: ['react', 'react-dom'],
             supabase: ['@supabase/supabase-js'],
             ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
-            utils: ['date-fns', 'clsx', 'tailwind-merge']
+            utils: ['date-fns', 'clsx', 'tailwind-merge'],
+            animations: ['framer-motion']
           }
         }
       },

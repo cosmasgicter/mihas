@@ -1,19 +1,29 @@
-import React from 'react'
+import React, { lazy, Suspense, useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { Button } from '@/components/ui/Button'
-import { AnimatedCard } from '@/components/ui/AnimatedCard'
-import { TypewriterText } from '@/components/ui/TypewriterText'
-import { FloatingElements, GeometricPatterns } from '@/components/ui/FloatingElements'
 import { MobileNavigation } from '@/components/ui/MobileNavigation'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { GraduationCap, Users, Award, BookOpen, Star, ArrowRight, CheckCircle } from 'lucide-react'
+
+// Lazy load heavy components
+const AnimatedCard = lazy(() => import('@/components/ui/AnimatedCard'))
+const TypewriterText = lazy(() => import('@/components/ui/TypewriterText'))
+const FloatingElements = lazy(() => import('@/components/ui/FloatingElements').then(m => ({ default: m.FloatingElements })))
+const GeometricPatterns = lazy(() => import('@/components/ui/FloatingElements').then(m => ({ default: m.GeometricPatterns })))
 
 export default function LandingPageNew() {
   const isMobile = useIsMobile()
   const [heroRef, heroInView] = useInView({ threshold: 0.3, triggerOnce: true })
   const [statsRef, statsInView] = useInView({ threshold: 0.3, triggerOnce: true })
+  const [showAnimations, setShowAnimations] = useState(false)
+  
+  useEffect(() => {
+    // Defer animations to improve LCP
+    const timer = setTimeout(() => setShowAnimations(true), 300)
+    return () => clearTimeout(timer)
+  }, [])
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -106,8 +116,12 @@ export default function LandingPageNew() {
         {/* Animated Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-accent opacity-95" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-black/10" />
-        <FloatingElements count={30} />
-        <GeometricPatterns />
+        {showAnimations && (
+          <Suspense fallback={null}>
+            <FloatingElements count={30} />
+            <GeometricPatterns />
+          </Suspense>
+        )}
 
         <motion.div
           ref={heroRef}
@@ -117,12 +131,18 @@ export default function LandingPageNew() {
           animate={heroInView ? "visible" : "hidden"}
         >
           <motion.div variants={itemVariants} className="mb-6">
-            <TypewriterText
-              text="Your Future Starts Here"
-              className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold mb-6 px-4 text-center"
-              delay={1000}
-              speed={100}
-            />
+            {showAnimations ? (
+              <Suspense fallback={<h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold mb-6 px-4 text-center">Your Future Starts Here</h1>}>
+                <TypewriterText
+                  text="Your Future Starts Here"
+                  className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold mb-6 px-4 text-center"
+                  delay={1000}
+                  speed={100}
+                />
+              </Suspense>
+            ) : (
+              <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold mb-6 px-4 text-center">Your Future Starts Here</h1>
+            )}
           </motion.div>
           
           <motion.p
@@ -173,7 +193,11 @@ export default function LandingPageNew() {
 
       {/* Stats Section */}
       <section id="stats" className="py-20 bg-gray-50 relative">
-        <FloatingElements count={10} className="opacity-30" />
+        {showAnimations && (
+          <Suspense fallback={null}>
+            <FloatingElements count={10} className="opacity-30" />
+          </Suspense>
+        )}
         <motion.div
           ref={statsRef}
           className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
@@ -206,7 +230,11 @@ export default function LandingPageNew() {
 
       {/* Enhanced Features Section */}
       <section id="features" className="py-20 bg-white relative">
-        <GeometricPatterns />
+        {showAnimations && (
+          <Suspense fallback={null}>
+            <GeometricPatterns />
+          </Suspense>
+        )}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             className="text-center mb-16"
@@ -225,26 +253,39 @@ export default function LandingPageNew() {
           
           <div className={`grid ${isMobile ? 'grid-cols-1 gap-6 px-4' : 'md:grid-cols-3 gap-8'}`}>
             {features.map((feature, index) => (
-              <AnimatedCard
-                key={index}
-                delay={index * 0.2}
-                direction="up"
-                hover3d={true}
-                gradient={true}
-                className="text-center group"
-              >
-                <motion.div
-                  className={`bg-gradient-to-br ${feature.gradient} w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg`}
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <feature.icon className="h-10 w-10 text-white" />
-                </motion.div>
-                <h3 className="text-xl sm:text-2xl font-bold mb-4 text-gray-900">{feature.title}</h3>
-                <p className="text-sm sm:text-base text-gray-700 leading-relaxed font-medium">
-                  {feature.description}
-                </p>
-              </AnimatedCard>
+              showAnimations ? (
+                <Suspense key={index} fallback={<div className="bg-white rounded-lg shadow-lg p-6 text-center group"></div>}>
+                  <AnimatedCard
+                    delay={index * 0.2}
+                    direction="up"
+                    hover3d={true}
+                    gradient={true}
+                    className="text-center group"
+                  >
+                    <motion.div
+                      className={`bg-gradient-to-br ${feature.gradient} w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg`}
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      <feature.icon className="h-10 w-10 text-white" />
+                    </motion.div>
+                    <h3 className="text-xl sm:text-2xl font-bold mb-4 text-gray-900">{feature.title}</h3>
+                    <p className="text-sm sm:text-base text-gray-700 leading-relaxed font-medium">
+                      {feature.description}
+                    </p>
+                  </AnimatedCard>
+                </Suspense>
+              ) : (
+                <div key={index} className="bg-white rounded-lg shadow-lg p-6 text-center group">
+                  <div className={`bg-gradient-to-br ${feature.gradient} w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg`}>
+                    <feature.icon className="h-10 w-10 text-white" />
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-bold mb-4 text-gray-900">{feature.title}</h3>
+                  <p className="text-sm sm:text-base text-gray-700 leading-relaxed font-medium">
+                    {feature.description}
+                  </p>
+                </div>
+              )
             ))}
           </div>
         </div>
@@ -282,6 +323,8 @@ export default function LandingPageNew() {
                 alt="Nursing and Midwifery Council of Zambia (NMCZ) official accreditation logo"
                 className="h-16 mx-auto mb-4 object-contain"
                 loading="lazy"
+                width="64"
+                height="64"
               />
               <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">NMCZ Accredited</h3>
               <p className="text-gray-600 text-xs sm:text-sm mb-3">
@@ -305,6 +348,8 @@ export default function LandingPageNew() {
                 alt="Health Professions Council of Zambia (HPCZ) official accreditation logo"
                 className="h-16 mx-auto mb-4 object-contain"
                 loading="lazy"
+                width="64"
+                height="64"
               />
               <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">HPCZ Accredited</h3>
               <p className="text-gray-600 text-xs sm:text-sm mb-3">
@@ -328,6 +373,8 @@ export default function LandingPageNew() {
                 alt="Examinations Council of Zambia (ECZ) official certification logo"
                 className="h-16 mx-auto mb-4 object-contain"
                 loading="lazy"
+                width="64"
+                height="64"
               />
               <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">ECZ Recognized</h3>
               <p className="text-gray-600 text-xs sm:text-sm mb-3">
@@ -351,6 +398,8 @@ export default function LandingPageNew() {
                 alt="University of Zambia (UNZA) official affiliation logo"
                 className="h-16 mx-auto mb-4 object-contain"
                 loading="lazy"
+                width="64"
+                height="64"
               />
               <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">UNZA Affiliated</h3>
               <p className="text-gray-600 text-xs sm:text-sm mb-3">
@@ -366,7 +415,11 @@ export default function LandingPageNew() {
 
       {/* Enhanced Programs Section */}
       <section className="py-20 bg-gray-50 relative">
-        <FloatingElements count={15} />
+        {showAnimations && (
+          <Suspense fallback={null}>
+            <FloatingElements count={15} />
+          </Suspense>
+        )}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             className="text-center mb-16"
@@ -385,56 +438,93 @@ export default function LandingPageNew() {
           
           <div className={`grid ${isMobile ? 'grid-cols-1 gap-8 px-4' : 'md:grid-cols-2 gap-12'}`}>
             {programs.map((program, index) => (
-              <AnimatedCard
-                key={index}
-                delay={index * 0.3}
-                direction={index % 2 === 0 ? 'left' : 'right'}
-                hover3d={true}
-                className="overflow-hidden"
-              >
-                <div className="relative">
-                  <motion.img
-                    src={program.image}
-                    alt={`${program.institution} campus facility and learning environment`}
-                    className="w-full h-48 object-cover rounded-lg mb-6"
-                    loading="lazy"
-                    whileHover={{ scale: 1.05 }}
-                    transition={{ duration: 0.3 }}
-                  />
-                  <div className="absolute top-4 right-4 space-y-2">
-                    <motion.div
-                      className="bg-gradient-to-r from-primary to-secondary text-white px-3 py-1 rounded-full text-xs font-semibold"
-                      whileHover={{ scale: 1.1 }}
-                    >
-                      {program.highlight}
-                    </motion.div>
-                    <motion.div
-                      className="bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold"
-                      whileHover={{ scale: 1.1 }}
-                    >
-                      {program.accreditation}
-                    </motion.div>
+              showAnimations ? (
+                <Suspense key={index} fallback={<div className="bg-white rounded-lg shadow-lg p-6 overflow-hidden"></div>}>
+                  <AnimatedCard
+                    delay={index * 0.3}
+                    direction={index % 2 === 0 ? 'left' : 'right'}
+                    hover3d={true}
+                    className="overflow-hidden"
+                  >
+                    <div className="relative">
+                      <motion.img
+                        src={program.image}
+                        alt={`${program.institution} campus facility and learning environment`}
+                        className="w-full h-48 object-cover rounded-lg mb-6"
+                        loading="lazy"
+                        width="400"
+                        height="192"
+                        whileHover={{ scale: 1.05 }}
+                        transition={{ duration: 0.3 }}
+                      />
+                      <div className="absolute top-4 right-4 space-y-2">
+                        <motion.div
+                          className="bg-gradient-to-r from-primary to-secondary text-white px-3 py-1 rounded-full text-xs font-semibold"
+                          whileHover={{ scale: 1.1 }}
+                        >
+                          {program.highlight}
+                        </motion.div>
+                        <motion.div
+                          className="bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold"
+                          whileHover={{ scale: 1.1 }}
+                        >
+                          {program.accreditation}
+                        </motion.div>
+                      </div>
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-bold gradient-text mb-4">
+                      {program.institution}
+                    </h3>
+                    <div className="space-y-3">
+                      {program.courses.map((course, courseIndex) => (
+                        <motion.div
+                          key={courseIndex}
+                          className="flex items-center space-x-3"
+                          initial={{ opacity: 0, x: -20 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: courseIndex * 0.1 }}
+                        >
+                          <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span className="text-sm sm:text-base text-gray-800 font-medium">{course}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </AnimatedCard>
+                </Suspense>
+              ) : (
+                <div key={index} className="bg-white rounded-lg shadow-lg p-6 overflow-hidden">
+                  <div className="relative">
+                    <img
+                      src={program.image}
+                      alt={`${program.institution} campus facility and learning environment`}
+                      className="w-full h-48 object-cover rounded-lg mb-6"
+                      loading="lazy"
+                      width="400"
+                      height="192"
+                    />
+                    <div className="absolute top-4 right-4 space-y-2">
+                      <div className="bg-gradient-to-r from-primary to-secondary text-white px-3 py-1 rounded-full text-xs font-semibold">
+                        {program.highlight}
+                      </div>
+                      <div className="bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                        {program.accreditation}
+                      </div>
+                    </div>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-bold gradient-text mb-4">
+                    {program.institution}
+                  </h3>
+                  <div className="space-y-3">
+                    {program.courses.map((course, courseIndex) => (
+                      <div key={courseIndex} className="flex items-center space-x-3">
+                        <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
+                        <span className="text-sm sm:text-base text-gray-800 font-medium">{course}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-bold gradient-text mb-4">
-                  {program.institution}
-                </h3>
-                <div className="space-y-3">
-                  {program.courses.map((course, courseIndex) => (
-                    <motion.div
-                      key={courseIndex}
-                      className="flex items-center space-x-3"
-                      initial={{ opacity: 0, x: -20 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: courseIndex * 0.1 }}
-                    >
-                      <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
-                      <span className="text-sm sm:text-base text-gray-800 font-medium">{course}</span>
-                    </motion.div>
-                  ))}
-                </div>
-              </AnimatedCard>
+              )
             ))}
           </div>
         </div>
@@ -444,8 +534,12 @@ export default function LandingPageNew() {
       <section className="relative py-20 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-accent" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/20" />
-        <FloatingElements count={25} />
-        <GeometricPatterns />
+        {showAnimations && (
+          <Suspense fallback={null}>
+            <FloatingElements count={25} />
+            <GeometricPatterns />
+          </Suspense>
+        )}
         
         <motion.div
           className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white"
@@ -484,7 +578,11 @@ export default function LandingPageNew() {
 
       {/* Enhanced Footer */}
       <footer className="bg-gray-900 text-white py-16 relative">
-        <FloatingElements count={8} className="opacity-20" />
+        {showAnimations && (
+          <Suspense fallback={null}>
+            <FloatingElements count={8} className="opacity-20" />
+          </Suspense>
+        )}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             className="grid md:grid-cols-3 gap-12"

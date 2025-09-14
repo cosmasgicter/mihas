@@ -45,19 +45,22 @@ const queryClient = new QueryClient({
 
 function App() {
   useEffect(() => {
-    monitoring.startMonitoring()
-    offlineSyncService.init()
-    
-    const trackPageLoad = () => {
-      monitoring.trackMetric('page_load', 1, { 
-        page: window.location.pathname
-      })
-    }
-    
-    trackPageLoad()
-    window.addEventListener('popstate', trackPageLoad)
+    // Defer monitoring to improve LCP
+    const timer = setTimeout(() => {
+      monitoring.startMonitoring()
+      
+      const trackPageLoad = () => {
+        monitoring.trackMetric('page_load', 1, { 
+          page: window.location.pathname
+        })
+      }
+      
+      trackPageLoad()
+      window.addEventListener('popstate', trackPageLoad)
+    }, 200)
     
     return () => {
+      clearTimeout(timer)
       monitoring.stopMonitoring()
       window.removeEventListener('popstate', trackPageLoad)
     }
@@ -68,8 +71,6 @@ function App() {
       <AuthProvider>
         <Router>
           <div className="min-h-screen bg-gray-50 relative overflow-hidden">
-            <ParticleSystem />
-            <FloatingOrbs />
             <div className="relative z-10">
               <Routes>
               {/* Public routes */}
