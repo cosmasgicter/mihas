@@ -184,7 +184,7 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
           <>
             {/* Backdrop */}
             <motion.div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+              className="fixed inset-0 bg-black/70 backdrop-blur-md z-40 lg:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -193,7 +193,7 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
 
             {/* Mobile Menu */}
             <motion.div
-              className="fixed top-0 right-0 h-full w-80 max-w-[90vw] bg-white shadow-2xl z-50 lg:hidden safe-area-top safe-area-bottom"
+              className="fixed top-0 right-0 h-full w-80 max-w-[90vw] bg-white/95 backdrop-blur-xl shadow-2xl z-50 lg:hidden safe-area-top safe-area-bottom border-l border-gray-200/50"
               variants={menuVariants}
               initial="closed"
               animate="open"
@@ -201,7 +201,7 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
             >
               <div className="flex flex-col h-full">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-primary/5 to-secondary/5">
+                <div className="flex items-center justify-between p-6 border-b border-gray-200/70 bg-gradient-to-r from-primary/10 to-secondary/10 backdrop-blur-sm">
                   <div className="flex items-center space-x-3">
                     <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
                       <User className="h-5 w-5 text-white" />
@@ -274,7 +274,7 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
                 </NavigationMenu.List>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-gray-200 bg-gray-50">
+                <div className="p-6 border-t border-gray-200/70 bg-gray-50/80 backdrop-blur-sm">
                   <div className="text-center">
                     <p className="text-sm font-medium text-gray-700 mb-1">
                       MIHAS-KATC Student Portal

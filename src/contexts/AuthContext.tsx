@@ -4,14 +4,25 @@ import { supabase, UserProfile } from '@/lib/supabase'
 import { sanitizeForLog, sanitizeForDisplay } from '@/lib/sanitize'
 import { sessionManager, setupSessionTimeout } from '@/lib/session'
 
+interface UserRole {
+  id: string
+  user_id: string
+  role: string
+  permissions: string[] | null
+  department: string | null
+  is_active: boolean
+}
+
 interface AuthContextType {
   user: User | null
   profile: UserProfile | null
+  userRole: UserRole | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<any>
   signUp: (email: string, password: string, userData: any) => Promise<any>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>
+  isAdmin: () => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -19,6 +30,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [userRole, setUserRole] = useState<UserRole | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Load user on mount
@@ -31,6 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (user) {
           await loadUserProfile(user.id)
+          await loadUserRole(user.id)
         }
       } catch (error) {
         console.error('Error loading user:', error)
@@ -52,10 +65,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Only load profile after auth is fully established
           if (event === 'SIGNED_IN') {
             // Reduced delay for better user experience
-            setTimeout(() => loadUserProfile(session.user.id), 200)
+            setTimeout(() => {
+              loadUserProfile(session.user.id)
+              loadUserRole(session.user.id)
+            }, 200)
           }
         } else {
           setProfile(null)
+          setUserRole(null)
         }
         setLoading(false)
       }
@@ -192,6 +209,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut()
   }
 
+  async function loadUserRole(userId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .maybeSingle()
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error loading user role:', sanitizeForLog(error.code || 'unknown'))
+        setUserRole(null)
+        return
+      }
+
+      setUserRole(data)
+    } catch (error) {
+      console.error('Error loading user role:', error)
+      setUserRole(null)
+    }
+  }
+
+  function isAdmin(): boolean {
+    if (!userRole) return false
+    const adminRoles = ['admin', 'super_admin', 'admissions_officer', 'registrar', 'finance_officer', 'academic_head']
+    return adminRoles.includes(userRole.role)
+  }
+
   async function updateProfile(updates: Partial<UserProfile>) {
     if (!user) {
       throw new Error('User not authenticated')
@@ -247,11 +292,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={{
       user,
       profile,
+      userRole,
       loading,
       signIn,
       signUp,
       signOut,
-      updateProfile
+      updateProfile,
+      isAdmin
     }}>
       {children}
     </AuthContext.Provider>

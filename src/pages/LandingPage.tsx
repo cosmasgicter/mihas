@@ -507,8 +507,8 @@ export default function LandingPageNew() {
                 <p><strong>Applications:</strong> Open for Zambian & International Students</p>
                 <p><strong>KATC:</strong> +260 966 992 299</p>
                 <p><strong>MIHAS:</strong> +260 961 515 151</p>
-                <p><strong>Email:</strong> admissions@katc.edu.zm | admissions@mihas.edu.zm</p>
-                <p><strong>Career Support:</strong> careers@mihas-katc.edu.zm</p>
+                <p><strong>Email:</strong> info@katc.edu.zm | info@mihas.edu.zm</p>
+                <p><strong>Career Support:</strong> info@mihas.edu.zm | info@katc.edu.zm</p>
               </div>
             </motion.div>
             

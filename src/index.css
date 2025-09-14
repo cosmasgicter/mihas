@@ -174,8 +174,9 @@
 }
 
 .mobile-menu-backdrop {
-  background: rgba(17, 24, 39, 0.95);
-  backdrop-filter: blur(8px);
+  background: rgba(17, 24, 39, 0.85);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
 }
 
 @media (min-width: 768px) {
@@ -444,6 +445,68 @@ img {
   border-radius: 50%;
   animation: particle-float 6s linear infinite;
   pointer-events: none;
+}
+
+/* Subtle background effects */
+@keyframes subtle-drift {
+  0%, 100% {
+    transform: translateX(0) translateY(0);
+  }
+  25% {
+    transform: translateX(10px) translateY(-5px);
+  }
+  50% {
+    transform: translateX(-5px) translateY(-10px);
+  }
+  75% {
+    transform: translateX(-10px) translateY(5px);
+  }
+}
+
+@keyframes gentle-pulse {
+  0%, 100% {
+    opacity: 0.1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(1.05);
+  }
+}
+
+.floating-orb {
+  position: fixed;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.1), transparent);
+  animation: subtle-drift 20s ease-in-out infinite, gentle-pulse 8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.floating-orb-1 {
+  width: 200px;
+  height: 200px;
+  top: 10%;
+  left: 80%;
+  animation-delay: 0s;
+}
+
+.floating-orb-2 {
+  width: 150px;
+  height: 150px;
+  top: 60%;
+  left: 10%;
+  animation-delay: -5s;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.08), transparent);
+}
+
+.floating-orb-3 {
+  width: 100px;
+  height: 100px;
+  top: 30%;
+  left: 50%;
+  animation-delay: -10s;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.06), transparent);
 }
 
 /* Gradient animations */
@@ -756,6 +819,21 @@ img {
   .particle {
     display: block;
   }
+  
+  .floating-orb-1 {
+    width: 300px;
+    height: 300px;
+  }
+  
+  .floating-orb-2 {
+    width: 250px;
+    height: 250px;
+  }
+  
+  .floating-orb-3 {
+    width: 180px;
+    height: 180px;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -802,13 +880,14 @@ img {
   
   /* High contrast backgrounds for mobile */
   .mobile-nav-bg {
-    background: rgba(17, 24, 39, 0.98);
-    backdrop-filter: blur(12px);
+    background: rgba(17, 24, 39, 0.95);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
   }
   
   /* Enhanced shadows for depth */
   .mobile-nav-shadow {
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.2);
   }
 }
 
@@ -868,6 +947,11 @@ img {
   
   .particle {
     display: none;
+  }
+  
+  .floating-orb {
+    animation: none;
+    opacity: 0.05;
   }
   
   .mobile-nav-item {

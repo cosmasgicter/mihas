@@ -850,8 +850,8 @@ export default function PublicApplicationTracker() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-lg">
                   <div className="bg-white/70 rounded-xl p-6">
                     <p className="font-bold text-secondary mb-2">📧 Email Support</p>
-                    <a href="mailto:admissions@mihas.edu.zm" className="text-primary font-bold hover:underline">
-                      admissions@mihas.edu.zm
+                    <a href="mailto:info@mihas.edu.zm" className="text-primary font-bold hover:underline">
+                      info@mihas.edu.zm
                     </a>
                   </div>
                   

@@ -3,19 +3,8 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
-const ADMIN_ROLES = [
-  'admin',
-  'super_admin',
-  'admissions_officer',
-  'registrar',
-  'finance_officer',
-  'academic_head'
-]
-
 export function DashboardRedirect() {
-  const { user, profile, loading } = useAuth()
-
-
+  const { user, profile, loading, isAdmin } = useAuth()
 
   if (loading) {
     return (
@@ -41,10 +30,8 @@ export function DashboardRedirect() {
     )
   }
 
-  // Check if user email is admin or has admin role
-  const isAdmin = user.email === 'cosmas@beanola.com' || ADMIN_ROLES.includes(profile.role)
-  
-  if (isAdmin) {
+  // Check if user has admin role
+  if (isAdmin()) {
     return <Navigate to="/admin" replace />
   }
 

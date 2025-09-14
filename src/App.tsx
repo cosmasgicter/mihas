@@ -6,6 +6,8 @@ import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { AdminRoute } from '@/components/AdminRoute'
 import { FeedbackWidget } from '@/components/ui/FeedbackWidget'
 import { OfflineIndicator } from '@/components/ui/OfflineIndicator'
+import { ParticleSystem } from '@/components/ui/ParticleSystem'
+import { FloatingOrbs } from '@/components/ui/FloatingOrbs'
 import { monitoring } from '@/lib/monitoring'
 import { offlineSyncService } from '@/services/offlineSync'
 
@@ -65,8 +67,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Router>
-          <div className="min-h-screen bg-gray-50">
-            <Routes>
+          <div className="min-h-screen bg-gray-50 relative overflow-hidden">
+            <ParticleSystem />
+            <FloatingOrbs />
+            <div className="relative z-10">
+              <Routes>
               {/* Public routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/track-application" element={<PublicApplicationTracker />} />
@@ -150,9 +155,10 @@ function App() {
               {/* 404 */}
               <Route path="/404" element={<NotFoundPage />} />
               <Route path="*" element={<Navigate to="/404" replace />} />
-            </Routes>
-            <FeedbackWidget />
-            <OfflineIndicator />
+              </Routes>
+              <FeedbackWidget />
+              <OfflineIndicator />
+            </div>
           </div>
         </Router>
       </AuthProvider>

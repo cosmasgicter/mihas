@@ -7,17 +7,8 @@ interface AdminRouteProps {
   children: React.ReactNode
 }
 
-const ADMIN_ROLES = [
-  'admin',
-  'super_admin',
-  'admissions_officer',
-  'registrar',
-  'finance_officer',
-  'academic_head'
-]
-
 export function AdminRoute({ children }: AdminRouteProps) {
-  const { user, profile, loading } = useAuth()
+  const { user, loading, isAdmin } = useAuth()
 
   if (loading) {
     return (
@@ -31,7 +22,7 @@ export function AdminRoute({ children }: AdminRouteProps) {
     return <Navigate to="/auth/signin" replace />
   }
 
-  if (!profile || !ADMIN_ROLES.includes(profile.role)) {
+  if (!isAdmin()) {
     return <Navigate to="/dashboard" replace />
   }
 

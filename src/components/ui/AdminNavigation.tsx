@@ -26,7 +26,7 @@ interface AdminNavigationProps {
 }
 
 export function AdminNavigation({ className }: AdminNavigationProps) {
-  const { profile, signOut } = useAuth()
+  const { profile, userRole, signOut } = useAuth()
   const isMobile = useIsMobile()
   const navigate = useNavigate()
   const location = useLocation()
@@ -143,7 +143,7 @@ export function AdminNavigation({ className }: AdminNavigationProps) {
             
             <NavigationMenu.Item>
               <div className="hidden xl:flex items-center text-xs text-gray-500 px-3 py-2 bg-gray-50 rounded-lg ml-2">
-                <span className="font-medium">{profile?.role?.replace('_', ' ').toUpperCase()}</span>
+                <span className="font-medium">{userRole?.role?.replace('_', ' ').toUpperCase() || 'ADMIN'}</span>
               </div>
             </NavigationMenu.Item>
             
@@ -201,7 +201,7 @@ export function AdminNavigation({ className }: AdminNavigationProps) {
           <>
             {/* Backdrop */}
             <motion.div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+              className="fixed inset-0 bg-black/70 backdrop-blur-md z-40 lg:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -210,7 +210,7 @@ export function AdminNavigation({ className }: AdminNavigationProps) {
 
             {/* Mobile Menu */}
             <motion.div
-              className="fixed top-0 right-0 h-full w-80 max-w-[90vw] bg-white shadow-2xl z-50 lg:hidden safe-area-top safe-area-bottom"
+              className="fixed top-0 right-0 h-full w-80 max-w-[90vw] bg-white/95 backdrop-blur-xl shadow-2xl z-50 lg:hidden safe-area-top safe-area-bottom border-l border-gray-200/50"
               variants={menuVariants}
               initial="closed"
               animate="open"
@@ -218,7 +218,7 @@ export function AdminNavigation({ className }: AdminNavigationProps) {
             >
               <div className="flex flex-col h-full">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-primary/5 to-secondary/5">
+                <div className="flex items-center justify-between p-6 border-b border-gray-200/70 bg-gradient-to-r from-primary/10 to-secondary/10 backdrop-blur-sm">
                   <div className="flex items-center space-x-3">
                     <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
                       <Shield className="h-5 w-5 text-white" />
@@ -286,7 +286,7 @@ export function AdminNavigation({ className }: AdminNavigationProps) {
                     <div className="text-center">
                       <div className="text-sm font-medium text-gray-700 mb-1">Current Role</div>
                       <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-primary to-secondary text-white">
-                        {profile?.role?.replace('_', ' ').toUpperCase() || 'ADMIN'}
+                        {userRole?.role?.replace('_', ' ').toUpperCase() || 'ADMIN'}
                       </div>
                     </div>
                   </div>
@@ -319,7 +319,7 @@ export function AdminNavigation({ className }: AdminNavigationProps) {
                 </NavigationMenu.List>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-gray-200 bg-gray-50">
+                <div className="p-6 border-t border-gray-200/70 bg-gray-50/80 backdrop-blur-sm">
                   <div className="text-center">
                     <p className="text-sm font-medium text-gray-700 mb-1">
                       MIHAS-KATC Admin Portal

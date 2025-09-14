@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import * as NavigationMenu from '@radix-ui/react-navigation-menu'
 import { Button } from './Button'
-import { GraduationCap, Menu, X, LayoutDashboard } from 'lucide-react'
+import { GraduationCap, Menu, X, LayoutDashboard, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -13,10 +13,23 @@ interface MobileNavigationProps {
 
 export function MobileNavigation({ className }: MobileNavigationProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
+  const navigate = useNavigate()
 
   const toggleMenu = () => setIsOpen(!isOpen)
   const closeMenu = () => setIsOpen(false)
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      navigate('/')
+      closeMenu()
+    } catch (error) {
+      console.error('Sign out failed:', error)
+      navigate('/')
+      closeMenu()
+    }
+  }
 
   const menuVariants = {
     closed: {
@@ -182,7 +195,7 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
 
             {/* Mobile Menu */}
             <motion.div
-              className="fixed top-0 right-0 h-full w-80 max-w-[90vw] mobile-nav-bg mobile-nav-shadow z-50 md:hidden"
+              className="fixed top-0 right-0 h-full w-80 max-w-[90vw] mobile-nav-bg mobile-nav-shadow z-50 md:hidden border-l border-white/20"
               variants={menuVariants}
               initial="closed"
               animate="open"
@@ -190,7 +203,7 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
             >
               <div className="flex flex-col h-full">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-white/30">
+                <div className="flex items-center justify-between p-6 border-b border-white/20 bg-black/10 backdrop-blur-sm">
                   <div className="flex items-center space-x-3">
                     <GraduationCap className="h-7 w-7 text-primary" />
                     <span className="text-xl font-bold text-high-contrast">MIHAS-KATC</span>
@@ -225,23 +238,42 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
                   </NavigationMenu.Item>
 
                   {user ? (
-                    <NavigationMenu.Item>
-                      <motion.div
-                        variants={itemVariants}
-                        custom={1}
-                        initial="closed"
-                        animate="open"
-                      >
-                        <Link 
-                          to="/dashboard"
-                          onClick={closeMenu}
-                          className="mobile-nav-item mobile-nav-focus nav-item bg-primary/30 text-high-contrast hover:bg-primary/40 font-bold shadow-md hover:shadow-lg border-2 border-primary/50 hover:border-primary/70"
+                    <>
+                      <NavigationMenu.Item>
+                        <motion.div
+                          variants={itemVariants}
+                          custom={1}
+                          initial="closed"
+                          animate="open"
                         >
-                          <LayoutDashboard className="w-5 h-5 mr-3" />
-                          <span className="mobile-nav-text">Dashboard</span>
-                        </Link>
-                      </motion.div>
-                    </NavigationMenu.Item>
+                          <Link 
+                            to="/dashboard"
+                            onClick={closeMenu}
+                            className="mobile-nav-item mobile-nav-focus nav-item bg-primary/30 text-high-contrast hover:bg-primary/40 font-bold shadow-md hover:shadow-lg border-2 border-primary/50 hover:border-primary/70"
+                          >
+                            <LayoutDashboard className="w-5 h-5 mr-3" />
+                            <span className="mobile-nav-text">Dashboard</span>
+                          </Link>
+                        </motion.div>
+                      </NavigationMenu.Item>
+                      
+                      <NavigationMenu.Item>
+                        <motion.div
+                          variants={itemVariants}
+                          custom={2}
+                          initial="closed"
+                          animate="open"
+                        >
+                          <button 
+                            onClick={handleSignOut}
+                            className="mobile-nav-item mobile-nav-focus nav-item w-full bg-gradient-to-r from-red-500/30 to-red-600/30 text-high-contrast hover:from-red-500/40 hover:to-red-600/40 font-bold shadow-md hover:shadow-lg border-2 border-red-400/50 hover:border-red-500/70"
+                          >
+                            <LogOut className="w-5 h-5 mr-3" />
+                            <span className="mobile-nav-text">Sign Out</span>
+                          </button>
+                        </motion.div>
+                      </NavigationMenu.Item>
+                    </>
                   ) : (
                     <>
                       <NavigationMenu.Item>
@@ -282,7 +314,7 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
                 </NavigationMenu.List>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-white/30">
+                <div className="p-6 border-t border-white/20 bg-black/10 backdrop-blur-sm">
                   <p className="text-white/90 text-base text-center font-medium drop-shadow-sm">
                     Your Future Starts Here
                   </p>
