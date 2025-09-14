@@ -9,7 +9,7 @@ interface TypewriterTextProps {
   showCursor?: boolean
 }
 
-export function TypewriterText({
+function TypewriterText({
   text,
   delay = 0,
   speed = 100,
@@ -62,3 +62,6 @@ export function TypewriterText({
     </div>
   )
 }
+
+export { TypewriterText }
+export default TypewriterText

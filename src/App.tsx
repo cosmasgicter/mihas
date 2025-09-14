@@ -45,16 +45,15 @@ const queryClient = new QueryClient({
 
 function App() {
   useEffect(() => {
+    const trackPageLoad = () => {
+      monitoring.trackMetric('page_load', 1, { 
+        page: window.location.pathname
+      })
+    }
+    
     // Defer monitoring to improve LCP
     const timer = setTimeout(() => {
       monitoring.startMonitoring()
-      
-      const trackPageLoad = () => {
-        monitoring.trackMetric('page_load', 1, { 
-          page: window.location.pathname
-        })
-      }
-      
       trackPageLoad()
       window.addEventListener('popstate', trackPageLoad)
     }, 200)

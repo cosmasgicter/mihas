@@ -13,7 +13,7 @@ interface AnimatedCardProps {
   gradient?: boolean
 }
 
-export function AnimatedCard({
+function AnimatedCard({
   children,
   className,
   delay = 0,
@@ -128,3 +128,6 @@ export function AnimatedCard({
     </motion.div>
   )
 }
+
+export { AnimatedCard }
+export default AnimatedCard

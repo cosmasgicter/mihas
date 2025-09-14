@@ -29,7 +29,7 @@ const wizardSchema = z.object({
     required_error: 'Please select a program' 
   }),
   intake: z.string().min(1, 'Please select an intake'),
-  payment_method: z.string().optional(),
+  payment_method: z.enum(['pay_now', 'pay_later']).optional(),
   payer_name: z.string().optional(),
   payer_phone: z.string().optional(),
   amount: z.number().min(150, 'Minimum amount is K150').optional(),
@@ -1225,11 +1225,17 @@ export default function ApplicationWizard() {
                   
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div>
-                      <Input
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Payment Method
+                      </label>
+                      <select
                         {...register('payment_method')}
-                        label="Payment Method"
-                        placeholder="e.g., MTN Mobile Money"
-                      />
+                        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">Select payment method</option>
+                        <option value="pay_now">Pay Now</option>
+                        <option value="pay_later">Pay Later</option>
+                      </select>
                     </div>
                     
                     <div>

@@ -23,10 +23,10 @@ export function DataPopulationConfirmation({
   const populatedFields = [
     { label: 'Date of Birth', value: profileData.date_of_birth },
     { label: 'Sex', value: profileData.sex },
-    { label: 'Nationality', value: profileData.nationality || profileData.country },
+    { label: 'Nationality', value: profileData.nationality },
     { label: 'Address', value: profileData.address },
-    { label: 'Emergency Contact', value: profileData.emergency_contact_name },
-    { label: 'Emergency Phone', value: profileData.emergency_contact_phone }
+    { label: 'Next of Kin Name', value: profileData.next_of_kin_name },
+    { label: 'Next of Kin Phone', value: profileData.next_of_kin_phone }
   ].filter(field => field.value)
 
   return (
