@@ -9,6 +9,7 @@ import { formatDate, getStatusColor } from '@/lib/utils'
 import { sanitizeForLog } from '@/lib/sanitize'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
+import { ApplicationsTable } from '@/components/admin/ApplicationsTable'
 import { 
   ArrowLeft, 
   FileText, 
@@ -41,7 +42,22 @@ import {
   Send,
   Trash2,
   Edit3,
-  ExternalLink
+  ExternalLink,
+  History,
+  Shield,
+  FileImage,
+  FileX,
+  Bell,
+  Upload,
+  Printer,
+  Filter as FilterIcon,
+  CalendarDays,
+  Building,
+  UserCheck,
+  AlertCircle,
+  Info,
+  Plus,
+  Minus
 } from 'lucide-react'
 
 interface ApplicationWithDetails {
@@ -78,6 +94,33 @@ interface ApplicationWithDetails {
   created_at: string
   updated_at: string
   document_count?: number
+  admin_feedback?: string
+  admin_feedback_date?: string
+  admin_feedback_by?: string
+  eligibility_status?: string
+  eligibility_score?: number
+  eligibility_notes?: string
+  review_started_at?: string
+  decision_date?: string
+}
+
+interface DocumentInfo {
+  id: string
+  document_type: string
+  document_name: string
+  file_url: string
+  verification_status: string
+  verified_by?: string
+  verified_at?: string
+  verification_notes?: string
+}
+
+interface StatusHistory {
+  id: string
+  status: string
+  changed_by: string
+  notes?: string
+  created_at: string
 }
 
 const PAGE_SIZE = 15
@@ -101,6 +144,25 @@ export default function AdminApplications() {
   const [sortBy, setSortBy] = useState<'date' | 'status' | 'name'>('date')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [showStats, setShowStats] = useState(true)
+  const [showDocuments, setShowDocuments] = useState(false)
+  const [showStatusHistory, setShowStatusHistory] = useState(false)
+  const [documentsLoading, setDocumentsLoading] = useState(false)
+  const [documents, setDocuments] = useState<DocumentInfo[]>([])
+  const [statusHistory, setStatusHistory] = useState<StatusHistory[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
+  const [dateRange, setDateRange] = useState({ start: '', end: '' })
+  const [programFilter, setProgramFilter] = useState('all')
+  const [institutionFilter, setInstitutionFilter] = useState('all')
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('all')
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportLoading, setExportLoading] = useState(false)
+  const [showNotificationModal, setShowNotificationModal] = useState(false)
+  const [notificationText, setNotificationText] = useState('')
+  const [notificationLoading, setNotificationLoading] = useState(false)
+  const [documentVerificationModal, setDocumentVerificationModal] = useState<{show: boolean, document: DocumentInfo | null}>({show: false, document: null})
+  const [verificationNotes, setVerificationNotes] = useState('')
+  const [verificationLoading, setVerificationLoading] = useState(false)
 
   const fetchApplications = async (page: number, status: string, search: string) => {
     const start = page * PAGE_SIZE
@@ -112,19 +174,42 @@ export default function AdminApplications() {
         *
       `, { count: 'exact' })
       .range(start, end)
-      .order('created_at', { ascending: false })
+      .order(sortBy === 'date' ? 'created_at' : sortBy === 'name' ? 'full_name' : 'status', { ascending: sortOrder === 'asc' })
 
+    // Status filter
     if (status !== 'all') {
       query = query.eq('status', status)
     } else {
-      // Include all statuses including draft
       query = query.in('status', ['draft', 'submitted', 'under_review', 'approved', 'rejected'])
     }
 
+    // Program filter
+    if (programFilter !== 'all') {
+      query = query.eq('program', programFilter)
+    }
+
+    // Institution filter
+    if (institutionFilter !== 'all') {
+      query = query.eq('institution', institutionFilter)
+    }
+
+    // Payment status filter
+    if (paymentStatusFilter !== 'all') {
+      query = query.eq('payment_status', paymentStatusFilter)
+    }
+
+    // Date range filter
+    if (dateRange.start) {
+      query = query.gte('created_at', dateRange.start)
+    }
+    if (dateRange.end) {
+      query = query.lte('created_at', dateRange.end + 'T23:59:59')
+    }
+
+    // Search filter
     if (search) {
-      // Sanitize search input to prevent SQL injection
       const sanitizedSearch = search.replace(/[%_\\]/g, '\\$&').replace(/'/g, "''")
-      query = query.or(`full_name.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%,application_number.ilike.%${sanitizedSearch}%`)
+      query = query.or(`full_name.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%,application_number.ilike.%${sanitizedSearch}%,phone.ilike.%${sanitizedSearch}%,nrc_number.ilike.%${sanitizedSearch}%`)
     }
 
     const { data, error, count } = await query
@@ -153,7 +238,7 @@ export default function AdminApplications() {
   }
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['applications', currentPage, statusFilter, searchTerm],
+    queryKey: ['applications', currentPage, statusFilter, searchTerm, sortBy, sortOrder, programFilter, institutionFilter, paymentStatusFilter, dateRange],
     queryFn: () => fetchApplications(currentPage, statusFilter, searchTerm),
     staleTime: 30000, // 30 seconds
   })
@@ -167,6 +252,229 @@ export default function AdminApplications() {
   const applications = data?.applications || []
   const totalCount = data?.totalCount || 0
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+
+  // Fetch application documents
+  const fetchDocuments = async (applicationId: string) => {
+    try {
+      setDocumentsLoading(true)
+      const { data, error } = await supabase
+        .from('application_documents')
+        .select('*')
+        .eq('application_id', applicationId)
+        .order('created_at', { ascending: false })
+      
+      if (error) throw error
+      setDocuments(data || [])
+    } catch (error: any) {
+      console.error('Error fetching documents:', error)
+    } finally {
+      setDocumentsLoading(false)
+    }
+  }
+
+  // Fetch status history
+  const fetchStatusHistory = async (applicationId: string) => {
+    try {
+      setHistoryLoading(true)
+      const { data, error } = await supabase
+        .from('application_status_history')
+        .select(`
+          *,
+          changed_by_profile:changed_by(email)
+        `)
+        .eq('application_id', applicationId)
+        .order('created_at', { ascending: false })
+      
+      if (error) throw error
+      setStatusHistory(data || [])
+    } catch (error: any) {
+      console.error('Error fetching status history:', error)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  // Verify document
+  const verifyDocument = async (documentId: string, status: 'verified' | 'rejected', notes: string) => {
+    try {
+      setVerificationLoading(true)
+      const { error } = await supabase
+        .from('application_documents')
+        .update({
+          verification_status: status,
+          verified_by: user?.id,
+          verified_at: new Date().toISOString(),
+          verification_notes: notes
+        })
+        .eq('id', documentId)
+
+      if (error) throw error
+      
+      // Refresh documents
+      if (selectedApplication) {
+        await fetchDocuments(selectedApplication.id)
+      }
+      
+      setDocumentVerificationModal({show: false, document: null})
+      setVerificationNotes('')
+    } catch (error: any) {
+      console.error('Error verifying document:', error)
+    } finally {
+      setVerificationLoading(false)
+    }
+  }
+
+  // Send notification to applicant
+  const sendNotification = async () => {
+    if (!selectedApplication || !notificationText.trim()) return
+    
+    try {
+      setNotificationLoading(true)
+      
+      // Insert notification
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: selectedApplication.user_id,
+          title: `Application Update - ${selectedApplication.application_number}`,
+          message: notificationText,
+          type: 'application_update'
+        })
+
+      if (notificationError) throw notificationError
+
+      // Update application with admin feedback
+      const { error: updateError } = await supabase
+        .from('applications_new')
+        .update({
+          admin_feedback: notificationText,
+          admin_feedback_date: new Date().toISOString(),
+          admin_feedback_by: user?.id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedApplication.id)
+
+      if (updateError) throw updateError
+
+      queryClient.invalidateQueries({ queryKey: ['applications'] })
+      setShowNotificationModal(false)
+      setNotificationText('')
+      
+    } catch (error: any) {
+      console.error('Error sending notification:', error)
+    } finally {
+      setNotificationLoading(false)
+    }
+  }
+
+  // Export applications data
+  const exportApplications = async (format: 'csv' | 'excel') => {
+    try {
+      setExportLoading(true)
+      
+      // Fetch all applications with current filters
+      let query = supabase
+        .from('applications_new')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      // Apply same filters as current view
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter)
+      }
+      if (programFilter !== 'all') {
+        query = query.eq('program', programFilter)
+      }
+      if (institutionFilter !== 'all') {
+        query = query.eq('institution', institutionFilter)
+      }
+      if (paymentStatusFilter !== 'all') {
+        query = query.eq('payment_status', paymentStatusFilter)
+      }
+      if (dateRange.start) {
+        query = query.gte('created_at', dateRange.start)
+      }
+      if (dateRange.end) {
+        query = query.lte('created_at', dateRange.end + 'T23:59:59')
+      }
+      if (searchTerm) {
+        const sanitizedSearch = searchTerm.replace(/[%_\\]/g, '\\$&').replace(/'/g, "''")
+        query = query.or(`full_name.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%,application_number.ilike.%${sanitizedSearch}%`)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+
+      // Create CSV content
+      const headers = [
+        'Application Number', 'Full Name', 'Email', 'Phone', 'Program', 'Intake', 
+        'Institution', 'Status', 'Payment Status', 'Submitted At', 'Created At'
+      ]
+      
+      const csvContent = [
+        headers.join(','),
+        ...data.map(app => [
+          app.application_number,
+          `"${app.full_name}"`,
+          app.email,
+          app.phone,
+          `"${app.program}"`,
+          `"${app.intake}"`,
+          app.institution,
+          app.status,
+          app.payment_status,
+          app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : '',
+          new Date(app.created_at).toLocaleDateString()
+        ].join(','))
+      ].join('\n')
+
+      // Download file
+      const blob = new Blob([csvContent], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `applications_export_${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      
+      setShowExportModal(false)
+    } catch (error: any) {
+      console.error('Error exporting applications:', error)
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
+  // Delete application (soft delete)
+  const deleteApplication = async (applicationId: string) => {
+    if (!confirm('Are you sure you want to delete this application? This action cannot be undone.')) {
+      return
+    }
+    
+    try {
+      setUpdating(applicationId)
+      
+      const { error } = await supabase
+        .from('applications_new')
+        .update({
+          status: 'deleted',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', applicationId)
+
+      if (error) throw error
+
+      queryClient.invalidateQueries({ queryKey: ['applications'] })
+      queryClient.invalidateQueries({ queryKey: ['application-stats'] })
+      
+    } catch (error: any) {
+      console.error('Error deleting application:', error)
+    } finally {
+      setUpdating(null)
+    }
+  }
 
   const updateApplicationStatus = async (applicationId: string, newStatus: string, feedback?: string) => {
     try {
@@ -318,7 +626,15 @@ export default function AdminApplications() {
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(0)
-  }, [searchTerm, statusFilter])
+  }, [searchTerm, statusFilter, programFilter, institutionFilter, paymentStatusFilter, dateRange])
+
+  // Clear advanced filters
+  const clearAdvancedFilters = () => {
+    setDateRange({ start: '', end: '' })
+    setProgramFilter('all')
+    setInstitutionFilter('all')
+    setPaymentStatusFilter('all')
+  }
 
   const handleSearch = (value: string) => {
     setSearchTerm(value)
@@ -521,18 +837,36 @@ export default function AdminApplications() {
                   </button>
                 </div>
                 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowStats(!showStats)}
-                  className="touch-target"
-                >
-                  <TrendingUp className="h-4 w-4" />
-                </Button>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                    className="touch-target"
+                  >
+                    <FilterIcon className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowExportModal(true)}
+                    className="touch-target"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowStats(!showStats)}
+                    className="touch-target"
+                  >
+                    <TrendingUp className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
             
-            {/* Search and Filters - Mobile First */}
+            {/* Basic Search and Filters */}
             <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-1 md:grid-cols-4 sm:gap-4">
               {/* Search */}
               <div className="md:col-span-2">
@@ -583,6 +917,97 @@ export default function AdminApplications() {
                 </select>
               </div>
             </div>
+            
+            {/* Advanced Filters */}
+            <AnimatePresence>
+              {showAdvancedFilters && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-6"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-secondary">🎯 Advanced Filters</h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearAdvancedFilters}
+                      className="text-xs"
+                    >
+                      Clear All
+                    </Button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Date Range */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-secondary">📅 Date Range</label>
+                      <div className="space-y-2">
+                        <input
+                          type="date"
+                          value={dateRange.start}
+                          onChange={(e) => setDateRange(prev => ({...prev, start: e.target.value}))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          placeholder="Start date"
+                        />
+                        <input
+                          type="date"
+                          value={dateRange.end}
+                          onChange={(e) => setDateRange(prev => ({...prev, end: e.target.value}))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          placeholder="End date"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Program Filter */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-secondary">🎓 Program</label>
+                      <select
+                        value={programFilter}
+                        onChange={(e) => setProgramFilter(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      >
+                        <option value="all">All Programs</option>
+                        <option value="Clinical Medicine">Clinical Medicine</option>
+                        <option value="Environmental Health">Environmental Health</option>
+                        <option value="Registered Nursing">Registered Nursing</option>
+                      </select>
+                    </div>
+                    
+                    {/* Institution Filter */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-secondary">🏢 Institution</label>
+                      <select
+                        value={institutionFilter}
+                        onChange={(e) => setInstitutionFilter(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      >
+                        <option value="all">All Institutions</option>
+                        <option value="KATC">KATC</option>
+                        <option value="MIHAS">MIHAS</option>
+                      </select>
+                    </div>
+                    
+                    {/* Payment Status Filter */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-secondary">💳 Payment Status</label>
+                      <select
+                        value={paymentStatusFilter}
+                        onChange={(e) => setPaymentStatusFilter(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      >
+                        <option value="all">All Payment Status</option>
+                        <option value="pending_review">Pending Review</option>
+                        <option value="verified">Verified</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
             
             {/* Bulk Actions */}
             <AnimatePresence>
@@ -768,11 +1193,37 @@ export default function AdminApplications() {
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setSelectedApplication(application)
-                                setShowFeedbackModal(true)
+                                setShowNotificationModal(true)
                               }}
                               className="touch-target p-2"
                             >
-                              <MessageSquare className="h-4 w-4" />
+                              <Bell className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedApplication(application)
+                                fetchDocuments(application.id)
+                                setShowDocuments(true)
+                              }}
+                              className="touch-target p-2"
+                            >
+                              <FileImage className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedApplication(application)
+                                fetchStatusHistory(application.id)
+                                setShowStatusHistory(true)
+                              }}
+                              className="touch-target p-2"
+                            >
+                              <History className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
@@ -943,10 +1394,43 @@ export default function AdminApplications() {
                               size="sm"
                               onClick={() => {
                                 setSelectedApplication(application)
-                                setShowFeedbackModal(true)
+                                setShowNotificationModal(true)
                               }}
                             >
-                              <MessageSquare className="h-4 w-4" />
+                              <Bell className="h-4 w-4" />
+                            </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedApplication(application)
+                                fetchDocuments(application.id)
+                                setShowDocuments(true)
+                              }}
+                            >
+                              <FileImage className="h-4 w-4" />
+                            </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedApplication(application)
+                                fetchStatusHistory(application.id)
+                                setShowStatusHistory(true)
+                              }}
+                            >
+                              <History className="h-4 w-4" />
+                            </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteApplication(application.id)}
+                              className="text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                             
                             {application.status === 'submitted' && (
@@ -1165,10 +1649,30 @@ export default function AdminApplications() {
                 variant="outline"
                 onClick={() => {
                   setShowDetails(false)
-                  setShowFeedbackModal(true)
+                  setShowNotificationModal(true)
                 }}
               >
-                Add Feedback
+                Send Notification
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDetails(false)
+                  fetchDocuments(selectedApplication.id)
+                  setShowDocuments(true)
+                }}
+              >
+                View Documents
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDetails(false)
+                  fetchStatusHistory(selectedApplication.id)
+                  setShowStatusHistory(true)
+                }}
+              >
+                Status History
               </Button>
               {selectedApplication.status === 'submitted' && (
                 <Button
@@ -1212,21 +1716,21 @@ export default function AdminApplications() {
         </div>
       )}
 
-      {/* Feedback Modal */}
-      {showFeedbackModal && selectedApplication && (
+      {/* Notification Modal */}
+      {showNotificationModal && selectedApplication && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-secondary">
-                  Add Feedback - {selectedApplication.application_number}
+                  🔔 Send Notification - {selectedApplication.application_number}
                 </h2>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    setShowFeedbackModal(false)
-                    setFeedbackText('')
+                    setShowNotificationModal(false)
+                    setNotificationText('')
                   }}
                 >
                   <XCircle className="h-5 w-5" />
@@ -1246,17 +1750,17 @@ export default function AdminApplications() {
               
               <div className="mb-6">
                 <label className="block text-sm font-medium text-secondary mb-2">
-                  Feedback Message
+                  Notification Message
                 </label>
                 <textarea
-                  value={feedbackText}
-                  onChange={(e) => setFeedbackText(e.target.value)}
-                  placeholder="Provide feedback to the applicant about their application status, required documents, or next steps..."
+                  value={notificationText}
+                  onChange={(e) => setNotificationText(e.target.value)}
+                  placeholder="Send a notification to the applicant about their application status, required documents, or next steps..."
                   rows={6}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
                 <p className="text-xs text-secondary mt-1">
-                  This feedback will be visible to the applicant when they check their application status.
+                  This notification will be sent to the applicant and saved as admin feedback.
                 </p>
               </div>
             </div>
@@ -1265,18 +1769,293 @@ export default function AdminApplications() {
               <Button 
                 variant="outline" 
                 onClick={() => {
-                  setShowFeedbackModal(false)
-                  setFeedbackText('')
+                  setShowNotificationModal(false)
+                  setNotificationText('')
                 }}
               >
                 Cancel
               </Button>
               <Button
-                loading={feedbackLoading}
-                onClick={submitFeedback}
-                disabled={!feedbackText.trim()}
+                loading={notificationLoading}
+                onClick={sendNotification}
+                disabled={!notificationText.trim()}
               >
-                Submit Feedback
+                <Bell className="h-4 w-4 mr-2" />
+                Send Notification
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Documents Modal */}
+      {showDocuments && selectedApplication && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-secondary">
+                  📁 Documents - {selectedApplication.application_number}
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowDocuments(false)}
+                >
+                  <XCircle className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              {documentsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <LoadingSpinner size="lg" />
+                </div>
+              ) : documents.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileX className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">No documents uploaded yet</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {documents.map((doc) => (
+                    <div key={doc.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-medium text-secondary">{doc.document_name}</h3>
+                          <p className="text-sm text-gray-500">{doc.document_type}</p>
+                          <div className="flex items-center space-x-4 mt-2">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              doc.verification_status === 'verified' ? 'bg-green-100 text-green-800' :
+                              doc.verification_status === 'rejected' ? 'bg-red-100 text-red-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {doc.verification_status === 'verified' && <Shield className="h-3 w-3 mr-1" />}
+                              {doc.verification_status === 'rejected' && <XCircle className="h-3 w-3 mr-1" />}
+                              {doc.verification_status === 'pending' && <Clock className="h-3 w-3 mr-1" />}
+                              {doc.verification_status.charAt(0).toUpperCase() + doc.verification_status.slice(1)}
+                            </span>
+                            {doc.verified_at && (
+                              <span className="text-xs text-gray-500">
+                                Verified {formatDate(doc.verified_at)}
+                              </span>
+                            )}
+                          </div>
+                          {doc.verification_notes && (
+                            <p className="text-sm text-gray-600 mt-2 bg-gray-50 p-2 rounded">
+                              {doc.verification_notes}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(doc.file_url, '_blank')}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                          {doc.verification_status === 'pending' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setDocumentVerificationModal({show: true, document: doc})}
+                            >
+                              <Shield className="h-4 w-4 mr-1" />
+                              Verify
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status History Modal */}
+      {showStatusHistory && selectedApplication && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-secondary">
+                  📈 Status History - {selectedApplication.application_number}
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowStatusHistory(false)}
+                >
+                  <XCircle className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              {historyLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <LoadingSpinner size="lg" />
+                </div>
+              ) : statusHistory.length === 0 ? (
+                <div className="text-center py-8">
+                  <History className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">No status changes recorded yet</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {statusHistory.map((history, index) => (
+                    <div key={history.id} className="flex items-start space-x-4">
+                      <div className="flex-shrink-0">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          history.status === 'approved' ? 'bg-green-100' :
+                          history.status === 'rejected' ? 'bg-red-100' :
+                          history.status === 'under_review' ? 'bg-blue-100' :
+                          'bg-gray-100'
+                        }`}>
+                          {getStatusIcon(history.status)}
+                        </div>
+                        {index < statusHistory.length - 1 && (
+                          <div className="w-0.5 h-8 bg-gray-200 mx-auto mt-2"></div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-secondary capitalize">
+                            {history.status.replace('_', ' ')}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {formatDate(history.created_at)}
+                          </p>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Changed by: {(history as any).changed_by_profile?.email || 'System'}
+                        </p>
+                        {history.notes && (
+                          <p className="text-sm text-gray-600 mt-1 bg-gray-50 p-2 rounded">
+                            {history.notes}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-secondary">
+                  📊 Export Applications
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowExportModal(false)}
+                >
+                  <XCircle className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-sm text-gray-600 mb-4">
+                Export applications data with current filters applied.
+              </p>
+              <div className="space-y-3">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  loading={exportLoading}
+                  onClick={() => exportApplications('csv')}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export as CSV
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Document Verification Modal */}
+      {documentVerificationModal.show && documentVerificationModal.document && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-secondary">
+                  🛡️ Verify Document
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDocumentVerificationModal({show: false, document: null})}
+                >
+                  <XCircle className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-sm text-secondary mb-2">
+                  <strong>Document:</strong> {documentVerificationModal.document.document_name}
+                </p>
+                <p className="text-sm text-secondary mb-4">
+                  <strong>Type:</strong> {documentVerificationModal.document.document_type}
+                </p>
+              </div>
+              
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-secondary mb-2">
+                  Verification Notes
+                </label>
+                <textarea
+                  value={verificationNotes}
+                  onChange={(e) => setVerificationNotes(e.target.value)}
+                  placeholder="Add notes about the document verification..."
+                  rows={4}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                />
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
+              <Button 
+                variant="outline" 
+                onClick={() => setDocumentVerificationModal({show: false, document: null})}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="outline"
+                loading={verificationLoading}
+                onClick={() => verifyDocument(documentVerificationModal.document!.id, 'rejected', verificationNotes)}
+                className="text-red-600 border-red-300 hover:bg-red-50"
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                Reject
+              </Button>
+              <Button
+                loading={verificationLoading}
+                onClick={() => verifyDocument(documentVerificationModal.document!.id, 'verified', verificationNotes)}
+                className="text-green-600 bg-green-50 border-green-300 hover:bg-green-100"
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                Verify
               </Button>
             </div>
           </div>

@@ -198,20 +198,33 @@ class ApplicationSessionManager {
   // Delete draft
   async deleteDraft(userId: string): Promise<void> {
     try {
-      // Remove from database
+      // Remove from application_drafts table
       try {
         await supabase
           .from('application_drafts')
           .delete()
           .eq('user_id', userId)
       } catch (dbError) {
-        console.warn('Database delete failed, clearing localStorage only')
+        console.warn('Failed to delete from application_drafts:', dbError)
       }
 
-      // Remove from localStorage
+      // Remove draft applications from applications_new table
+      try {
+        await supabase
+          .from('applications_new')
+          .delete()
+          .eq('user_id', userId)
+          .eq('status', 'draft')
+      } catch (dbError) {
+        console.warn('Failed to delete draft applications:', dbError)
+      }
+
+      // Remove from localStorage (both keys)
       localStorage.removeItem('applicationDraft')
+      localStorage.removeItem('applicationWizardDraft')
     } catch (error) {
       console.error('Error deleting draft:', error)
+      throw error
     }
   }
 

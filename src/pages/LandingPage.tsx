@@ -2,8 +2,10 @@ import React, { lazy, Suspense, useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
+import '@/styles/accreditation.css'
 import { Button } from '@/components/ui/Button'
 import { MobileNavigation } from '@/components/ui/MobileNavigation'
+import { OptimizedImage } from '@/components/ui/OptimizedImage'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { GraduationCap, Users, Award, BookOpen, Star, ArrowRight, CheckCircle } from 'lucide-react'
 
@@ -309,103 +311,111 @@ export default function LandingPageNew() {
             </p>
           </motion.div>
           
-          <div className={`grid ${isMobile ? 'grid-cols-1 gap-4 px-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8'}`}>
+          <div className={`grid ${isMobile ? 'grid-cols-1 gap-6 px-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8'} items-stretch`}>
             <motion.div
-              className="bg-white rounded-lg shadow-lg p-6 text-center border border-gray-100"
+              className="bg-white rounded-lg shadow-lg p-6 text-center border border-gray-100 h-full flex flex-col justify-between"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.1 }}
               whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
             >
-              <img
-                src="/src/images/nmcz.png"
-                alt="Nursing and Midwifery Council of Zambia (NMCZ) official accreditation logo"
-                className="h-16 mx-auto mb-4 object-contain"
-                loading="lazy"
-                width="64"
-                height="64"
-              />
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">NMCZ Accredited</h3>
-              <p className="text-gray-600 text-xs sm:text-sm mb-3">
-                Nursing and Midwifery Council of Zambia
-              </p>
-              <p className="text-xs text-gray-500">
+              <div className="flex-1 flex flex-col items-center">
+                <div className="h-16 w-16 mb-4 flex items-center justify-center bg-gray-50 rounded-lg p-2">
+                  <OptimizedImage
+                    src="/images/accreditation/GNCLogo.png"
+                    alt="Nursing and Midwifery Council of Zambia (NMCZ) official accreditation logo"
+                    className="h-full w-full"
+                    loading="lazy"
+                  />
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">NMCZ Accredited</h3>
+                <p className="text-gray-600 text-xs sm:text-sm mb-3">
+                  Nursing and Midwifery Council of Zambia
+                </p>
+              </div>
+              <p className="text-xs text-gray-500 mt-auto">
                 Graduates qualified for nursing jobs in all Zambian hospitals and clinics
               </p>
             </motion.div>
             
             <motion.div
-              className="bg-white rounded-lg shadow-lg p-6 text-center border border-gray-100"
+              className="bg-white rounded-lg shadow-lg p-6 text-center border border-gray-100 h-full flex flex-col justify-between"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.2 }}
               whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
             >
-              <img
-                src="/src/images/hpcz.png"
-                alt="Health Professions Council of Zambia (HPCZ) official accreditation logo"
-                className="h-16 mx-auto mb-4 object-contain"
-                loading="lazy"
-                width="64"
-                height="64"
-              />
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">HPCZ Accredited</h3>
-              <p className="text-gray-600 text-xs sm:text-sm mb-3">
-                Health Professions Council of Zambia
-              </p>
-              <p className="text-xs text-gray-500">
+              <div className="flex-1 flex flex-col items-center">
+                <div className="h-16 w-16 mb-4 flex items-center justify-center bg-gray-50 rounded-lg p-2">
+                  <OptimizedImage
+                    src="/images/accreditation/hpc_logobig.png"
+                    alt="Health Professions Council of Zambia (HPCZ) official accreditation logo"
+                    className="h-full w-full"
+                    loading="lazy"
+                  />
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">HPCZ Accredited</h3>
+                <p className="text-gray-600 text-xs sm:text-sm mb-3">
+                  Health Professions Council of Zambia
+                </p>
+              </div>
+              <p className="text-xs text-gray-500 mt-auto">
                 Graduates eligible for clinical officer positions nationwide
               </p>
             </motion.div>
             
             <motion.div
-              className="bg-white rounded-lg shadow-lg p-6 text-center border border-gray-100"
+              className="bg-white rounded-lg shadow-lg p-6 text-center border border-gray-100 h-full flex flex-col justify-between"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.3 }}
               whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
             >
-              <img
-                src="/src/images/eczlogo.png"
-                alt="Examinations Council of Zambia (ECZ) official certification logo"
-                className="h-16 mx-auto mb-4 object-contain"
-                loading="lazy"
-                width="64"
-                height="64"
-              />
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">ECZ Recognized</h3>
-              <p className="text-gray-600 text-xs sm:text-sm mb-3">
-                Examinations Council of Zambia
-              </p>
-              <p className="text-xs text-gray-500">
+              <div className="flex-1 flex flex-col items-center">
+                <div className="h-16 w-16 mb-4 flex items-center justify-center bg-gray-50 rounded-lg p-2">
+                  <OptimizedImage
+                    src="/images/accreditation/eczlogo.png"
+                    alt="Examinations Council of Zambia (ECZ) official certification logo"
+                    className="h-full w-full"
+                    loading="lazy"
+                  />
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">ECZ Recognized</h3>
+                <p className="text-gray-600 text-xs sm:text-sm mb-3">
+                  Examinations Council of Zambia
+                </p>
+              </div>
+              <p className="text-xs text-gray-500 mt-auto">
                 Environmental health graduates work in government and private sectors
               </p>
             </motion.div>
             
             <motion.div
-              className="bg-white rounded-lg shadow-lg p-6 text-center border border-gray-100"
+              className="bg-white rounded-lg shadow-lg p-6 text-center border border-gray-100 h-full flex flex-col justify-between"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.4 }}
               whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
             >
-              <img
-                src="/src/images/unza.png"
-                alt="University of Zambia (UNZA) official affiliation logo"
-                className="h-16 mx-auto mb-4 object-contain"
-                loading="lazy"
-                width="64"
-                height="64"
-              />
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">UNZA Affiliated</h3>
-              <p className="text-gray-600 text-xs sm:text-sm mb-3">
-                University of Zambia
-              </p>
-              <p className="text-xs text-gray-500">
+              <div className="flex-1 flex flex-col items-center">
+                <div className="h-16 w-16 mb-4 flex items-center justify-center bg-gray-50 rounded-lg p-2">
+                  <OptimizedImage
+                    src="/images/accreditation/unza.jpg"
+                    alt="University of Zambia (UNZA) official affiliation logo"
+                    className="h-full w-full rounded"
+                    loading="lazy"
+                  />
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">UNZA Affiliated</h3>
+                <p className="text-gray-600 text-xs sm:text-sm mb-3">
+                  University of Zambia
+                </p>
+              </div>
+              <p className="text-xs text-gray-500 mt-auto">
                 University-level qualifications recognized by international employers
               </p>
             </motion.div>

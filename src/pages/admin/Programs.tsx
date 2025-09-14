@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase, Program } from '@/lib/supabase'
+import { supabase, Program, Institution } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { TextArea } from '@/components/ui/TextArea'
@@ -17,7 +17,8 @@ import { AdminNavigation } from '@/components/ui/AdminNavigation'
 import { Pencil, Trash2, Plus, ArrowLeft } from 'lucide-react'
 
 export default function AdminPrograms() {
-  const [programs, setPrograms] = useState<Program[]>([])
+  const [programs, setPrograms] = useState<(Program & { institutions?: Institution })[]>([])
+  const [institutions, setInstitutions] = useState<Institution[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showCreate, setShowCreate] = useState(false)
@@ -29,11 +30,13 @@ export default function AdminPrograms() {
   const [form, setForm] = useState({
     name: '',
     description: '',
-    duration_years: 1
+    duration_years: 1,
+    institution_id: ''
   })
 
   useEffect(() => {
     loadPrograms()
+    loadInstitutions()
   }, [])
 
   const loadPrograms = async () => {
@@ -41,7 +44,14 @@ export default function AdminPrograms() {
       setLoading(true)
       const { data, error } = await supabase
         .from('programs')
-        .select('*')
+        .select(`
+          *,
+          institutions (
+            id,
+            name,
+            slug
+          )
+        `)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
       if (error) throw error
@@ -53,6 +63,20 @@ export default function AdminPrograms() {
     }
   }
 
+  const loadInstitutions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('institutions')
+        .select('*')
+        .eq('is_active', true)
+        .order('name')
+      if (error) throw error
+      setInstitutions(data || [])
+    } catch (err: any) {
+      console.error('Error loading institutions:', err.message)
+    }
+  }
+
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setForm((f) => ({
@@ -61,8 +85,16 @@ export default function AdminPrograms() {
     }))
   }, [])
 
+  const handleSelectChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setForm((f) => ({
+      ...f,
+      [name]: value
+    }))
+  }, [])
+
   const openCreate = useCallback(() => {
-    setForm({ name: '', description: '', duration_years: 1 })
+    setForm({ name: '', description: '', duration_years: 1, institution_id: '' })
     setShowCreate(true)
   }, [])
 
@@ -71,7 +103,8 @@ export default function AdminPrograms() {
     setForm({
       name: program.name,
       description: program.description || '',
-      duration_years: program.duration_years
+      duration_years: program.duration_years,
+      institution_id: program.institution_id
     })
     setShowEdit(true)
   }, [])
@@ -105,6 +138,10 @@ export default function AdminPrograms() {
       setError('Program name is required')
       return
     }
+    if (!form.institution_id) {
+      setError('Institution is required')
+      return
+    }
     if (form.duration_years < 1 || form.duration_years > 10) {
       setError('Duration must be between 1 and 10 years')
       return
@@ -115,6 +152,7 @@ export default function AdminPrograms() {
         name: form.name.trim(),
         description: form.description.trim(),
         duration_years: form.duration_years,
+        institution_id: form.institution_id,
         is_active: true
       }).select(),
       () => setShowCreate(false)
@@ -129,6 +167,10 @@ export default function AdminPrograms() {
       setError('Program name is required')
       return
     }
+    if (!form.institution_id) {
+      setError('Institution is required')
+      return
+    }
     if (form.duration_years < 1 || form.duration_years > 10) {
       setError('Duration must be between 1 and 10 years')
       return
@@ -138,7 +180,8 @@ export default function AdminPrograms() {
       () => supabase.from('programs').update({
         name: form.name.trim(),
         description: form.description.trim(),
-        duration_years: form.duration_years
+        duration_years: form.duration_years,
+        institution_id: form.institution_id
       }).eq('id', currentProgram.id).select(),
       () => {
         setShowEdit(false)
@@ -233,6 +276,9 @@ export default function AdminPrograms() {
                           <p className="text-sm text-gray-600 mt-1">
                             Duration: {program.duration_years} year{program.duration_years !== 1 ? 's' : ''}
                           </p>
+                          <p className="text-sm text-blue-600 font-medium mt-1">
+                            {program.institutions?.name || 'Unknown Institution'}
+                          </p>
                           {program.description && (
                             <p className="text-sm text-gray-500 mt-2 line-clamp-2">{program.description}</p>
                           )}
@@ -271,6 +317,9 @@ export default function AdminPrograms() {
                           🎓 Program Name
                         </th>
                         <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                          🏫 Institution
+                        </th>
+                        <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
                           🕰️ Duration
                         </th>
                         <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
@@ -286,6 +335,11 @@ export default function AdminPrograms() {
                         <tr key={program.id} className="hover:bg-blue-50 transition-colors">
                           <td className="px-6 py-4">
                             <div className="font-semibold text-gray-900">{program.name}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                              {program.institutions?.name || 'Unknown'}
+                            </span>
                           </td>
                           <td className="px-6 py-4">
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
@@ -337,6 +391,23 @@ export default function AdminPrograms() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <Input label="Name" name="name" value={form.name} onChange={handleChange} required />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Institution</label>
+              <select
+                name="institution_id"
+                value={form.institution_id}
+                onChange={handleSelectChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="">Select an institution</option>
+                {institutions.map((institution) => (
+                  <option key={institution.id} value={institution.id}>
+                    {institution.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <TextArea label="Description" name="description" value={form.description} onChange={handleChange} />
             <Input label="Duration (years)" type="number" name="duration_years" value={form.duration_years} onChange={handleChange} />
           </div>
@@ -356,6 +427,23 @@ export default function AdminPrograms() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <Input label="Name" name="name" value={form.name} onChange={handleChange} required />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Institution</label>
+              <select
+                name="institution_id"
+                value={form.institution_id}
+                onChange={handleSelectChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="">Select an institution</option>
+                {institutions.map((institution) => (
+                  <option key={institution.id} value={institution.id}>
+                    {institution.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <TextArea label="Description" name="description" value={form.description} onChange={handleChange} />
             <Input label="Duration (years)" type="number" name="duration_years" value={form.duration_years} onChange={handleChange} />
           </div>

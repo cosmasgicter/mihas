@@ -1,0 +1,251 @@
+import { useState, useCallback } from 'react'
+import { supabase, UserProfile } from '@/lib/supabase'
+import { sanitizeForLog } from '@/lib/sanitize'
+
+interface CreateUserData {
+  email: string
+  password: string
+  full_name: string
+  phone?: string
+  role: string
+}
+
+interface UpdateUserData {
+  full_name?: string
+  email?: string
+  phone?: string
+  role?: string
+}
+
+interface BulkOperationResult {
+  success: number
+  failed: number
+  errors: string[]
+}
+
+export function useUserManagement() {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const createUser = useCallback(async (userData: CreateUserData): Promise<UserProfile | null> => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
+      })
+
+      if (authError) throw authError
+      if (!authData.user) throw new Error('Failed to create user')
+
+      // Create user profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .insert({
+          user_id: authData.user.id,
+          email: userData.email,
+          full_name: userData.full_name,
+          phone: userData.phone,
+          role: userData.role
+        })
+        .select()
+        .single()
+
+      if (profileError) throw profileError
+
+      return profileData
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create user'
+      console.error('Failed to create user:', sanitizeForLog(errorMessage))
+      setError(errorMessage)
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const updateUser = useCallback(async (userId: string, userData: UpdateUserData): Promise<boolean> => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const { error } = await supabase
+        .from('user_profiles')
+        .update(userData)
+        .eq('user_id', userId)
+
+      if (error) throw error
+
+      return true
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update user'
+      console.error('Failed to update user:', sanitizeForLog(errorMessage))
+      setError(errorMessage)
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const deleteUser = useCallback(async (userId: string): Promise<boolean> => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Delete user profile (auth user deletion requires admin privileges)
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .delete()
+        .eq('user_id', userId)
+
+      if (profileError) throw profileError
+
+      return true
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete user'
+      console.error('Failed to delete user:', sanitizeForLog(errorMessage))
+      setError(errorMessage)
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const bulkUpdateRoles = useCallback(async (
+    userIds: string[], 
+    newRole: string
+  ): Promise<BulkOperationResult> => {
+    const result: BulkOperationResult = { success: 0, failed: 0, errors: [] }
+
+    try {
+      setLoading(true)
+      setError(null)
+
+      for (const userId of userIds) {
+        try {
+          const { error } = await supabase
+            .from('user_profiles')
+            .update({ role: newRole })
+            .eq('user_id', userId)
+
+          if (error) throw error
+          result.success++
+        } catch (err) {
+          result.failed++
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+          result.errors.push(`User ${userId}: ${errorMessage}`)
+        }
+      }
+
+      return result
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Bulk operation failed'
+      console.error('Bulk role update failed:', sanitizeForLog(errorMessage))
+      setError(errorMessage)
+      return result
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const bulkDeleteUsers = useCallback(async (userIds: string[]): Promise<BulkOperationResult> => {
+    const result: BulkOperationResult = { success: 0, failed: 0, errors: [] }
+
+    try {
+      setLoading(true)
+      setError(null)
+
+      for (const userId of userIds) {
+        try {
+          const { error } = await supabase
+            .from('user_profiles')
+            .delete()
+            .eq('user_id', userId)
+
+          if (error) throw error
+          result.success++
+        } catch (err) {
+          result.failed++
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+          result.errors.push(`User ${userId}: ${errorMessage}`)
+        }
+      }
+
+      return result
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Bulk delete failed'
+      console.error('Bulk delete failed:', sanitizeForLog(errorMessage))
+      setError(errorMessage)
+      return result
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const getUserStats = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('role')
+
+      if (error) throw error
+
+      const stats = data.reduce((acc: Record<string, number>, user) => {
+        acc[user.role] = (acc[user.role] || 0) + 1
+        return acc
+      }, {})
+
+      return {
+        total: data.length,
+        byRole: stats
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to get user stats'
+      console.error('Failed to get user stats:', sanitizeForLog(errorMessage))
+      return null
+    }
+  }, [])
+
+  const searchUsers = useCallback(async (query: string, role?: string) => {
+    try {
+      let queryBuilder = supabase
+        .from('user_profiles')
+        .select('*')
+
+      if (role) {
+        queryBuilder = queryBuilder.eq('role', role)
+      }
+
+      if (query) {
+        queryBuilder = queryBuilder.or(`full_name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`)
+      }
+
+      const { data, error } = await queryBuilder
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      return data || []
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to search users'
+      console.error('Failed to search users:', sanitizeForLog(errorMessage))
+      setError(errorMessage)
+      return []
+    }
+  }, [])
+
+  return {
+    loading,
+    error,
+    createUser,
+    updateUser,
+    deleteUser,
+    bulkUpdateRoles,
+    bulkDeleteUsers,
+    getUserStats,
+    searchUsers,
+    clearError: () => setError(null)
+  }
+}

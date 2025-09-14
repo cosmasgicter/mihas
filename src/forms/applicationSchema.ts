@@ -7,6 +7,7 @@ export const DEFAULT_PROGRAMS: Program[] = [
     name: 'Diploma in Clinical Medicine',
     description: 'HPCZ Accredited - Prepares students for clinical officer practice',
     duration_years: 3,
+    institution_id: 'katc',
     is_active: true,
     created_at: '',
     updated_at: ''
@@ -16,6 +17,7 @@ export const DEFAULT_PROGRAMS: Program[] = [
     name: 'Diploma in Environmental Health',
     description: 'ECZ Accredited - Environmental health and safety specialization',
     duration_years: 3,
+    institution_id: 'katc',
     is_active: true,
     created_at: '',
     updated_at: ''
@@ -25,6 +27,7 @@ export const DEFAULT_PROGRAMS: Program[] = [
     name: 'Diploma in Registered Nursing',
     description: 'NMCZ Accredited - Professional nursing practice preparation',
     duration_years: 3,
+    institution_id: 'mihas',
     is_active: true,
     created_at: '',
     updated_at: ''

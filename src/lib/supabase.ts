@@ -31,6 +31,21 @@ export interface UserProfile {
   updated_at: string
 }
 
+export interface Institution {
+  id: string
+  slug: string
+  name: string
+  full_name: string
+  description?: string
+  logo_url?: string
+  contact_email?: string
+  contact_phone?: string
+  address?: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface Program {
   id: string
   name: string
@@ -40,6 +55,7 @@ export interface Program {
   qualification_level?: string
   entry_requirements?: string
   fees_per_year?: number
+  institution_id: string
   is_active: boolean
   created_by?: string
   created_at: string

@@ -4,23 +4,89 @@ import { supabase, UserProfile } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { AdminNavigation } from '@/components/ui/AdminNavigation'
-import { ArrowLeft, Users, Shield, User } from 'lucide-react'
+import { Input } from '@/components/ui/Input'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog'
+import { UserStats } from '@/components/admin/UserStats'
+import { BulkUserOperations } from '@/components/admin/BulkUserOperations'
+import { UserPermissions } from '@/components/admin/UserPermissions'
+import { UserActivityLog } from '@/components/admin/UserActivityLog'
+import { UserExport } from '@/components/admin/UserExport'
+import { UserImport } from '@/components/admin/UserImport'
+import { ArrowLeft, Users, Shield, User, Plus, Edit, Trash2, Search, Filter, UserPlus, Settings, Eye, EyeOff, BarChart3, CheckSquare, Square, Lock, Clock, Download, Upload } from 'lucide-react'
 import { sanitizeForLog } from '@/lib/sanitize'
+
+interface CreateUserForm {
+  email: string
+  password: string
+  full_name: string
+  phone: string
+  role: string
+}
+
+interface EditUserForm {
+  full_name: string
+  email: string
+  phone: string
+  role: string
+}
+
+const AVAILABLE_ROLES = [
+  { value: 'student', label: 'Student', description: 'Regular student user' },
+  { value: 'admissions_officer', label: 'Admissions Officer', description: 'Can review applications' },
+  { value: 'registrar', label: 'Registrar', description: 'Academic records management' },
+  { value: 'finance_officer', label: 'Finance Officer', description: 'Payment verification' },
+  { value: 'academic_head', label: 'Academic Head', description: 'Department oversight' },
+  { value: 'admin', label: 'Administrator', description: 'Full system access' },
+]
 
 export default function AdminUsers() {
   const [users, setUsers] = useState<UserProfile[]>([])
+  const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [updating, setUpdating] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [roleFilter, setRoleFilter] = useState('')
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null)
+  const [createForm, setCreateForm] = useState<CreateUserForm>({
+    email: '',
+    password: '',
+    full_name: '',
+    phone: '',
+    role: 'student'
+  })
+  const [editForm, setEditForm] = useState<EditUserForm>({
+    full_name: '',
+    email: '',
+    phone: '',
+    role: 'student'
+  })
+  const [showPassword, setShowPassword] = useState(false)
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([])
+  const [showStats, setShowStats] = useState(false)
+  const [showBulkOps, setShowBulkOps] = useState(false)
+  const [showPermissionsDialog, setShowPermissionsDialog] = useState(false)
+  const [permissionsUser, setPermissionsUser] = useState<UserProfile | null>(null)
+  const [showActivityLog, setShowActivityLog] = useState(false)
+  const [activityLogUserId, setActivityLogUserId] = useState<string | null>(null)
+  const [showExportDialog, setShowExportDialog] = useState(false)
+  const [showImportDialog, setShowImportDialog] = useState(false)
 
   useEffect(() => {
     loadUsers()
   }, [])
 
+  useEffect(() => {
+    filterUsers()
+  }, [users, searchTerm, roleFilter])
+
   const loadUsers = async () => {
     try {
       setLoading(true)
-      setError('') // Clear previous errors
+      setError('')
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -31,9 +97,120 @@ export default function AdminUsers() {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load users. Please try again.'
       console.error('Failed to load users:', sanitizeForLog(errorMessage))
       setError(errorMessage)
-      setUsers([]) // Reset users on error
+      setUsers([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const filterUsers = () => {
+    let filtered = users
+    
+    if (searchTerm) {
+      filtered = filtered.filter(user => 
+        user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.phone?.includes(searchTerm)
+      )
+    }
+    
+    if (roleFilter) {
+      filtered = filtered.filter(user => user.role === roleFilter)
+    }
+    
+    setFilteredUsers(filtered)
+  }
+
+  const createUser = async () => {
+    try {
+      setUpdating('create')
+      
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: createForm.email,
+        password: createForm.password,
+      })
+      
+      if (authError) throw authError
+      if (!authData.user) throw new Error('Failed to create user')
+      
+      // Create user profile
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .insert({
+          user_id: authData.user.id,
+          email: createForm.email,
+          full_name: createForm.full_name,
+          phone: createForm.phone,
+          role: createForm.role
+        })
+      
+      if (profileError) throw profileError
+      
+      setShowCreateDialog(false)
+      setCreateForm({ email: '', password: '', full_name: '', phone: '', role: 'student' })
+      await loadUsers()
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create user'
+      console.error('Failed to create user:', sanitizeForLog(errorMessage))
+      setError(errorMessage)
+    } finally {
+      setUpdating(null)
+    }
+  }
+
+  const updateUser = async () => {
+    if (!selectedUser) return
+    
+    try {
+      setUpdating(selectedUser.user_id)
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({
+          full_name: editForm.full_name,
+          email: editForm.email,
+          phone: editForm.phone,
+          role: editForm.role
+        })
+        .eq('user_id', selectedUser.user_id)
+      
+      if (error) throw error
+      
+      setShowEditDialog(false)
+      setSelectedUser(null)
+      await loadUsers()
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update user'
+      console.error('Failed to update user:', sanitizeForLog(errorMessage))
+      setError(errorMessage)
+    } finally {
+      setUpdating(null)
+    }
+  }
+
+  const deleteUser = async () => {
+    if (!selectedUser) return
+    
+    try {
+      setUpdating(selectedUser.user_id)
+      
+      // Delete user profile
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .delete()
+        .eq('user_id', selectedUser.user_id)
+      
+      if (profileError) throw profileError
+      
+      setShowDeleteDialog(false)
+      setSelectedUser(null)
+      await loadUsers()
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete user'
+      console.error('Failed to delete user:', sanitizeForLog(errorMessage))
+      setError(errorMessage)
+    } finally {
+      setUpdating(null)
     }
   }
 
@@ -53,6 +230,73 @@ export default function AdminUsers() {
     } finally {
       setUpdating(null)
     }
+  }
+
+  const openEditDialog = (user: UserProfile) => {
+    setSelectedUser(user)
+    setEditForm({
+      full_name: user.full_name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      role: user.role
+    })
+    setShowEditDialog(true)
+  }
+
+  const openDeleteDialog = (user: UserProfile) => {
+    setSelectedUser(user)
+    setShowDeleteDialog(true)
+  }
+
+  const handleUserSelect = (userId: string) => {
+    if (selectedUsers.includes(userId)) {
+      setSelectedUsers(selectedUsers.filter(id => id !== userId))
+    } else {
+      setSelectedUsers([...selectedUsers, userId])
+    }
+  }
+
+  const handleSelectAll = () => {
+    if (selectedUsers.length === filteredUsers.length) {
+      setSelectedUsers([])
+    } else {
+      setSelectedUsers(filteredUsers.map(user => user.user_id))
+    }
+  }
+
+  const openPermissionsDialog = (user: UserProfile) => {
+    setPermissionsUser(user)
+    setShowPermissionsDialog(true)
+  }
+
+  const handlePermissionsSave = async (permissions: string[]) => {
+    if (!permissionsUser) return
+    
+    try {
+      setUpdating(permissionsUser.user_id)
+      // In a real implementation, you would save permissions to a separate table
+      // For now, we'll just log them
+      console.log('Saving permissions for user:', permissionsUser.user_id, permissions)
+      
+      // You could extend the user_profiles table or create a separate permissions table
+      // const { error } = await supabase
+      //   .from('user_permissions')
+      //   .upsert({ user_id: permissionsUser.user_id, permissions })
+      
+      setShowPermissionsDialog(false)
+      setPermissionsUser(null)
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save permissions'
+      console.error('Failed to save permissions:', sanitizeForLog(errorMessage))
+      setError(errorMessage)
+    } finally {
+      setUpdating(null)
+    }
+  }
+
+  const openActivityLog = (userId: string) => {
+    setActivityLogUserId(userId)
+    setShowActivityLog(true)
   }
 
   const getRoleIcon = (role: string) => {
@@ -85,6 +329,11 @@ export default function AdminUsers() {
     }
   }
 
+  const getRoleLabel = (role: string) => {
+    const roleObj = AVAILABLE_ROLES.find(r => r.value === role)
+    return roleObj ? roleObj.label : role.replace('_', ' ').toUpperCase()
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <AdminNavigation />
@@ -105,12 +354,103 @@ export default function AdminUsers() {
                   <p className="text-white/90 text-sm sm:text-base">Manage user roles and permissions</p>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-2xl sm:text-3xl font-bold">{users.length}</div>
-                <div className="text-sm text-white/80">Total Users</div>
+              <div className="flex flex-col sm:flex-row items-end sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                <div className="flex items-center space-x-2">
+                  <Button
+                    onClick={() => setShowStats(!showStats)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-white hover:bg-white/20 border-white/30"
+                  >
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    {showStats ? 'Hide Stats' : 'Show Stats'}
+                  </Button>
+                  <Button
+                    onClick={() => setShowImportDialog(true)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-white hover:bg-white/20 border-white/30"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import
+                  </Button>
+                  <Button
+                    onClick={() => setShowExportDialog(true)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-white hover:bg-white/20 border-white/30"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export
+                  </Button>
+                  <Button
+                    onClick={() => setShowCreateDialog(true)}
+                    className="bg-white text-purple-600 hover:bg-gray-100 font-semibold"
+                    size="sm"
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add User
+                  </Button>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl sm:text-3xl font-bold">{filteredUsers.length}</div>
+                  <div className="text-sm text-white/80">Users Found</div>
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Search and Filters */}
+          <div className="p-6 border-b border-gray-200 bg-gray-50">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <input
+                    type="text"
+                    placeholder="Search users by name, email, or phone..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+              </div>
+              <div className="sm:w-48">
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <select
+                    value={roleFilter}
+                    onChange={(e) => setRoleFilter(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 appearance-none bg-white"
+                  >
+                    <option value="">All Roles</option>
+                    {AVAILABLE_ROLES.map(role => (
+                      <option key={role.value} value={role.value}>{role.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* User Statistics */}
+          {showStats && (
+            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-purple-50">
+              <UserStats users={users} />
+            </div>
+          )}
+
+          {/* Bulk Operations */}
+          {selectedUsers.length > 0 && (
+            <div className="p-6 border-b border-gray-200 bg-blue-50">
+              <BulkUserOperations
+                users={filteredUsers}
+                selectedUsers={selectedUsers}
+                onSelectionChange={setSelectedUsers}
+                onOperationComplete={loadUsers}
+              />
+            </div>
+          )}
 
           {/* Content */}
           <div className="p-6">
@@ -131,7 +471,7 @@ export default function AdminUsers() {
                   <p className="mt-4 text-lg text-gray-600">Loading users...</p>
                 </div>
               </div>
-            ) : users.length === 0 ? (
+            ) : filteredUsers.length === 0 ? (
               <div className="text-center py-16">
                 <div className="text-8xl mb-6">👥</div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">No Users Found</h3>
@@ -146,10 +486,20 @@ export default function AdminUsers() {
               <>
                 {/* Mobile Cards View */}
                 <div className="block lg:hidden space-y-4">
-                  {users.map((user) => (
+                  {filteredUsers.map((user) => (
                     <div key={user.user_id} className="bg-gray-50 rounded-xl p-4 border border-gray-200">
                       <div className="flex items-start space-x-3 mb-3">
-                        <div className="flex-shrink-0">
+                        <div className="flex-shrink-0 flex items-center space-x-2">
+                          <button
+                            onClick={() => handleUserSelect(user.user_id)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            {selectedUsers.includes(user.user_id) ? (
+                              <CheckSquare className="h-4 w-4" />
+                            ) : (
+                              <Square className="h-4 w-4" />
+                            )}
+                          </button>
                           {getRoleIcon(user.role)}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -167,7 +517,7 @@ export default function AdminUsers() {
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
                           getRoleColor(user.role)
                         }`}>
-                          {user.role.replace('_', ' ').toUpperCase()}
+                          {getRoleLabel(user.role)}
                         </span>
                       </div>
                       
@@ -175,27 +525,43 @@ export default function AdminUsers() {
                         <div className="text-xs text-gray-500">
                           Joined: {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
                         </div>
-                        <div className="flex space-x-2">
-                          {user.role === 'student' && (
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditDialog(user)}
+                            className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                          >
+                            <Edit className="h-3 w-3 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openPermissionsDialog(user)}
+                            className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                          >
+                            <Lock className="h-3 w-3 mr-1" />
+                            Permissions
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openActivityLog(user.user_id)}
+                            className="text-gray-600 border-gray-300 hover:bg-gray-50"
+                          >
+                            <Clock className="h-3 w-3 mr-1" />
+                            Activity
+                          </Button>
+                          {user.role !== 'super_admin' && (
                             <Button
                               variant="outline"
                               size="sm"
-                              loading={updating === user.user_id}
-                              onClick={() => updateUserRole(user.user_id, 'admissions_officer')}
-                              className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                              onClick={() => openDeleteDialog(user)}
+                              className="text-red-600 border-red-300 hover:bg-red-50"
                             >
-                              Make Admin
-                            </Button>
-                          )}
-                          {user.role !== 'student' && user.role !== 'super_admin' && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              loading={updating === user.user_id}
-                              onClick={() => updateUserRole(user.user_id, 'student')}
-                              className="text-orange-600 border-orange-300 hover:bg-orange-50"
-                            >
-                              Make Student
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Delete
                             </Button>
                           )}
                         </div>
@@ -210,7 +576,19 @@ export default function AdminUsers() {
                     <thead className="bg-gradient-to-r from-gray-50 to-purple-50">
                       <tr>
                         <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
-                          👤 User
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={handleSelectAll}
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              {selectedUsers.length === filteredUsers.length && filteredUsers.length > 0 ? (
+                                <CheckSquare className="h-4 w-4" />
+                              ) : (
+                                <Square className="h-4 w-4" />
+                              )}
+                            </button>
+                            <span>👤 User</span>
+                          </div>
                         </th>
                         <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
                           📞 Contact
@@ -227,10 +605,20 @@ export default function AdminUsers() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {users.map((user) => (
+                      {filteredUsers.map((user) => (
                         <tr key={user.user_id} className="hover:bg-purple-50 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center">
+                              <button
+                                onClick={() => handleUserSelect(user.user_id)}
+                                className="text-blue-600 hover:text-blue-800 mr-3"
+                              >
+                                {selectedUsers.includes(user.user_id) ? (
+                                  <CheckSquare className="h-4 w-4" />
+                                ) : (
+                                  <Square className="h-4 w-4" />
+                                )}
+                              </button>
                               {getRoleIcon(user.role)}
                               <div className="ml-3">
                                 <div className="text-sm font-semibold text-gray-900">
@@ -252,7 +640,7 @@ export default function AdminUsers() {
                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
                               getRoleColor(user.role)
                             }`}>
-                              {user.role.replace('_', ' ').toUpperCase()}
+                              {getRoleLabel(user.role)}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-600">
@@ -260,26 +648,46 @@ export default function AdminUsers() {
                           </td>
                           <td className="px-6 py-4 text-right">
                             <div className="flex items-center justify-end space-x-2">
-                              {user.role === 'student' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openEditDialog(user)}
+                                className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                                disabled={selectedUsers.length > 0}
+                              >
+                                <Edit className="h-3 w-3 mr-1" />
+                                Edit
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openPermissionsDialog(user)}
+                                className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                                disabled={selectedUsers.length > 0}
+                              >
+                                <Lock className="h-3 w-3 mr-1" />
+                                Permissions
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openActivityLog(user.user_id)}
+                                className="text-gray-600 border-gray-300 hover:bg-gray-50"
+                                disabled={selectedUsers.length > 0}
+                              >
+                                <Clock className="h-3 w-3 mr-1" />
+                                Activity
+                              </Button>
+                              {user.role !== 'super_admin' && (
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  loading={updating === user.user_id}
-                                  onClick={() => updateUserRole(user.user_id, 'admissions_officer')}
-                                  className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                                  onClick={() => openDeleteDialog(user)}
+                                  className="text-red-600 border-red-300 hover:bg-red-50"
+                                  disabled={selectedUsers.length > 0}
                                 >
-                                  Make Admin
-                                </Button>
-                              )}
-                              {user.role !== 'student' && user.role !== 'super_admin' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  loading={updating === user.user_id}
-                                  onClick={() => updateUserRole(user.user_id, 'student')}
-                                  className="text-orange-600 border-orange-300 hover:bg-orange-50"
-                                >
-                                  Make Student
+                                  <Trash2 className="h-3 w-3 mr-1" />
+                                  Delete
                                 </Button>
                               )}
                             </div>
@@ -294,6 +702,242 @@ export default function AdminUsers() {
           </div>
         </div>
       </div>
+
+      {/* Create User Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <UserPlus className="h-5 w-5 text-purple-600" />
+              <span>Create New User</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              label="Full Name"
+              value={createForm.full_name}
+              onChange={(e) => setCreateForm({ ...createForm, full_name: e.target.value })}
+              placeholder="Enter full name"
+              required
+            />
+            <Input
+              label="Email"
+              type="email"
+              value={createForm.email}
+              onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+              placeholder="Enter email address"
+              required
+            />
+            <div className="relative">
+              <Input
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                value={createForm.password}
+                onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                placeholder="Enter password"
+                required
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-8 text-gray-400 hover:text-gray-600"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <Input
+              label="Phone"
+              value={createForm.phone}
+              onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
+              placeholder="Enter phone number"
+            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Role <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={createForm.role}
+                onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                required
+              >
+                {AVAILABLE_ROLES.map(role => (
+                  <option key={role.value} value={role.value}>
+                    {role.label} - {role.description}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowCreateDialog(false)}
+              disabled={updating === 'create'}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={createUser}
+              loading={updating === 'create'}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              Create User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Edit className="h-5 w-5 text-blue-600" />
+              <span>Edit User</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              label="Full Name"
+              value={editForm.full_name}
+              onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+              placeholder="Enter full name"
+              required
+            />
+            <Input
+              label="Email"
+              type="email"
+              value={editForm.email}
+              onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+              placeholder="Enter email address"
+              required
+            />
+            <Input
+              label="Phone"
+              value={editForm.phone}
+              onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+              placeholder="Enter phone number"
+            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Role <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={editForm.role}
+                onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                required
+                disabled={selectedUser?.role === 'super_admin'}
+              >
+                {AVAILABLE_ROLES.map(role => (
+                  <option key={role.value} value={role.value}>
+                    {role.label} - {role.description}
+                  </option>
+                ))}
+              </select>
+              {selectedUser?.role === 'super_admin' && (
+                <p className="text-xs text-gray-500 mt-1">Super admin role cannot be changed</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowEditDialog(false)}
+              disabled={updating === selectedUser?.user_id}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={updateUser}
+              loading={updating === selectedUser?.user_id}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Update User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2 text-red-600">
+              <Trash2 className="h-5 w-5" />
+              <span>Delete User</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-gray-600">
+              Are you sure you want to delete <strong>{selectedUser?.full_name}</strong>? 
+              This action cannot be undone and will remove all user data.
+            </p>
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700">
+                ⚠️ This will permanently delete the user profile and cannot be reversed.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+              disabled={updating === selectedUser?.user_id}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={deleteUser}
+              loading={updating === selectedUser?.user_id}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Permissions Dialog */}
+      {permissionsUser && (
+        <UserPermissions
+          user={permissionsUser}
+          isOpen={showPermissionsDialog}
+          onClose={() => {
+            setShowPermissionsDialog(false)
+            setPermissionsUser(null)
+          }}
+          onSave={handlePermissionsSave}
+        />
+      )}
+
+      {/* User Activity Log Dialog */}
+      <UserActivityLog
+        userId={activityLogUserId || undefined}
+        isOpen={showActivityLog}
+        onClose={() => {
+          setShowActivityLog(false)
+          setActivityLogUserId(null)
+        }}
+      />
+
+      {/* User Export Dialog */}
+      <UserExport
+        users={users}
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+      />
+
+      {/* User Import Dialog */}
+      <UserImport
+        isOpen={showImportDialog}
+        onClose={() => setShowImportDialog(false)}
+        onImportComplete={() => {
+          setShowImportDialog(false)
+          loadUsers()
+        }}
+      />
     </div>
   )
 }
