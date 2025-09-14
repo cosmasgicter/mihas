@@ -30,8 +30,11 @@ import AdminIntakes from '@/pages/admin/Intakes'
 import AdminUsers from '@/pages/admin/Users'
 import AdminSettings from '@/pages/admin/Settings'
 import AdminAnalytics from '@/pages/admin/Analytics'
+import AIInsights from '@/pages/admin/AIInsights'
+import WorkflowAutomation from '@/pages/admin/WorkflowAutomation'
 import PublicApplicationTracker from '@/pages/PublicApplicationTracker'
 import NotFoundPage from '@/pages/NotFoundPage'
+
 
 // Create a client
 const queryClient = new QueryClient({
@@ -151,7 +154,18 @@ function App() {
                   <AdminAnalytics />
                 </AdminRoute>
               } />
+              <Route path="/admin/ai-insights" element={
+                <AdminRoute>
+                  <AIInsights />
+                </AdminRoute>
+              } />
+              <Route path="/admin/workflow" element={
+                <AdminRoute>
+                  <WorkflowAutomation />
+                </AdminRoute>
+              } />
               
+
               {/* 404 */}
               <Route path="/404" element={<NotFoundPage />} />
               <Route path="*" element={<Navigate to="/404" replace />} />

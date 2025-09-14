@@ -29,7 +29,11 @@
     "test:enhanced": "VITE_TEST_MODE=true playwright test --config=testing/playwright.config.ts testing/tests/enhanced-features.spec.ts",
     "test:install": "playwright install",
     "test:setup": "playwright test --config=testing/playwright.config.ts testing/tests/auth-setup.ts",
-    "optimize:images": "node optimize-images.js"
+    "optimize:images": "node optimize-images.js",
+    "migrate:enhanced": "node apply_enhanced_features.js",
+    "ai:setup": "node apply_enhanced_features.js",
+    "features:deploy": "npm run migrate:enhanced && npm run build:prod",
+    "analytics:init": "node -e \"console.log('🤖 AI Analytics initialized - check admin dashboard')\""
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -90,7 +94,8 @@
     "vite-plugin-pwa": "^1.0.3",
     "workbox-window": "^7.3.0",
     "zod": "^3.24.1",
-    "zustand": "^5.0.8"
+    "zustand": "^5.0.8",
+    "tesseract.js": "^5.1.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",

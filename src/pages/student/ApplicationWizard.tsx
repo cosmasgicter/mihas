@@ -10,9 +10,13 @@ import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { checkEligibility, getRecommendedSubjects } from '@/lib/eligibility'
 import { applicationSessionManager } from '@/lib/applicationSession'
-import { ArrowLeft, CheckCircle, ArrowRight, X, Sparkles, FileText, CreditCard, Send, XCircle, AlertTriangle } from 'lucide-react'
+import { documentAI } from '@/lib/documentAI'
+import { predictiveAnalytics } from '@/lib/predictiveAnalytics'
+import { multiChannelNotifications } from '@/lib/multiChannelNotifications'
+import { ArrowLeft, CheckCircle, ArrowRight, X, Sparkles, FileText, CreditCard, Send, XCircle, AlertTriangle, TrendingUp } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { AIAssistant } from '@/components/application/AIAssistant'
 
 const wizardSchema = z.object({
   full_name: z.string().min(2, 'Full name is required'),
@@ -77,6 +81,10 @@ export default function ApplicationWizard() {
   const [draftSaved, setDraftSaved] = useState(false)
   const [sessionWarning, setSessionWarning] = useState<any>(null)
   const [restoringDraft, setRestoringDraft] = useState(false)
+  const [documentAnalysis, setDocumentAnalysis] = useState<any>(null)
+  const [predictionResult, setPredictionResult] = useState<any>(null)
+  const [smartSuggestions, setSmartSuggestions] = useState<string[]>([])
+  const [processingDocument, setProcessingDocument] = useState(false)
   
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<WizardFormData>({
     resolver: zodResolver(wizardSchema),
@@ -324,6 +332,35 @@ export default function ApplicationWizard() {
     setSelectedGrades(updated)
   }
 
+  const analyzeUploadedDocument = async (file: File) => {
+    if (file && (file.type.includes('image') || file.type === 'application/pdf')) {
+      setProcessingDocument(true)
+      try {
+        const analysis = await documentAI.analyzeDocument(file)
+        setDocumentAnalysis(analysis)
+        
+        // Auto-fill form if data extracted
+        if (analysis.autoFillData) {
+          Object.entries(analysis.autoFillData).forEach(([key, value]) => {
+            if (value && key !== 'grades') {
+              setValue(key as keyof WizardFormData, value)
+            }
+          })
+          
+          if (analysis.autoFillData.grades) {
+            setSelectedGrades(analysis.autoFillData.grades)
+          }
+        }
+        
+        setSmartSuggestions(analysis.suggestions)
+      } catch (error) {
+        console.error('Document analysis failed:', error)
+      } finally {
+        setProcessingDocument(false)
+      }
+    }
+  }
+
   const uploadFileWithProgress = async (file: File, path: string): Promise<string> => {
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
@@ -334,6 +371,11 @@ export default function ApplicationWizard() {
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
     if (!allowedTypes.includes(file.type)) {
       throw new Error('Only PDF, JPG, JPEG, and PNG files are allowed')
+    }
+
+    // Analyze document for auto-fill
+    if (path === 'result_slip') {
+      await analyzeUploadedDocument(file)
     }
 
     const fileName = `${user?.id}/${applicationId}/${path}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
@@ -464,6 +506,18 @@ export default function ApplicationWizard() {
       if (!resultSlipFile) {
         setError('Result slip is required')
         return
+      }
+      
+      // Generate prediction for user guidance
+      try {
+        const formData = watch()
+        const prediction = await predictiveAnalytics.predictAdmissionSuccess({
+          ...formData,
+          grades: selectedGrades
+        })
+        setPredictionResult(prediction)
+      } catch (error) {
+        console.error('Prediction failed:', error)
       }
       
       try {
@@ -947,6 +1001,66 @@ export default function ApplicationWizard() {
                       </Button>
                     </div>
                     
+                    {/* Document Analysis Results */}
+                    {documentAnalysis && (
+                      <motion.div 
+                        className="mb-4 p-4 rounded-lg border bg-blue-50 border-blue-200"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                      >
+                        <div className="flex items-center mb-2">
+                          <Sparkles className="h-5 w-5 mr-2 text-blue-600" />
+                          <span className="font-medium text-blue-800">
+                            🤖 AI Document Analysis
+                          </span>
+                        </div>
+                        <div className="text-sm text-blue-700 space-y-1">
+                          <p><strong>Quality:</strong> {documentAnalysis.quality}</p>
+                          <p><strong>Completeness:</strong> {documentAnalysis.completeness}%</p>
+                          {documentAnalysis.suggestions.length > 0 && (
+                            <div>
+                              <p className="font-medium">Suggestions:</p>
+                              <ul className="list-disc list-inside ml-2">
+                                {documentAnalysis.suggestions.map((suggestion: string, idx: number) => (
+                                  <li key={idx}>{suggestion}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* Prediction Results */}
+                    {predictionResult && (
+                      <motion.div 
+                        className="mb-4 p-4 rounded-lg border bg-purple-50 border-purple-200"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                      >
+                        <div className="flex items-center mb-2">
+                          <TrendingUp className="h-5 w-5 mr-2 text-purple-600" />
+                          <span className="font-medium text-purple-800">
+                            📊 Admission Prediction
+                          </span>
+                        </div>
+                        <div className="text-sm text-purple-700 space-y-1">
+                          <p><strong>Success Probability:</strong> {Math.round(predictionResult.admissionProbability * 100)}%</p>
+                          <p><strong>Est. Processing Time:</strong> {predictionResult.processingTimeEstimate} days</p>
+                          {predictionResult.recommendations.length > 0 && (
+                            <div>
+                              <p className="font-medium">Recommendations:</p>
+                              <ul className="list-disc list-inside ml-2">
+                                {predictionResult.recommendations.map((rec: string, idx: number) => (
+                                  <li key={idx}>{rec}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+
                     {/* Eligibility Status */}
                     {eligibilityCheck && selectedGrades.length >= 5 && (
                       <motion.div 
@@ -1102,9 +1216,19 @@ export default function ApplicationWizard() {
                         <input
                           type="file"
                           accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={(e) => setResultSlipFile(e.target.files?.[0] || null)}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null
+                            setResultSlipFile(file)
+                            if (file) analyzeUploadedDocument(file)
+                          }}
                           className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                         />
+                        {processingDocument && (
+                          <div className="mt-2 flex items-center text-sm text-blue-600">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                            Analyzing document with AI...
+                          </div>
+                        )}
                         {resultSlipFile && (
                           <div className="mt-2 flex items-center text-sm text-green-600">
                             <CheckCircle className="h-4 w-4 mr-1" />
@@ -1466,6 +1590,16 @@ export default function ApplicationWizard() {
           </motion.div>
         </form>
       </div>
+      
+      {/* AI Assistant */}
+      <AIAssistant 
+        applicationData={watch()}
+        currentStep={currentStep}
+        onSuggestionApply={(suggestion) => {
+          // Handle AI suggestions
+          console.log('AI Suggestion:', suggestion)
+        }}
+      />
     </div>
   )
 }

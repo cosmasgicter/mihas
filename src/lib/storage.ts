@@ -15,22 +15,24 @@ export interface StorageConfig {
 
 export const STORAGE_CONFIGS = {
   documents: {
-    bucket: 'documents',
+    bucket: 'app_docs',
     maxFileSize: 10 * 1024 * 1024, // 10MB
     allowedTypes: [
       'image/jpeg',
       'image/png',
+      'image/jpg',
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ]
   },
   applicationDocuments: {
-    bucket: 'application-documents',
+    bucket: 'app_docs',
     maxFileSize: 10 * 1024 * 1024, // 10MB
     allowedTypes: [
       'image/jpeg',
       'image/png',
+      'image/jpg',
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -42,6 +44,7 @@ export const STORAGE_CONFIGS = {
     allowedTypes: [
       'image/jpeg',
       'image/png',
+      'image/jpg',
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -60,7 +63,7 @@ export function validateFile(file: File, config: StorageConfig): { valid: boolea
   if (!config.allowedTypes.includes(file.type)) {
     return {
       valid: false,
-      error: `File type ${file.type} is not allowed`
+      error: `File type ${file.type} is not allowed. Allowed types: ${config.allowedTypes.join(', ')}`
     }
   }
 
@@ -70,7 +73,8 @@ export function validateFile(file: File, config: StorageConfig): { valid: boolea
 export async function uploadFile(
   file: File,
   config: StorageConfig,
-  path?: string
+  path?: string,
+  userId?: string
 ): Promise<UploadResult> {
   try {
     // Validate file
@@ -82,8 +86,20 @@ export async function uploadFile(
       }
     }
 
-    // Generate unique filename if path not provided
-    const fileName = path || `${Date.now()}-${Math.random().toString(36).substring(2)}-${file.name}`
+    // Get current user if not provided
+    const currentUserId = userId || (await supabase.auth.getUser()).data.user?.id
+    if (!currentUserId) {
+      return {
+        success: false,
+        error: 'User not authenticated'
+      }
+    }
+
+    // Generate unique filename with user folder structure
+    const fileExtension = file.name.split('.').pop()
+    const timestamp = Date.now()
+    const randomString = Math.random().toString(36).substring(2)
+    const fileName = path || `${currentUserId}/${timestamp}-${randomString}.${fileExtension}`
 
     // Upload file
     const { data, error } = await supabase.storage
@@ -94,13 +110,14 @@ export async function uploadFile(
       })
 
     if (error) {
+      console.error('Storage upload error:', error)
       return {
         success: false,
         error: error.message
       }
     }
 
-    // Get public URL for public buckets
+    // Get public URL
     const { data: urlData } = supabase.storage
       .from(config.bucket)
       .getPublicUrl(data.path)
@@ -111,6 +128,7 @@ export async function uploadFile(
       url: urlData.publicUrl
     }
   } catch (error) {
+    console.error('Upload error:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Upload failed'
@@ -125,6 +143,7 @@ export async function deleteFile(bucket: string, path: string): Promise<{ succes
       .remove([path])
 
     if (error) {
+      console.error('Storage delete error:', error)
       return {
         success: false,
         error: error.message
@@ -133,6 +152,7 @@ export async function deleteFile(bucket: string, path: string): Promise<{ succes
 
     return { success: true }
   } catch (error) {
+    console.error('Delete error:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Delete failed'
@@ -151,6 +171,7 @@ export async function getFileUrl(bucket: string, path: string): Promise<{ succes
       url: data.publicUrl
     }
   } catch (error) {
+    console.error('Get URL error:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to get URL'
@@ -165,6 +186,7 @@ export async function downloadFile(bucket: string, path: string): Promise<{ succ
       .download(path)
 
     if (error) {
+      console.error('Storage download error:', error)
       return {
         success: false,
         error: error.message
@@ -176,6 +198,7 @@ export async function downloadFile(bucket: string, path: string): Promise<{ succ
       data
     }
   } catch (error) {
+    console.error('Download error:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Download failed'
@@ -190,6 +213,7 @@ export async function listFiles(bucket: string, folder?: string): Promise<{ succ
       .list(folder)
 
     if (error) {
+      console.error('Storage list error:', error)
       return {
         success: false,
         error: error.message
@@ -201,9 +225,73 @@ export async function listFiles(bucket: string, folder?: string): Promise<{ succ
       files: data
     }
   } catch (error) {
+    console.error('List error:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'List failed'
+    }
+  }
+}
+
+// Helper function to check if bucket exists and create if needed
+export async function ensureBucketExists(bucketName: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Try to get bucket info
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets()
+    
+    if (listError) {
+      return { success: false, error: listError.message }
+    }
+
+    const bucketExists = buckets.some(bucket => bucket.name === bucketName)
+    
+    if (!bucketExists) {
+      // Create bucket if it doesn't exist
+      const { error: createError } = await supabase.storage.createBucket(bucketName, {
+        public: false,
+        allowedMimeTypes: [...STORAGE_CONFIGS.appDocs.allowedTypes],
+        fileSizeLimit: STORAGE_CONFIGS.appDocs.maxFileSize
+      })
+      
+      if (createError) {
+        return { success: false, error: createError.message }
+      }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('Bucket check error:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to check bucket'
+    }
+  }
+}
+
+// Helper function to get file info
+export async function getFileInfo(bucket: string, path: string): Promise<{ success: boolean; info?: any; error?: string }> {
+  try {
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .list(path.split('/').slice(0, -1).join('/'), {
+        search: path.split('/').pop()
+      })
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    const fileInfo = data.find(file => file.name === path.split('/').pop())
+    
+    return {
+      success: true,
+      info: fileInfo
+    }
+  } catch (error) {
+    console.error('File info error:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get file info'
     }
   }
 }

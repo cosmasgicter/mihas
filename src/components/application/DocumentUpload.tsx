@@ -1,7 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Button } from '@/components/ui/Button'
-import { Upload, X, FileText, CheckCircle, AlertCircle } from 'lucide-react'
+import { Upload, X, FileText, CheckCircle, AlertCircle, Brain, Sparkles } from 'lucide-react'
 import { UploadedFile } from '@/forms/applicationSchema'
+import { documentAI } from '@/lib/documentAI'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface DocumentUploadProps {
   uploadedFiles: UploadedFile[]
@@ -11,6 +13,7 @@ interface DocumentUploadProps {
   onRemoveFile: (fileId: string) => void
   formatFileSize: (bytes: number) => string
   error?: string
+  onDocumentAnalyzed?: (analysis: any) => void
 }
 
 export function DocumentUpload({ 
@@ -20,8 +23,34 @@ export function DocumentUpload({
   onFileUpload, 
   onRemoveFile, 
   formatFileSize,
-  error 
+  error,
+  onDocumentAnalyzed
 }: DocumentUploadProps) {
+  const [analyzing, setAnalyzing] = useState<string | null>(null)
+  const [analysisResults, setAnalysisResults] = useState<{[key: string]: any}>({})
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || [])
+    
+    // Trigger original upload handler
+    onFileUpload(event)
+    
+    // Analyze documents with AI
+    for (const file of files) {
+      if (file.type.includes('image') || file.type === 'application/pdf') {
+        setAnalyzing(file.name)
+        try {
+          const analysis = await documentAI.analyzeDocument(file)
+          setAnalysisResults(prev => ({ ...prev, [file.name]: analysis }))
+          onDocumentAnalyzed?.(analysis)
+        } catch (error) {
+          console.error('Document analysis failed:', error)
+        } finally {
+          setAnalyzing(null)
+        }
+      }
+    }
+  }
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex items-center justify-between mb-4">
@@ -42,10 +71,10 @@ export function DocumentUpload({
             type="file"
             multiple
             accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-            onChange={onFileUpload}
+            onChange={handleFileUpload}
             className="hidden"
             disabled={uploadingFiles.length > 0}
-            key={uploadedFiles.length} // Force re-render to clear input
+            key={uploadedFiles.length + analyzing} // Force re-render to clear input
           />
           <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 ${
             uploadingFiles.length > 0 
@@ -125,34 +154,108 @@ export function DocumentUpload({
         </div>
       )}
 
+      {/* AI Analysis Status */}
+      <AnimatePresence>
+        {analyzing && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg"
+          >
+            <div className="flex items-center">
+              <Brain className="h-5 w-5 text-blue-600 mr-2 animate-pulse" />
+              <span className="text-sm text-blue-800">
+                🤖 AI is analyzing "{analyzing}"...
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {uploadedFiles.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-gray-700 mb-2">
             Uploaded Files ({uploadedFiles.length})
           </h3>
-          {uploadedFiles.map((file) => (
-            <div key={file.id} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg transition-all duration-200 hover:shadow-sm slide-in-up">
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-                  <FileText className="h-5 w-5 text-green-700" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-green-800">{file.name}</p>
-                  <p className="text-xs text-green-600">{formatFileSize(file.size)}</p>
-                </div>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => onRemoveFile(file.id)}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          {uploadedFiles.map((file) => {
+            const analysis = analysisResults[file.name]
+            return (
+              <motion.div 
+                key={file.id} 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-green-50 border border-green-200 rounded-lg transition-all duration-200 hover:shadow-sm"
               >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
+                <div className="flex items-center justify-between p-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                      <FileText className="h-5 w-5 text-green-700" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-green-800">{file.name}</p>
+                      <p className="text-xs text-green-600">{formatFileSize(file.size)}</p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onRemoveFile(file.id)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                {/* AI Analysis Results */}
+                {analysis && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="px-3 pb-3"
+                  >
+                    <div className="bg-white rounded-lg p-3 border border-green-300">
+                      <div className="flex items-center mb-2">
+                        <Sparkles className="h-4 w-4 text-purple-600 mr-2" />
+                        <span className="text-xs font-medium text-purple-800">
+                          AI Analysis Results
+                        </span>
+                      </div>
+                      <div className="space-y-1 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Quality:</span>
+                          <span className={`font-medium ${
+                            analysis.quality === 'excellent' ? 'text-green-600' :
+                            analysis.quality === 'good' ? 'text-blue-600' : 'text-yellow-600'
+                          }`}>
+                            {analysis.quality}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Completeness:</span>
+                          <span className="font-medium text-blue-600">
+                            {analysis.completeness}%
+                          </span>
+                        </div>
+                        {analysis.suggestions.length > 0 && (
+                          <div className="mt-2">
+                            <span className="text-gray-600 block mb-1">Suggestions:</span>
+                            <ul className="list-disc list-inside text-gray-700 space-y-1">
+                              {analysis.suggestions.slice(0, 2).map((suggestion: string, idx: number) => (
+                                <li key={idx}>{suggestion}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </motion.div>
+            )
+          })}
         </div>
       )}
     </div>

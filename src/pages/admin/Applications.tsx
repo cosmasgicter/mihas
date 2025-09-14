@@ -7,7 +7,9 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { AnimatedCard } from '@/components/ui/AnimatedCard'
 import { formatDate, getStatusColor } from '@/lib/utils'
 import { sanitizeForLog } from '@/lib/sanitize'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
+import { useApplicationsData } from '@/hooks/useApplicationsData'
+import { useBulkOperations } from '@/hooks/useBulkOperations'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ApplicationsTable } from '@/components/admin/ApplicationsTable'
 import { 
@@ -164,93 +166,26 @@ export default function AdminApplications() {
   const [verificationNotes, setVerificationNotes] = useState('')
   const [verificationLoading, setVerificationLoading] = useState(false)
 
-  const fetchApplications = async (page: number, status: string, search: string) => {
-    const start = page * PAGE_SIZE
-    const end = start + PAGE_SIZE - 1
-    
-    let query = supabase
-      .from('applications_new')
-      .select(`
-        *
-      `, { count: 'exact' })
-      .range(start, end)
-      .order(sortBy === 'date' ? 'created_at' : sortBy === 'name' ? 'full_name' : 'status', { ascending: sortOrder === 'asc' })
 
-    // Status filter
-    if (status !== 'all') {
-      query = query.eq('status', status)
-    } else {
-      query = query.in('status', ['draft', 'submitted', 'under_review', 'approved', 'rejected'])
-    }
 
-    // Program filter
-    if (programFilter !== 'all') {
-      query = query.eq('program', programFilter)
-    }
-
-    // Institution filter
-    if (institutionFilter !== 'all') {
-      query = query.eq('institution', institutionFilter)
-    }
-
-    // Payment status filter
-    if (paymentStatusFilter !== 'all') {
-      query = query.eq('payment_status', paymentStatusFilter)
-    }
-
-    // Date range filter
-    if (dateRange.start) {
-      query = query.gte('created_at', dateRange.start)
-    }
-    if (dateRange.end) {
-      query = query.lte('created_at', dateRange.end + 'T23:59:59')
-    }
-
-    // Search filter
-    if (search) {
-      const sanitizedSearch = search.replace(/[%_\\]/g, '\\$&').replace(/'/g, "''")
-      query = query.or(`full_name.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%,application_number.ilike.%${sanitizedSearch}%,phone.ilike.%${sanitizedSearch}%,nrc_number.ilike.%${sanitizedSearch}%`)
-    }
-
-    const { data, error, count } = await query
-    if (error) throw error
-
-    return { applications: data || [], totalCount: count || 0 }
-  }
-
-  const fetchStats = async () => {
-    const { data, error } = await supabase
-      .from('applications_new')
-      .select('status')
-    
-    if (error) throw error
-    
-    const stats = {
-      total: data.length,
-      draft: data.filter(app => app.status === 'draft').length,
-      submitted: data.filter(app => app.status === 'submitted').length,
-      under_review: data.filter(app => app.status === 'under_review').length,
-      approved: data.filter(app => app.status === 'approved').length,
-      rejected: data.filter(app => app.status === 'rejected').length
-    }
-    
-    return stats
-  }
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['applications', currentPage, statusFilter, searchTerm, sortBy, sortOrder, programFilter, institutionFilter, paymentStatusFilter, dateRange],
-    queryFn: () => fetchApplications(currentPage, statusFilter, searchTerm),
-    staleTime: 30000, // 30 seconds
+  const { 
+    applications, 
+    totalCount, 
+    stats, 
+    isLoading, 
+    error, 
+    refetch 
+  } = useApplicationsData({
+    currentPage,
+    statusFilter,
+    searchTerm,
+    sortBy,
+    sortOrder,
+    programFilter,
+    institutionFilter,
+    paymentStatusFilter,
+    dateRange
   })
-
-  const { data: stats } = useQuery({
-    queryKey: ['application-stats'],
-    queryFn: fetchStats,
-    staleTime: 60000, // 1 minute
-  })
-
-  const applications = data?.applications || []
-  const totalCount = data?.totalCount || 0
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)
 
   // Fetch application documents
@@ -557,28 +492,18 @@ export default function AdminApplications() {
     }
   }
 
+  const { bulkUpdateStatus, loading: bulkLoading, error: bulkError } = useBulkOperations()
+
   const handleBulkAction = async (action: string) => {
     if (selectedApplications.length === 0) return
     
     try {
       setBulkActionLoading(true)
       
-      const updates = selectedApplications.map(id => 
-        supabase
-          .from('applications_new')
-          .update({
-            status: action,
-            updated_at: new Date().toISOString(),
-            ...(action === 'under_review' && { review_started_at: new Date().toISOString() }),
-            ...((['approved', 'rejected'].includes(action)) && { decision_date: new Date().toISOString() })
-          })
-          .eq('id', id)
-      )
+      await bulkUpdateStatus(selectedApplications, action)
       
-      await Promise.all(updates)
-      
-      queryClient.invalidateQueries({ queryKey: ['applications'] })
-      queryClient.invalidateQueries({ queryKey: ['application-stats'] })
+      // Refresh data
+      refetch()
       
       setSelectedApplications([])
       setShowBulkActions(false)
@@ -691,7 +616,7 @@ export default function AdminApplications() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => queryClient.invalidateQueries({ queryKey: ['applications'] })}
+                onClick={() => refetch()}
                 className="btn-mobile touch-target"
               >
                 <RefreshCw className="h-4 w-4 sm:mr-2" />

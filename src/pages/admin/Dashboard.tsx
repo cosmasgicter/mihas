@@ -36,6 +36,8 @@ import { Link } from 'react-router-dom'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import { EnhancedDashboard } from '@/components/admin/EnhancedDashboard'
 import { QuickActionsPanel } from '@/components/admin/QuickActionsPanel'
+import { PredictiveDashboard } from '@/components/admin/PredictiveDashboard'
+import { workflowAutomation } from '@/lib/workflowAutomation'
 
 interface DashboardStats {
   totalApplications: number
@@ -425,6 +427,16 @@ export default function AdminDashboard() {
               </div>
             </div>
           </motion.div>
+        </motion.div>
+
+        {/* AI-Powered Predictive Dashboard */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mb-8"
+        >
+          <PredictiveDashboard />
         </motion.div>
 
         {/* Enhanced Dashboard Content */}

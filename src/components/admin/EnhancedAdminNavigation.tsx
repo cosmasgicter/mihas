@@ -19,7 +19,10 @@ import {
   Shield,
   BarChart3,
   ChevronRight,
-  Activity
+  Activity,
+  Brain,
+  Zap,
+  Bot
 } from 'lucide-react'
 
 export function EnhancedAdminNavigation() {
@@ -40,10 +43,12 @@ export function EnhancedAdminNavigation() {
   const navigationItems = [
     { href: '/admin', label: 'Dashboard', icon: Home, emoji: '🏠' },
     { href: '/admin/applications', label: 'Applications', icon: FileText, emoji: '📋' },
+    { href: '/admin/ai-insights', label: 'AI Insights', icon: Brain, emoji: '🤖', isNew: true },
     { href: '/admin/programs', label: 'Programs', icon: GraduationCap, emoji: '🎓' },
     { href: '/admin/intakes', label: 'Intakes', icon: Calendar, emoji: '📅' },
     { href: '/admin/users', label: 'Users', icon: Users, emoji: '👥' },
     { href: '/admin/analytics', label: 'Analytics', icon: BarChart3, emoji: '📊' },
+    { href: '/admin/workflow', label: 'Automation', icon: Zap, emoji: '⚡', isNew: true },
     { href: '/admin/settings', label: 'Settings', icon: Settings, emoji: '⚙️' },
   ]
 
@@ -91,21 +96,26 @@ export function EnhancedAdminNavigation() {
             
             {/* Navigation Items */}
             <div className="flex items-center space-x-1">
-              {navigationItems.slice(0, 5).map((item) => {
+              {navigationItems.slice(0, 6).map((item) => {
                 const isActive = isActiveRoute(item.href)
                 return (
                   <Link key={item.href} to={item.href}>
                     <Button 
                       variant={isActive ? "primary" : "ghost"} 
                       size="sm" 
-                      className={`flex items-center space-x-2 transition-all duration-200 ${
+                      className={`relative flex items-center space-x-2 transition-all duration-200 ${
                         isActive 
                           ? "bg-primary text-white shadow-md" 
                           : "hover:bg-gray-100 text-gray-700"
-                      }`}
+                      } ${item.isNew ? 'ring-2 ring-purple-200 ring-opacity-50' : ''}`}
                     >
                       <item.icon className="h-4 w-4" />
                       <span className="font-medium">{item.label}</span>
+                      {item.isNew && (
+                        <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold animate-pulse">
+                          NEW
+                        </span>
+                      )}
                     </Button>
                   </Link>
                 )
@@ -232,17 +242,24 @@ export function EnhancedAdminNavigation() {
                         <Link 
                           to={item.href}
                           onClick={closeMenu}
-                          className={`mobile-nav-item mobile-nav-focus transition-all duration-300 ${
+                          className={`relative mobile-nav-item mobile-nav-focus transition-all duration-300 ${
                             isActive 
                               ? "bg-gradient-to-r from-primary to-secondary text-white shadow-lg" 
                               : "text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-gray-300"
-                          }`}
+                          } ${item.isNew ? 'ring-2 ring-purple-200' : ''}`}
                         >
                           <div className="flex items-center justify-between w-full">
                             <div className="flex items-center space-x-3">
                               <span className="text-xl">{item.emoji}</span>
                               <div>
-                                <span className="mobile-nav-text">{item.label}</span>
+                                <div className="flex items-center space-x-2">
+                                  <span className="mobile-nav-text">{item.label}</span>
+                                  {item.isNew && (
+                                    <span className="bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full font-bold animate-pulse">
+                                      NEW
+                                    </span>
+                                  )}
+                                </div>
                                 {isActive && (
                                   <div className="text-xs text-white/80 mt-1">Current Page</div>
                                 )}
