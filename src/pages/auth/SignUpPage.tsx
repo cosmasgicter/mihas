@@ -22,8 +22,8 @@ const signUpSchema = z.object({
   nationality: z.string().min(2, 'Nationality is required'),
   address: z.string().min(10, 'Please enter your full address'),
   city: z.string().min(2, 'City is required'),
-  emergency_contact_name: z.string().min(2, 'Next of kin name is required'),
-  emergency_contact_phone: z.string().min(10, 'Next of kin phone is required'),
+  next_of_kin_name: z.string().min(2, 'Next of kin name is required'),
+  next_of_kin_phone: z.string().min(10, 'Next of kin phone is required'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -270,18 +270,18 @@ setSuccess('Account created successfully! Redirecting to sign in...')
               <h3 className="text-lg font-medium text-secondary mb-4">Next of Kin</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input
-                  {...register('emergency_contact_name')}
+                  {...register('next_of_kin_name')}
                   type="text"
                   label="Next of Kin Name"
-                  error={errors.emergency_contact_name?.message}
+                  error={errors.next_of_kin_name?.message}
                   required
                 />
                 
                 <Input
-                  {...register('emergency_contact_phone')}
+                  {...register('next_of_kin_phone')}
                   type="tel"
                   label="Next of Kin Phone"
-                  error={errors.emergency_contact_phone?.message}
+                  error={errors.next_of_kin_phone?.message}
                   required
                 />
               </div>
