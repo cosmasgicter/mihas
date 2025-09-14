@@ -9,8 +9,10 @@ import { OptimizedImage } from '@/components/ui/OptimizedImage'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { GraduationCap, Users, Award, BookOpen, Star, ArrowRight, CheckCircle } from 'lucide-react'
 
+// Static import for AnimatedCard to avoid chunk conflicts
+import { AnimatedCard } from '@/components/ui/AnimatedCard'
+
 // Lazy load heavy components
-const AnimatedCard = lazy(() => import('@/components/ui/AnimatedCard'))
 const TypewriterText = lazy(() => import('@/components/ui/TypewriterText'))
 const FloatingElements = lazy(() => import('@/components/ui/FloatingElements').then(m => ({ default: m.FloatingElements })))
 const GeometricPatterns = lazy(() => import('@/components/ui/FloatingElements').then(m => ({ default: m.GeometricPatterns })))
@@ -256,27 +258,26 @@ export default function LandingPageNew() {
           <div className={`grid ${isMobile ? 'grid-cols-1 gap-6 px-4' : 'md:grid-cols-3 gap-8'}`}>
             {features.map((feature, index) => (
               showAnimations ? (
-                <Suspense key={index} fallback={<div className="bg-white rounded-lg shadow-lg p-6 text-center group"></div>}>
-                  <AnimatedCard
-                    delay={index * 0.2}
-                    direction="up"
-                    hover3d={true}
-                    gradient={true}
-                    className="text-center group"
+                <AnimatedCard
+                  key={index}
+                  delay={index * 0.2}
+                  direction="up"
+                  hover3d={true}
+                  gradient={true}
+                  className="text-center group"
+                >
+                  <motion.div
+                    className={`bg-gradient-to-br ${feature.gradient} w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg`}
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    transition={{ type: "spring", stiffness: 300 }}
                   >
-                    <motion.div
-                      className={`bg-gradient-to-br ${feature.gradient} w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg`}
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      <feature.icon className="h-10 w-10 text-white" />
-                    </motion.div>
-                    <h3 className="text-xl sm:text-2xl font-bold mb-4 text-gray-900">{feature.title}</h3>
-                    <p className="text-sm sm:text-base text-gray-700 leading-relaxed font-medium">
-                      {feature.description}
-                    </p>
-                  </AnimatedCard>
-                </Suspense>
+                    <feature.icon className="h-10 w-10 text-white" />
+                  </motion.div>
+                  <h3 className="text-xl sm:text-2xl font-bold mb-4 text-gray-900">{feature.title}</h3>
+                  <p className="text-sm sm:text-base text-gray-700 leading-relaxed font-medium">
+                    {feature.description}
+                  </p>
+                </AnimatedCard>
               ) : (
                 <div key={index} className="bg-white rounded-lg shadow-lg p-6 text-center group">
                   <div className={`bg-gradient-to-br ${feature.gradient} w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg`}>
@@ -449,13 +450,13 @@ export default function LandingPageNew() {
           <div className={`grid ${isMobile ? 'grid-cols-1 gap-8 px-4' : 'md:grid-cols-2 gap-12'}`}>
             {programs.map((program, index) => (
               showAnimations ? (
-                <Suspense key={index} fallback={<div className="bg-white rounded-lg shadow-lg p-6 overflow-hidden"></div>}>
-                  <AnimatedCard
-                    delay={index * 0.3}
-                    direction={index % 2 === 0 ? 'left' : 'right'}
-                    hover3d={true}
-                    className="overflow-hidden"
-                  >
+                <AnimatedCard
+                  key={index}
+                  delay={index * 0.3}
+                  direction={index % 2 === 0 ? 'left' : 'right'}
+                  hover3d={true}
+                  className="overflow-hidden"
+                >
                     <div className="relative">
                       <motion.img
                         src={program.image}
@@ -500,8 +501,7 @@ export default function LandingPageNew() {
                         </motion.div>
                       ))}
                     </div>
-                  </AnimatedCard>
-                </Suspense>
+                </AnimatedCard>
               ) : (
                 <div key={index} className="bg-white rounded-lg shadow-lg p-6 overflow-hidden">
                   <div className="relative">

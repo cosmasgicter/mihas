@@ -35,45 +35,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Load user on mount
   useEffect(() => {
+    let mounted = true
+    
+    // Set a maximum loading timeout
+    const loadingTimeout = setTimeout(() => {
+      if (mounted) {
+        console.warn('Auth loading timeout reached, forcing loading to false')
+        setLoading(false)
+      }
+    }, 10000) // 10 second timeout
+    
     async function loadUser() {
-      setLoading(true)
       try {
         const { data: { user } } = await supabase.auth.getUser()
+        
+        if (!mounted) return
+        
         setUser(user)
         
         if (user) {
-          await loadUserProfile(user.id)
-          await loadUserRole(user.id)
+          await Promise.all([
+            loadUserProfile(user.id),
+            loadUserRole(user.id)
+          ])
         }
       } catch (error) {
         console.error('Error loading user:', error)
-        setUser(null)
-        setProfile(null)
+        if (mounted) {
+          setUser(null)
+          setProfile(null)
+          setUserRole(null)
+        }
       } finally {
-        setLoading(false)
+        if (mounted) {
+          clearTimeout(loadingTimeout)
+          setLoading(false)
+        }
       }
     }
+    
     loadUser()
 
     // Set up auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // Auth state change logged securely
+        if (!mounted) return
+        
         setUser(session?.user || null)
         
         if (session?.user) {
-          // Only load profile after auth is fully established
-          if (event === 'SIGNED_IN') {
-            // Reduced delay for better user experience
-            setTimeout(() => {
-              loadUserProfile(session.user.id)
+          try {
+            await Promise.all([
+              loadUserProfile(session.user.id),
               loadUserRole(session.user.id)
-            }, 200)
+            ])
+          } catch (error) {
+            console.error('Error loading profile after auth change:', error)
           }
         } else {
           setProfile(null)
           setUserRole(null)
         }
+        
         setLoading(false)
       }
     )
@@ -82,6 +105,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const cleanupTimeout = setupSessionTimeout()
 
     return () => {
+      mounted = false
+      clearTimeout(loadingTimeout)
       subscription.unsubscribe()
       cleanupTimeout()
     }
@@ -89,8 +114,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function loadUserProfile(userId: string) {
     try {
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -98,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle()
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error loading user profile:', sanitizeForLog(error.code || 'unknown'))
+        console.error('Error loading user profile:', error)
         setProfile(null)
         return
       }
@@ -111,67 +134,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(sanitizedProfile)
       } else {
         // Create profile if it doesn't exist
-        const { data: user } = await supabase.auth.getUser()
-        if (user.user) {
-          // Get signup data from user metadata
-          const signupData = user.user.user_metadata?.signup_data ? 
-            JSON.parse(user.user.user_metadata.signup_data) : {}
-          
-          const fullName = user.user.user_metadata?.full_name || 
-                          signupData.full_name || 
-                          user.user.email?.split('@')[0] || 
-                          'Student'
-          
-          const { data: createdProfile, error: createError } = await supabase
-            .rpc('create_user_profile_safe', {
-              p_user_id: userId,
-              p_full_name: sanitizeForDisplay(fullName),
-              p_phone: signupData.phone ? sanitizeForDisplay(signupData.phone) : null,
-              p_role: 'student'
-            })
-            
-          if (!createError && createdProfile && createdProfile.length > 0) {
-            const profileData = createdProfile[0]
-            const sanitizedProfile = Object.entries(profileData).reduce((acc, [key, value]) => {
-              acc[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value
-              return acc
-            }, {} as UserProfile)
-            setProfile(sanitizedProfile)
-          } else {
-            console.error('Error creating profile on first sign in:', sanitizeForLog(createError?.message || 'unknown error'))
-            // Fallback: try direct insert
-            try {
-              const { data: fallbackProfile, error: fallbackError } = await supabase
-                .from('user_profiles')
-                .insert({
-                  user_id: userId,
-                  full_name: sanitizeForDisplay(fullName),
-                  phone: signupData.phone ? sanitizeForDisplay(signupData.phone) : null,
-                  role: 'student'
-                })
-                .select()
-                .single()
-              
-              if (!fallbackError && fallbackProfile) {
-                const sanitizedProfile = Object.entries(fallbackProfile).reduce((acc, [key, value]) => {
-                  acc[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value
-                  return acc
-                }, {} as UserProfile)
-                setProfile(sanitizedProfile)
-              } else {
-                setProfile(null)
-              }
-            } catch (fallbackErr) {
-              console.error('Fallback profile creation failed:', fallbackErr)
-              setProfile(null)
-            }
-          }
-        } else {
-          setProfile(null)
-        }
+        await createUserProfile(userId)
       }
     } catch (error) {
       console.error('Error loading user profile:', error)
+      setProfile(null)
+    }
+  }
+
+  async function createUserProfile(userId: string) {
+    try {
+      const { data: user } = await supabase.auth.getUser()
+      if (!user.user) {
+        setProfile(null)
+        return
+      }
+
+      const signupData = user.user.user_metadata?.signup_data ? 
+        JSON.parse(user.user.user_metadata.signup_data) : {}
+      
+      const fullName = user.user.user_metadata?.full_name || 
+                      signupData.full_name || 
+                      user.user.email?.split('@')[0] || 
+                      'Student'
+      
+      // Try direct insert first (simpler approach)
+      const { data: newProfile, error: insertError } = await supabase
+        .from('user_profiles')
+        .insert({
+          user_id: userId,
+          full_name: sanitizeForDisplay(fullName),
+          phone: signupData.phone ? sanitizeForDisplay(signupData.phone) : null,
+          role: 'student',
+          email: user.user.email
+        })
+        .select()
+        .single()
+      
+      if (!insertError && newProfile) {
+        const sanitizedProfile = Object.entries(newProfile).reduce((acc, [key, value]) => {
+          acc[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value
+          return acc
+        }, {} as UserProfile)
+        setProfile(sanitizedProfile)
+      } else {
+        console.error('Error creating profile:', insertError)
+        setProfile(null)
+      }
+    } catch (error) {
+      console.error('Error creating user profile:', error)
       setProfile(null)
     }
   }
@@ -219,12 +230,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle()
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error loading user role:', sanitizeForLog(error.code || 'unknown'))
-        setUserRole(null)
-        return
+        console.error('Error loading user role:', error)
       }
 
-      setUserRole(data)
+      setUserRole(data || null)
     } catch (error) {
       console.error('Error loading user role:', error)
       setUserRole(null)

@@ -127,14 +127,31 @@ export default defineConfig(({ mode }) => {
       target: 'esnext',
       minify: isProduction ? 'terser' : false,
       sourcemap: !isProduction,
+      chunkSizeWarningLimit: 1000,
       rollupOptions: {
         output: {
-          manualChunks: {
-            vendor: ['react', 'react-dom'],
-            supabase: ['@supabase/supabase-js'],
-            ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
-            utils: ['date-fns', 'clsx', 'tailwind-merge'],
-            animations: ['framer-motion']
+          manualChunks: (id) => {
+            if (id.includes('node_modules')) {
+              if (id.includes('react') || id.includes('react-dom')) {
+                return 'vendor'
+              }
+              if (id.includes('@supabase')) {
+                return 'supabase'
+              }
+              if (id.includes('framer-motion')) {
+                return 'animations'
+              }
+              if (id.includes('@radix-ui')) {
+                return 'ui'
+              }
+              return 'vendor'
+            }
+            if (id.includes('src/pages/admin')) {
+              return 'admin'
+            }
+            if (id.includes('src/components/ui')) {
+              return 'ui-components'
+            }
           }
         }
       },

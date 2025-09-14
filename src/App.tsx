@@ -6,10 +6,11 @@ import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { AdminRoute } from '@/components/AdminRoute'
 
 import { OfflineIndicator } from '@/components/ui/OfflineIndicator'
-import { ParticleSystem } from '@/components/ui/ParticleSystem'
-import { FloatingOrbs } from '@/components/ui/FloatingOrbs'
-import { monitoring } from '@/lib/monitoring'
-import { offlineSyncService } from '@/services/offlineSync'
+import { AuthDebug } from '@/components/ui/AuthDebug'
+// import { ParticleSystem } from '@/components/ui/ParticleSystem'
+// import { FloatingOrbs } from '@/components/ui/FloatingOrbs'
+// import { monitoring } from '@/lib/monitoring'
+// import { offlineSyncService } from '@/services/offlineSync'
 
 // Pages
 import LandingPage from '@/pages/LandingPage'
@@ -47,26 +48,26 @@ const queryClient = new QueryClient({
 })
 
 function App() {
-  useEffect(() => {
-    const trackPageLoad = () => {
-      monitoring.trackMetric('page_load', 1, { 
-        page: window.location.pathname
-      })
-    }
+  // useEffect(() => {
+  //   const trackPageLoad = () => {
+  //     monitoring.trackMetric('page_load', 1, { 
+  //       page: window.location.pathname
+  //     })
+  //   }
     
-    // Defer monitoring to improve LCP
-    const timer = setTimeout(() => {
-      monitoring.startMonitoring()
-      trackPageLoad()
-      window.addEventListener('popstate', trackPageLoad)
-    }, 200)
+  //   // Defer monitoring to improve LCP
+  //   const timer = setTimeout(() => {
+  //     monitoring.startMonitoring()
+  //     trackPageLoad()
+  //     window.addEventListener('popstate', trackPageLoad)
+  //   }, 200)
     
-    return () => {
-      clearTimeout(timer)
-      monitoring.stopMonitoring()
-      window.removeEventListener('popstate', trackPageLoad)
-    }
-  }, [])
+  //   return () => {
+  //     clearTimeout(timer)
+  //     monitoring.stopMonitoring()
+  //     window.removeEventListener('popstate', trackPageLoad)
+  //   }
+  // }, [])
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -172,6 +173,7 @@ function App() {
               </Routes>
 
               <OfflineIndicator />
+              <AuthDebug />
             </div>
           </div>
         </Router>
