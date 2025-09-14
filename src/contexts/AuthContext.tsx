@@ -232,9 +232,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   function isAdmin(): boolean {
-    if (!userRole) return false
     const adminRoles = ['admin', 'super_admin', 'admissions_officer', 'registrar', 'finance_officer', 'academic_head']
-    return adminRoles.includes(userRole.role)
+    
+    // Check userRole first (most authoritative)
+    if (userRole) {
+      return adminRoles.includes(userRole.role)
+    }
+    
+    // Fallback to profile role if userRole not loaded yet
+    if (profile?.role) {
+      return adminRoles.includes(profile.role)
+    }
+    
+    return false
   }
 
   async function updateProfile(updates: Partial<UserProfile>) {
@@ -249,7 +259,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Whitelist allowed profile fields to prevent prototype pollution
-    const allowedFields = ['full_name', 'phone', 'role', 'avatar_url', 'bio']
+    const allowedFields = ['full_name', 'phone', 'role', 'avatar_url', 'bio', 'date_of_birth', 'sex', 'nationality', 'address', 'city', 'next_of_kin_name', 'next_of_kin_phone']
     
     const sanitizedUpdates = Object.entries(updates).reduce((acc, [key, value]) => {
       // Validate key is safe string and allowed

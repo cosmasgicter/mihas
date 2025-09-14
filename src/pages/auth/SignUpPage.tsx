@@ -13,8 +13,7 @@ import { supabase } from '@/lib/supabase'
 
 const signUpSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters')
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain at least one lowercase letter, one uppercase letter, and one number'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
   confirmPassword: z.string(),
   full_name: z.string().min(2, 'Full name must be at least 2 characters'),
   phone: z.string().min(10, 'Please enter a valid phone number'),
@@ -23,9 +22,8 @@ const signUpSchema = z.object({
   nationality: z.string().min(2, 'Nationality is required'),
   address: z.string().min(10, 'Please enter your full address'),
   city: z.string().min(2, 'City is required'),
-  country: z.string().min(2, 'Country is required'),
-  emergency_contact_name: z.string().min(2, 'Emergency contact name is required'),
-  emergency_contact_phone: z.string().min(10, 'Emergency contact phone is required'),
+  emergency_contact_name: z.string().min(2, 'Next of kin name is required'),
+  emergency_contact_phone: z.string().min(10, 'Next of kin phone is required'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -188,7 +186,7 @@ setSuccess('Account created successfully! Redirecting to sign in...')
                 type="password"
                 label="Password"
                 error={errors.password?.message}
-                helperText="Must contain at least 8 characters with uppercase, lowercase, and number"
+                helperText="Must be at least 6 characters"
                 required
               />
               
@@ -220,7 +218,7 @@ setSuccess('Account created successfully! Redirecting to sign in...')
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-secondary mb-1">
                   Sex <span className="text-red-500">*</span>
@@ -246,15 +244,6 @@ setSuccess('Account created successfully! Redirecting to sign in...')
                 placeholder="Zambian"
                 required
               />
-              
-              <Input
-                {...register('country')}
-                type="text"
-                label="Country"
-                error={errors.country?.message}
-                placeholder="Zambia"
-                required
-              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -278,12 +267,12 @@ setSuccess('Account created successfully! Redirecting to sign in...')
             </div>
 
             <div className="border-t pt-6">
-              <h3 className="text-lg font-medium text-secondary mb-4">Emergency Contact</h3>
+              <h3 className="text-lg font-medium text-secondary mb-4">Next of Kin</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input
                   {...register('emergency_contact_name')}
                   type="text"
-                  label="Emergency Contact Name"
+                  label="Next of Kin Name"
                   error={errors.emergency_contact_name?.message}
                   required
                 />
@@ -291,7 +280,7 @@ setSuccess('Account created successfully! Redirecting to sign in...')
                 <Input
                   {...register('emergency_contact_phone')}
                   type="tel"
-                  label="Emergency Contact Phone"
+                  label="Next of Kin Phone"
                   error={errors.emergency_contact_phone?.message}
                   required
                 />

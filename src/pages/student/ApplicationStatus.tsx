@@ -313,8 +313,8 @@ export default function ApplicationStatus() {
                         <span className="font-semibold">{application.passport_number || 'Not provided'}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Guardian:</span>
-                        <span className="font-semibold">{application.guardian_name || 'Not provided'}</span>
+                        <span className="text-gray-600">Next of Kin:</span>
+                        <span className="font-semibold">{application.next_of_kin_name || 'Not provided'}</span>
                       </div>
                     </div>
                   </div>

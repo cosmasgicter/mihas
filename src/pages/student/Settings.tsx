@@ -21,9 +21,8 @@ const profileSchema = z.object({
   nationality: optionalString(),
   address: optionalString(),
   city: optionalString(),
-  country: optionalString(),
-  emergency_contact_name: optionalString(),
-  emergency_contact_phone: optionalString()
+  next_of_kin_name: optionalString(),
+  next_of_kin_phone: optionalString()
 })
 
 type ProfileForm = z.infer<typeof profileSchema>
@@ -48,9 +47,8 @@ export default function StudentSettings() {
       nationality: profile?.nationality || '',
       address: profile?.address || '',
       city: profile?.city || '',
-      country: profile?.country || '',
-      emergency_contact_name: profile?.emergency_contact_name || '',
-      emergency_contact_phone: profile?.emergency_contact_phone || ''
+      next_of_kin_name: profile?.next_of_kin_name || '',
+      next_of_kin_phone: profile?.next_of_kin_phone || ''
     }
   })
 
@@ -228,15 +226,6 @@ export default function StudentSettings() {
                 error={errors.nationality?.message}
                 className="form-input-mobile"
               />
-              
-              <Input
-                {...register('country')}
-                type="text"
-                label="Country"
-                placeholder="Zambia"
-                error={errors.country?.message}
-                className="form-input-mobile"
-              />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
@@ -266,7 +255,7 @@ export default function StudentSettings() {
             </div>
           </motion.div>
 
-          {/* Emergency Contact */}
+          {/* Next of Kin */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -278,26 +267,26 @@ export default function StudentSettings() {
                 <Phone className="h-5 w-5 text-red-600" />
               </div>
               <h2 className="text-lg sm:text-xl font-bold text-gray-900">
-                🆘 Emergency Contact
+                👥 Next of Kin
               </h2>
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Input
-                {...register('emergency_contact_name')}
+                {...register('next_of_kin_name')}
                 type="text"
-                label="Emergency Contact Name"
-                placeholder="Full name of emergency contact"
-                error={errors.emergency_contact_name?.message}
+                label="Next of Kin Name"
+                placeholder="Full name of next of kin"
+                error={errors.next_of_kin_name?.message}
                 className="form-input-mobile"
               />
               
               <Input
-                {...register('emergency_contact_phone')}
+                {...register('next_of_kin_phone')}
                 type="tel"
-                label="Emergency Contact Phone"
+                label="Next of Kin Phone"
                 placeholder="+260-123-456-789"
-                error={errors.emergency_contact_phone?.message}
+                error={errors.next_of_kin_phone?.message}
                 className="form-input-mobile"
               />
             </div>

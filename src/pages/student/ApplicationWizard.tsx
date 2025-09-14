@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { checkEligibility, getRecommendedSubjects } from '@/lib/eligibility'
+import { applicationSessionManager } from '@/lib/applicationSession'
 import { ArrowLeft, CheckCircle, ArrowRight, X, Sparkles, FileText, CreditCard, Send, XCircle, AlertTriangle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -22,8 +23,8 @@ const wizardSchema = z.object({
   phone: z.string().min(10, 'Valid phone number is required'),
   email: z.string().email('Valid email is required'),
   residence_town: z.string().min(2, 'Residence town is required'),
-  guardian_name: z.string().optional(),
-  guardian_phone: z.string().optional(),
+  next_of_kin_name: z.string().optional(),
+  next_of_kin_phone: z.string().optional(),
   program: z.enum(['Clinical Medicine', 'Environmental Health', 'Registered Nursing'], { 
     required_error: 'Please select a program' 
   }),
@@ -56,6 +57,7 @@ interface SubjectGrade {
 
 export default function ApplicationWizard() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, loading: authLoading } = useAuth()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -74,6 +76,7 @@ export default function ApplicationWizard() {
   const [isDraftSaving, setIsDraftSaving] = useState(false)
   const [draftSaved, setDraftSaved] = useState(false)
   const [sessionWarning, setSessionWarning] = useState<any>(null)
+  const [restoringDraft, setRestoringDraft] = useState(false)
   
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<WizardFormData>({
     resolver: zodResolver(wizardSchema),
@@ -115,32 +118,111 @@ export default function ApplicationWizard() {
     }
   }, [user, setValue])
 
-  // Load saved application draft
+  // Load saved application draft and restore state
   useEffect(() => {
-    const savedDraft = localStorage.getItem('applicationWizardDraft')
-    if (savedDraft) {
+    const loadDraftData = async () => {
+      if (!user) return
+      
+      setRestoringDraft(true)
+      
       try {
-        const draft = JSON.parse(savedDraft)
-        if (draft.formData) {
-          Object.keys(draft.formData).forEach(key => {
-            setValue(key as keyof WizardFormData, draft.formData[key])
-          })
+        // First check localStorage for wizard draft
+        const savedDraft = localStorage.getItem('applicationWizardDraft')
+        if (savedDraft) {
+          try {
+            const draft = JSON.parse(savedDraft)
+            if (draft.formData) {
+              Object.keys(draft.formData).forEach(key => {
+                setValue(key as keyof WizardFormData, draft.formData[key])
+              })
+            }
+            if (draft.selectedGrades) {
+              setSelectedGrades(draft.selectedGrades)
+            }
+            if (draft.currentStep && draft.currentStep > 1) {
+              setCurrentStep(draft.currentStep)
+            }
+            if (draft.applicationId) {
+              setApplicationId(draft.applicationId)
+            }
+            return // Exit early if we found a draft
+          } catch (error) {
+            console.error('Error loading draft:', error)
+            localStorage.removeItem('applicationWizardDraft')
+          }
         }
-        if (draft.selectedGrades) {
-          setSelectedGrades(draft.selectedGrades)
-        }
-        if (draft.currentStep) {
-          setCurrentStep(draft.currentStep)
-        }
-        if (draft.applicationId) {
-          setApplicationId(draft.applicationId)
+        
+        // If no localStorage draft, check for existing draft application in database
+        const { data: draftApps } = await supabase
+          .from('applications_new')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('status', 'draft')
+          .order('created_at', { ascending: false })
+          .limit(1)
+        
+        if (draftApps && draftApps.length > 0) {
+          const app = draftApps[0]
+          
+          // Populate form with existing data
+          setValue('full_name', app.full_name || '')
+          setValue('nrc_number', app.nrc_number || '')
+          setValue('passport_number', app.passport_number || '')
+          setValue('date_of_birth', app.date_of_birth || '')
+          setValue('sex', app.sex || '')
+          setValue('phone', app.phone || '')
+          setValue('email', app.email || '')
+          setValue('residence_town', app.residence_town || '')
+          setValue('next_of_kin_name', app.next_of_kin_name || '')
+          setValue('next_of_kin_phone', app.next_of_kin_phone || '')
+          setValue('program', app.program || '')
+          setValue('intake', app.intake || '')
+          
+          setApplicationId(app.id)
+          
+          // Determine current step based on completion
+          let step = 1
+          if (app.program && app.full_name) {
+            step = 2 // Has basic info, move to education
+            
+            // Load grades if they exist
+            const { data: grades } = await supabase
+              .from('application_grades')
+              .select('subject_id, grade')
+              .eq('application_id', app.id)
+            
+            if (grades && grades.length > 0) {
+              setSelectedGrades(grades)
+              
+              if (app.result_slip_url) {
+                step = 3 // Has education data, move to payment
+                
+                if (app.pop_url) {
+                  step = 4 // Has payment, move to review
+                }
+              }
+            }
+          }
+          
+          setCurrentStep(step)
+          
+          // Show success message if continuing from dashboard
+          if (location.state?.continueApplication) {
+            setTimeout(() => {
+              setDraftSaved(true)
+              setTimeout(() => setDraftSaved(false), 3000)
+            }, 500)
+          }
         }
       } catch (error) {
-        console.error('Error loading draft:', error)
-        localStorage.removeItem('applicationWizardDraft')
+        console.error('Error loading existing draft application:', error)
+      } finally {
+        setRestoringDraft(false)
       }
     }
-  }, [])
+    
+    loadDraftData()
+  }, [user, setValue])
 
   // Save draft on form changes
   // Auto-save on form changes with debouncing
@@ -169,6 +251,16 @@ export default function ApplicationWizard() {
         savedAt: new Date().toISOString()
       }
       localStorage.setItem('applicationWizardDraft', JSON.stringify(draft))
+      
+      // Also save to application session manager for dashboard display
+      await applicationSessionManager.saveDraft(
+        user.id,
+        formData,
+        currentStep,
+        [],
+        selectedGrades
+      )
+      
       setDraftSaved(true)
       setTimeout(() => setDraftSaved(false), 2000)
     } catch (error) {
@@ -335,8 +427,8 @@ export default function ApplicationWizard() {
             phone: formData.phone,
             email: formData.email,
             residence_town: formData.residence_town,
-            guardian_name: formData.guardian_name || null,
-            guardian_phone: formData.guardian_phone || null,
+            next_of_kin_name: formData.next_of_kin_name || null,
+            next_of_kin_phone: formData.next_of_kin_phone || null,
             program: formData.program,
             intake: formData.intake,
             institution: institution,
@@ -467,6 +559,7 @@ export default function ApplicationWizard() {
       
       // Clear saved draft on successful submission
       localStorage.removeItem('applicationWizardDraft')
+      await applicationSessionManager.deleteDraft(user.id)
       setSuccess(true)
     } catch (err: any) {
       const sanitizedMessage = err instanceof Error ? err.message.replace(/[\r\n\t]/g, ' ') : 'Unknown error'
@@ -477,10 +570,15 @@ export default function ApplicationWizard() {
     }
   }
 
-  if (authLoading) {
+  if (authLoading || restoringDraft) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <LoadingSpinner />
+        <div className="text-center">
+          <LoadingSpinner />
+          <p className="mt-4 text-gray-600">
+            {authLoading ? 'Loading...' : 'Restoring your application...'}
+          </p>
+        </div>
       </div>
     )
   }
@@ -577,7 +675,7 @@ export default function ApplicationWizard() {
                   exit={{ opacity: 0 }}
                 >
                   <CheckCircle className="h-4 w-4" />
-                  <span>Saved</span>
+                  <span>{location.state?.continueApplication ? 'Application Restored' : 'Saved'}</span>
                 </motion.div>
               )}
               <Button
@@ -755,17 +853,17 @@ export default function ApplicationWizard() {
                   
                   <div>
                     <Input
-                      {...register('guardian_name')}
-                      label="Guardian Name (Optional)"
-                      error={errors.guardian_name?.message}
+                      {...register('next_of_kin_name')}
+                      label="Next of Kin Name (Optional)"
+                      error={errors.next_of_kin_name?.message}
                     />
                   </div>
                   
                   <div>
                     <Input
-                      {...register('guardian_phone')}
-                      label="Guardian Phone (Optional)"
-                      error={errors.guardian_phone?.message}
+                      {...register('next_of_kin_phone')}
+                      label="Next of Kin Phone (Optional)"
+                      error={errors.next_of_kin_phone?.message}
                     />
                   </div>
                   

@@ -21,11 +21,10 @@ export interface UserProfile {
   date_of_birth?: string
   sex?: string
   nationality?: string
-  country?: string
   address?: string
   city?: string
-  emergency_contact_name?: string
-  emergency_contact_phone?: string
+  next_of_kin_name?: string
+  next_of_kin_phone?: string
   avatar_url?: string
   bio?: string
   created_at: string
@@ -77,8 +76,8 @@ export interface Application {
   phone: string
   email: string
   residence_town: string
-  guardian_name?: string
-  guardian_phone?: string
+  next_of_kin_name?: string
+  next_of_kin_phone?: string
   program: 'Clinical Medicine' | 'Environmental Health' | 'Registered Nursing'
   intake: string
   institution: 'KATC' | 'MIHAS'

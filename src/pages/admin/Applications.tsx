@@ -56,8 +56,8 @@ interface ApplicationWithDetails {
   phone: string
   email: string
   residence_town: string
-  guardian_name?: string
-  guardian_phone?: string
+  next_of_kin_name?: string
+  next_of_kin_phone?: string
   program: string
   intake: string
   institution: string
@@ -1129,7 +1129,7 @@ export default function AdminApplications() {
                         <p><strong>Phone:</strong> {selectedApplication.phone || 'Not provided'}</p>
                         <p><strong>Email:</strong> {selectedApplication.email || 'Not provided'}</p>
                         <p><strong>Residence:</strong> {selectedApplication.residence_town || 'Not provided'}</p>
-                        <p><strong>Guardian:</strong> {selectedApplication.guardian_name || 'Not provided'}</p>
+                        <p><strong>Next of Kin:</strong> {selectedApplication.next_of_kin_name || 'Not provided'}</p>
                       </div>
                     </div>
                   </div>

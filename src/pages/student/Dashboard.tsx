@@ -292,15 +292,43 @@ export default function StudentDashboard() {
                             </div>
                           </div>
                           
-                          <Link to="/student/application-wizard">
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <Link to="/student/application-wizard">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="w-full sm:w-auto text-yellow-700 border-yellow-300 hover:bg-yellow-100 font-semibold"
+                              >
+                                Continue Draft
+                              </Button>
+                            </Link>
                             <Button 
                               variant="outline" 
                               size="sm"
-                              className="w-full sm:w-auto text-yellow-700 border-yellow-300 hover:bg-yellow-100 font-semibold"
+                              className="w-full sm:w-auto text-red-600 border-red-300 hover:bg-red-50 font-semibold"
+                              onClick={async () => {
+                                if (confirm('Are you sure you want to delete this draft? This action cannot be undone.')) {
+                                  try {
+                                    const { error } = await supabase
+                                      .from('applications_new')
+                                      .delete()
+                                      .eq('id', application.id)
+                                    
+                                    if (error) throw error
+                                    
+                                    // Refresh the dashboard data
+                                    loadDashboardData()
+                                  } catch (error) {
+                                    console.error('Error deleting draft:', error)
+                                    alert('Failed to delete draft. Please try again.')
+                                  }
+                                }
+                              }}
                             >
-                              Continue Draft
+                              <X className="h-4 w-4 mr-1" />
+                              Delete
                             </Button>
-                          </Link>
+                          </div>
                         </div>
                       </motion.div>
                     ))}
@@ -308,12 +336,12 @@ export default function StudentDashboard() {
                     {/* Show localStorage draft if exists */}
                     {hasDraft && !applications.some(app => app.status === 'draft') && (
                       <div className="px-6 py-4 hover:bg-gray-50 bg-yellow-50 border-l-4 border-yellow-400">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-2">
                               <Clock className="h-5 w-5 text-yellow-500" />
                               <h4 className="text-sm font-medium text-secondary">
-                                Draft Application (Local)
+                                📝 Draft Application
                               </h4>
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                 DRAFT
@@ -329,11 +357,32 @@ export default function StudentDashboard() {
                             </div>
                           </div>
                           
-                          <Link to="/student/application-wizard">
-                            <Button variant="outline" size="sm">
-                              Continue Draft
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <Link to="/student/application-wizard">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="w-full sm:w-auto text-yellow-700 border-yellow-300 hover:bg-yellow-100 font-semibold"
+                              >
+                                Continue Draft
+                              </Button>
+                            </Link>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="w-full sm:w-auto text-red-600 border-red-300 hover:bg-red-50 font-semibold"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete this draft? This action cannot be undone.')) {
+                                  localStorage.removeItem('applicationWizardDraft')
+                                  setHasDraft(false)
+                                  setDraftData(null)
+                                }
+                              }}
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Delete
                             </Button>
-                          </Link>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -404,7 +453,7 @@ export default function StudentDashboard() {
                 </div>
                 <div className="p-3 bg-gray-50 rounded-xl">
                   <span className="text-gray-600 text-xs uppercase tracking-wide">Email</span>
-                  <p className="font-semibold text-gray-900 truncate">{profile?.email || 'Not provided'}</p>
+                  <p className="font-semibold text-gray-900 truncate">{user?.email || 'Not provided'}</p>
                 </div>
                 <div className="p-3 bg-gray-50 rounded-xl">
                   <span className="text-gray-600 text-xs uppercase tracking-wide">Phone</span>

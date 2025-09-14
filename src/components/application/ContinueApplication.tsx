@@ -186,7 +186,7 @@ export function ContinueApplication() {
             )}
           </Button>
           
-          <Link to="/student/application-wizard">
+          <Link to="/student/application-wizard" state={{ continueApplication: true }}>
             <Button className="bg-primary hover:bg-primary">
               <FileText className="h-4 w-4 mr-2" />
               Continue Application

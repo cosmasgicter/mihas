@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 export function DashboardRedirect() {
-  const { user, profile, loading, isAdmin } = useAuth()
+  const { user, profile, userRole, loading, isAdmin } = useAuth()
 
   if (loading) {
     return (

@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { AdminRoute } from '@/components/AdminRoute'
-import { FeedbackWidget } from '@/components/ui/FeedbackWidget'
+
 import { OfflineIndicator } from '@/components/ui/OfflineIndicator'
 import { ParticleSystem } from '@/components/ui/ParticleSystem'
 import { FloatingOrbs } from '@/components/ui/FloatingOrbs'
@@ -157,7 +157,7 @@ function App() {
               <Route path="/404" element={<NotFoundPage />} />
               <Route path="*" element={<Navigate to="/404" replace />} />
               </Routes>
-              <FeedbackWidget />
+
               <OfflineIndicator />
             </div>
           </div>

@@ -75,9 +75,9 @@ export const applicationSchema = z.object({
   district: z.string().min(1, 'District is required'),
   postal_address: z.string().optional(),
   physical_address: z.string().min(5, 'Physical address is required'),
-  guardian_name: z.string().optional(),
-  guardian_phone: z.string().optional(),
-  guardian_relationship: z.string().optional(),
+  next_of_kin_name: z.string().optional(),
+  next_of_kin_phone: z.string().optional(),
+  next_of_kin_relationship: z.string().optional(),
   medical_conditions: z.string().optional(),
   disabilities: z.string().optional(),
   criminal_record: z.boolean().optional(),
@@ -155,9 +155,8 @@ export interface ProfileData {
   date_of_birth?: string
   sex?: string
   nationality?: string
-  country?: string
   address?: string
-  emergency_contact_name?: string
-  emergency_contact_phone?: string
+  next_of_kin_name?: string
+  next_of_kin_phone?: string
   full_name?: string
 }
