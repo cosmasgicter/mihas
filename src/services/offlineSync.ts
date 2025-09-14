@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { offlineStorage } from '@/lib/offlineStorage'
 
 interface OfflineData {
   form_data: Record<string, any>
@@ -8,87 +9,175 @@ interface OfflineData {
 }
 
 class OfflineSyncService {
-  private syncQueue: Array<{ userId: string; data: OfflineData }> = []
   private isProcessing = false
+  private retryAttempts = new Map<string, number>()
+  private maxRetries = 3
 
-  // Add data to sync queue
-  addToQueue(userId: string, data: OfflineData) {
-    this.syncQueue.push({ userId, data })
-    this.processQueue()
+  // Store data offline
+  async storeOffline(userId: string, type: 'application_draft' | 'document_upload' | 'form_submission', data: any) {
+    try {
+      await offlineStorage.store({
+        type,
+        data,
+        userId
+      })
+      console.log('Data stored offline successfully')
+    } catch (error) {
+      console.error('Failed to store data offline:', error)
+      // Fallback to localStorage
+      localStorage.setItem(`offline_${type}_${userId}`, JSON.stringify({
+        data,
+        timestamp: Date.now()
+      }))
+    }
   }
 
   // Process sync queue when online
-  private async processQueue() {
-    if (this.isProcessing || this.syncQueue.length === 0 || !navigator.onLine) {
+  async processOfflineData() {
+    if (this.isProcessing || !navigator.onLine) {
       return
     }
 
     this.isProcessing = true
 
-    while (this.syncQueue.length > 0) {
-      const item = this.syncQueue.shift()
-      if (item) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const offlineData = await offlineStorage.getAll(user.id)
+      
+      for (const item of offlineData) {
         try {
-          await this.syncToServer(item.userId, item.data)
+          await this.syncToServer(item)
+          await offlineStorage.remove(item.id)
+          this.retryAttempts.delete(item.id)
         } catch (error) {
           console.error('Failed to sync offline data:', error)
-          // Re-add to queue for retry
-          this.syncQueue.unshift(item)
-          break
+          
+          const attempts = this.retryAttempts.get(item.id) || 0
+          if (attempts >= this.maxRetries) {
+            console.error(`Max retries reached for item ${item.id}, removing from queue`)
+            await offlineStorage.remove(item.id)
+            this.retryAttempts.delete(item.id)
+          } else {
+            this.retryAttempts.set(item.id, attempts + 1)
+          }
         }
       }
-    }
 
-    this.isProcessing = false
+      // Also process localStorage fallback data
+      await this.processLocalStorageData(user.id)
+    } catch (error) {
+      console.error('Error processing offline data:', error)
+    } finally {
+      this.isProcessing = false
+    }
+  }
+
+  // Process localStorage fallback data
+  private async processLocalStorageData(userId: string) {
+    const keys = Object.keys(localStorage).filter(key => key.startsWith(`offline_`) && key.includes(userId))
+    
+    for (const key of keys) {
+      try {
+        const data = JSON.parse(localStorage.getItem(key) || '{}')
+        const type = key.split('_')[1] as 'application_draft' | 'document_upload' | 'form_submission'
+        
+        await this.syncToServer({
+          id: key,
+          type,
+          data: data.data,
+          timestamp: data.timestamp,
+          userId
+        })
+        
+        localStorage.removeItem(key)
+      } catch (error) {
+        console.error(`Failed to sync localStorage data ${key}:`, error)
+        localStorage.removeItem(key) // Remove corrupted data
+      }
+    }
   }
 
   // Sync data to server
-  private async syncToServer(userId: string, data: OfflineData) {
-    const { error } = await supabase
-      .from('application_drafts')
-      .upsert({
-        user_id: userId,
-        form_data: data.form_data,
-        uploaded_files: data.uploaded_files,
-        current_step: data.current_step,
-        is_offline_sync: true
-      })
+  private async syncToServer(item: any) {
+    switch (item.type) {
+      case 'application_draft': {
+        const { error: draftError } = await supabase
+          .from('application_drafts')
+          .upsert({
+            user_id: item.userId,
+            form_data: item.data.form_data,
+            uploaded_files: item.data.uploaded_files,
+            current_step: item.data.current_step,
+            is_offline_sync: true,
+            updated_at: new Date().toISOString()
+          })
+        if (draftError) throw draftError
+        break
+      }
 
-    if (error) throw error
+      case 'form_submission': {
+        const { error: submissionError } = await supabase
+          .from('applications')
+          .insert({
+            ...item.data,
+            user_id: item.userId,
+            is_offline_sync: true,
+            created_at: new Date(item.timestamp).toISOString()
+          })
+        if (submissionError) throw submissionError
+        break
+      }
 
-    // Clear local offline data after successful sync
-    localStorage.removeItem('applicationDraftOffline')
+      case 'document_upload':
+        // Handle document uploads - would need to re-upload files
+        console.log('Document upload sync not yet implemented')
+        break
+    }
   }
 
   // Initialize service with event listeners
-  init() {
+  async init() {
+    try {
+      await offlineStorage.init()
+    } catch (error) {
+      console.error('Failed to initialize offline storage:', error)
+    }
+
     // Listen for online events
     window.addEventListener('online', () => {
-      this.processQueue()
+      console.log('Connection restored, syncing offline data...')
+      this.processOfflineData()
+    })
+
+    // Listen for offline events
+    window.addEventListener('offline', () => {
+      console.log('Connection lost, enabling offline mode')
     })
 
     // Process any existing offline data on startup
     if (navigator.onLine) {
-      this.loadAndSyncOfflineData()
+      setTimeout(() => this.processOfflineData(), 1000)
     }
   }
 
-  // Load and sync any existing offline data
-  private loadAndSyncOfflineData() {
-    const offlineData = localStorage.getItem('applicationDraftOffline')
-    if (offlineData) {
-      try {
-        const data = JSON.parse(offlineData)
-        // Extract userId from current session
-        supabase.auth.getUser().then(({ data: { user } }) => {
-          if (user) {
-            this.addToQueue(user.id, data)
-          }
-        })
-      } catch (error) {
-        console.error('Failed to parse offline data:', error)
-        localStorage.removeItem('applicationDraftOffline')
-      }
+  // Check if online
+  isOnline(): boolean {
+    return navigator.onLine
+  }
+
+  // Get offline data count for user
+  async getOfflineDataCount(userId: string): Promise<number> {
+    try {
+      const data = await offlineStorage.getAll(userId)
+      const localStorageCount = Object.keys(localStorage)
+        .filter(key => key.startsWith(`offline_`) && key.includes(userId))
+        .length
+      return data.length + localStorageCount
+    } catch (error) {
+      console.error('Failed to get offline data count:', error)
+      return 0
     }
   }
 }

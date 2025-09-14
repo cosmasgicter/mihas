@@ -56,7 +56,7 @@ export function useApplicationSubmit(user: any, uploadedFiles: UploadedFile[]) {
         nrc_number: data.nrc_number || null,
         passport_number: data.passport_number || null,
         date_of_birth: data.date_of_birth,
-        gender: data.gender,
+        sex: data.sex,
         marital_status: data.marital_status,
         nationality: data.nationality,
         province: data.province,

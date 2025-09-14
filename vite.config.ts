@@ -13,6 +13,9 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'autoUpdate',
+        devOptions: {
+          enabled: true
+        },
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
         manifest: {
           name: 'MIHAS Application System',
@@ -49,6 +52,8 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+          skipWaiting: true,
+          clientsClaim: true,
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -62,13 +67,47 @@ export default defineConfig(({ mode }) => {
               }
             },
             {
-              urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+              urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
               handler: 'NetworkFirst',
               options: {
-                cacheName: 'supabase-cache',
+                cacheName: 'supabase-api-cache',
+                expiration: {
+                  maxEntries: 100,
+                  maxAgeSeconds: 60 * 60 * 2
+                },
+                networkTimeoutSeconds: 10
+              }
+            },
+            {
+              urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'supabase-storage-cache',
                 expiration: {
                   maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 * 24 * 7
+                }
+              }
+            },
+            {
+              urlPattern: ({ request }) => request.destination === 'document',
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'pages-cache',
+                expiration: {
+                  maxEntries: 20,
                   maxAgeSeconds: 60 * 60 * 24
+                }
+              }
+            },
+            {
+              urlPattern: ({ request }) => request.destination === 'image',
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'images-cache',
+                expiration: {
+                  maxEntries: 100,
+                  maxAgeSeconds: 60 * 60 * 24 * 30
                 }
               }
             }

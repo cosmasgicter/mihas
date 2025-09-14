@@ -92,6 +92,26 @@ export default function ApplicationWizard() {
   useEffect(() => {
     if (user) {
       setValue('email', user.email || '')
+      
+      // Auto-populate from user metadata if available
+      const metadata = user.user_metadata
+      if (metadata) {
+        if (metadata.full_name) setValue('full_name', metadata.full_name)
+        if (metadata.sex) setValue('sex', metadata.sex)
+        
+        // Also check signup_data for additional fields
+        if (metadata.signup_data) {
+          try {
+            const signupData = JSON.parse(metadata.signup_data)
+            if (signupData.phone) setValue('phone', signupData.phone)
+            if (signupData.date_of_birth) setValue('date_of_birth', signupData.date_of_birth)
+            // nationality field not in schema, skipping
+            if (signupData.city) setValue('residence_town', signupData.city)
+          } catch (e) {
+            console.log('Could not parse signup data')
+          }
+        }
+      }
     }
   }, [user, setValue])
 

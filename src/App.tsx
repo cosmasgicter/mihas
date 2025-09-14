@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { AdminRoute } from '@/components/AdminRoute'
 import { FeedbackWidget } from '@/components/ui/FeedbackWidget'
+import { OfflineIndicator } from '@/components/ui/OfflineIndicator'
 import { monitoring } from '@/lib/monitoring'
 import { offlineSyncService } from '@/services/offlineSync'
 
@@ -151,6 +152,7 @@ function App() {
               <Route path="*" element={<Navigate to="/404" replace />} />
             </Routes>
             <FeedbackWidget />
+            <OfflineIndicator />
           </div>
         </Router>
       </AuthProvider>

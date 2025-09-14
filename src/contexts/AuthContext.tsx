@@ -175,6 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       options: {
         data: {
           full_name: sanitizeForDisplay(sanitizedUserData.full_name || email.split('@')[0]),
+          sex: sanitizedUserData.sex, // Store sex from signup
           signup_data: JSON.stringify(sanitizedUserData)
         }
       }

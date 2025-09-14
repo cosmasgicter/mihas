@@ -69,11 +69,11 @@ export default function LandingPageNew() {
     {
       institution: "Kalulushi Training Centre",
       courses: [
-        "Diploma in Clinical Medicine (HPCZ Accredited)",
-        "Diploma in Environmental Health (ECZ Certified)"
+        "Diploma in Clinical Medicine (HPCZ & UNZA Accredited)",
+        "Diploma in Environmental Health (ECZ Certified & UNZA Accredited)"
       ],
       highlight: "Professional Excellence",
-      accreditation: "HPCZ & ECZ Certified",
+      accreditation: "HPCZ, ECZ & UNZA Certified",
       image: "https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/f4d8d7cb-b8b3-4a0a-ba36-084fa481da0d.png"
     },
     {
@@ -119,7 +119,7 @@ export default function LandingPageNew() {
           <motion.div variants={itemVariants} className="mb-6">
             <TypewriterText
               text="Your Future Starts Here"
-              className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6"
+              className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold mb-6 px-4 text-center"
               delay={1000}
               speed={100}
             />
@@ -127,14 +127,14 @@ export default function LandingPageNew() {
           
           <motion.p
             variants={itemVariants}
-            className="text-xl md:text-2xl lg:text-3xl mb-8 max-w-4xl mx-auto leading-relaxed text-white/95 font-medium"
+            className="text-lg sm:text-xl md:text-2xl lg:text-3xl mb-8 max-w-4xl mx-auto leading-relaxed text-white/95 font-medium px-4"
           >
             Launch Your Healthcare Career in Zambia & Beyond – Apply for Accredited Health Sciences Programs with 92% Job Placement Success
           </motion.p>
           
           <motion.div
             variants={itemVariants}
-            className={`flex ${isMobile ? 'flex-col' : 'flex-col sm:flex-row'} gap-6 justify-center items-center`}
+            className={`flex ${isMobile ? 'flex-col px-4' : 'flex-col sm:flex-row'} gap-4 sm:gap-6 justify-center items-center`}
           >
             <Link to="/auth/signup">
               <Button variant="gradient" size="xl" magnetic glow>
@@ -181,7 +181,7 @@ export default function LandingPageNew() {
           initial="hidden"
           animate={statsInView ? "visible" : "hidden"}
         >
-          <div className={`grid ${isMobile ? 'grid-cols-2 gap-4' : 'grid-cols-2 md:grid-cols-4 gap-8'}`}>
+          <div className={`grid ${isMobile ? 'grid-cols-1 gap-6 px-4' : 'grid-cols-2 md:grid-cols-4 gap-8'}`}>
             {stats.map((stat, index) => (
               <motion.div
                 key={index}
@@ -190,14 +190,14 @@ export default function LandingPageNew() {
                 style={{ transitionDelay: `${stat.delay}s` }}
               >
                 <motion.div
-                  className="text-4xl md:text-5xl font-bold gradient-text mb-2"
+                  className="text-3xl sm:text-4xl md:text-5xl font-bold gradient-text mb-2"
                   initial={{ scale: 0 }}
                   animate={statsInView ? { scale: 1 } : { scale: 0 }}
                   transition={{ duration: 0.8, delay: stat.delay, type: "spring" }}
                 >
                   {stat.number}
                 </motion.div>
-                <p className="text-gray-600 font-medium">{stat.label}</p>
+                <p className="text-sm sm:text-base text-gray-600 font-medium text-center">{stat.label}</p>
               </motion.div>
             ))}
           </div>
@@ -215,15 +215,15 @@ export default function LandingPageNew() {
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
           >
-            <h2 className="text-4xl md:text-5xl font-bold gradient-text mb-6">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold gradient-text mb-6 px-4">
               Why Choose MIHAS-KATC for Your Healthcare Career?
             </h2>
-            <p className="text-xl text-gray-700 max-w-3xl mx-auto font-medium">
+            <p className="text-lg sm:text-xl text-gray-700 max-w-3xl mx-auto font-medium px-4">
               Join 300+ successful graduates working across Zambia and internationally. Get job-ready with our accredited programs and industry partnerships
             </p>
           </motion.div>
           
-          <div className={`grid ${isMobile ? 'grid-cols-1 gap-6' : 'md:grid-cols-3 gap-8'}`}>
+          <div className={`grid ${isMobile ? 'grid-cols-1 gap-6 px-4' : 'md:grid-cols-3 gap-8'}`}>
             {features.map((feature, index) => (
               <AnimatedCard
                 key={index}
@@ -240,8 +240,8 @@ export default function LandingPageNew() {
                 >
                   <feature.icon className="h-10 w-10 text-white" />
                 </motion.div>
-                <h3 className="text-2xl font-bold mb-4 text-gray-900">{feature.title}</h3>
-                <p className="text-gray-700 leading-relaxed font-medium">
+                <h3 className="text-xl sm:text-2xl font-bold mb-4 text-gray-900">{feature.title}</h3>
+                <p className="text-sm sm:text-base text-gray-700 leading-relaxed font-medium">
                   {feature.description}
                 </p>
               </AnimatedCard>
@@ -260,15 +260,15 @@ export default function LandingPageNew() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="text-3xl md:text-4xl font-bold gradient-text mb-4">
+            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold gradient-text mb-4 px-4">
               Qualifications Recognized by Employers Across Zambia & Beyond
             </h2>
-            <p className="text-lg text-gray-700">
+            <p className="text-base sm:text-lg text-gray-700 px-4">
               Our graduates are qualified to work in hospitals, clinics, and health organizations throughout Zambia, SADC region, and internationally
             </p>
           </motion.div>
           
-          <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8'}`}>
+          <div className={`grid ${isMobile ? 'grid-cols-1 gap-4 px-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8'}`}>
             <motion.div
               className="bg-white rounded-lg shadow-lg p-6 text-center border border-gray-100"
               initial={{ opacity: 0, y: 30 }}
@@ -278,13 +278,13 @@ export default function LandingPageNew() {
               whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
             >
               <img
-                src="/images/accreditation/nmcz-logo.svg"
+                src="/src/images/nmcz.png"
                 alt="Nursing and Midwifery Council of Zambia (NMCZ) official accreditation logo"
                 className="h-16 mx-auto mb-4 object-contain"
                 loading="lazy"
               />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">NMCZ Accredited</h3>
-              <p className="text-gray-600 text-sm mb-3">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">NMCZ Accredited</h3>
+              <p className="text-gray-600 text-xs sm:text-sm mb-3">
                 Nursing and Midwifery Council of Zambia
               </p>
               <p className="text-xs text-gray-500">
@@ -301,13 +301,13 @@ export default function LandingPageNew() {
               whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
             >
               <img
-                src="/images/accreditation/hpcz-logo.svg"
+                src="/src/images/hpcz.png"
                 alt="Health Professions Council of Zambia (HPCZ) official accreditation logo"
                 className="h-16 mx-auto mb-4 object-contain"
                 loading="lazy"
               />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">HPCZ Accredited</h3>
-              <p className="text-gray-600 text-sm mb-3">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">HPCZ Accredited</h3>
+              <p className="text-gray-600 text-xs sm:text-sm mb-3">
                 Health Professions Council of Zambia
               </p>
               <p className="text-xs text-gray-500">
@@ -324,13 +324,13 @@ export default function LandingPageNew() {
               whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
             >
               <img
-                src="/images/accreditation/ecz-logo.svg"
+                src="/src/images/eczlogo.png"
                 alt="Examinations Council of Zambia (ECZ) official certification logo"
                 className="h-16 mx-auto mb-4 object-contain"
                 loading="lazy"
               />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">ECZ Recognized</h3>
-              <p className="text-gray-600 text-sm mb-3">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">ECZ Recognized</h3>
+              <p className="text-gray-600 text-xs sm:text-sm mb-3">
                 Examinations Council of Zambia
               </p>
               <p className="text-xs text-gray-500">
@@ -347,13 +347,13 @@ export default function LandingPageNew() {
               whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
             >
               <img
-                src="/images/accreditation/unza-logo.svg"
+                src="/src/images/unza.png"
                 alt="University of Zambia (UNZA) official affiliation logo"
                 className="h-16 mx-auto mb-4 object-contain"
                 loading="lazy"
               />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">UNZA Affiliated</h3>
-              <p className="text-gray-600 text-sm mb-3">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">UNZA Affiliated</h3>
+              <p className="text-gray-600 text-xs sm:text-sm mb-3">
                 University of Zambia
               </p>
               <p className="text-xs text-gray-500">
@@ -375,15 +375,15 @@ export default function LandingPageNew() {
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
           >
-            <h2 className="text-4xl md:text-5xl font-bold gradient-text mb-6">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold gradient-text mb-6 px-4">
               High-Demand Healthcare Jobs Training Programs
             </h2>
-            <p className="text-xl text-gray-700 font-medium">
+            <p className="text-lg sm:text-xl text-gray-700 font-medium px-4">
               Three government-accredited programs with guaranteed job opportunities in Zambia's growing healthcare sector
             </p>
           </motion.div>
           
-          <div className={`grid ${isMobile ? 'grid-cols-1 gap-8' : 'md:grid-cols-2 gap-12'}`}>
+          <div className={`grid ${isMobile ? 'grid-cols-1 gap-8 px-4' : 'md:grid-cols-2 gap-12'}`}>
             {programs.map((program, index) => (
               <AnimatedCard
                 key={index}
@@ -416,7 +416,7 @@ export default function LandingPageNew() {
                     </motion.div>
                   </div>
                 </div>
-                <h3 className="text-2xl font-bold gradient-text mb-4">
+                <h3 className="text-xl sm:text-2xl font-bold gradient-text mb-4">
                   {program.institution}
                 </h3>
                 <div className="space-y-3">
@@ -430,7 +430,7 @@ export default function LandingPageNew() {
                       transition={{ delay: courseIndex * 0.1 }}
                     >
                       <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
-                      <span className="text-gray-800 font-medium">{course}</span>
+                      <span className="text-sm sm:text-base text-gray-800 font-medium">{course}</span>
                     </motion.div>
                   ))}
                 </div>
@@ -455,14 +455,14 @@ export default function LandingPageNew() {
           transition={{ duration: 0.8 }}
         >
           <motion.h2
-            className="text-4xl md:text-5xl font-bold mb-6"
+            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-6 px-4"
             animate={{ y: [0, -5, 0] }}
             transition={{ duration: 4, repeat: Infinity }}
           >
             Ready to Secure Your Healthcare Job in Zambia?
           </motion.h2>
           <motion.p
-            className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto"
+            className="text-lg sm:text-xl md:text-2xl mb-8 max-w-3xl mx-auto px-4"
             animate={{ y: [0, 5, 0] }}
             transition={{ duration: 4, repeat: Infinity, delay: 0.5 }}
           >

@@ -22,7 +22,7 @@ export function DataPopulationConfirmation({
 
   const populatedFields = [
     { label: 'Date of Birth', value: profileData.date_of_birth },
-    { label: 'Gender', value: profileData.gender },
+    { label: 'Sex', value: profileData.sex },
     { label: 'Nationality', value: profileData.nationality || profileData.country },
     { label: 'Address', value: profileData.address },
     { label: 'Emergency Contact', value: profileData.emergency_contact_name },

@@ -80,45 +80,63 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
   ]
 
   return (
-    <NavigationMenu.Root className={cn("bg-white shadow", className)}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center py-4">
-          {/* User Info */}
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                <User className="h-4 w-4 text-white" />
+    <NavigationMenu.Root className={cn("bg-white/95 backdrop-blur-sm shadow-lg border-b border-gray-200/50 sticky top-0 z-40", className)}>
+      <div className="container-mobile">
+        <div className="flex justify-between items-center py-3 sm:py-4">
+          {/* User Info - Mobile First */}
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <motion.div 
+              className="flex items-center space-x-2 sm:space-x-3"
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
+                <User className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </div>
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-semibold text-gray-900">
-                  Welcome, {profile?.full_name || 'Student'}
+              <div>
+                <h1 className="text-sm sm:text-lg font-bold text-gray-900">
+                  {isMobile ? (profile?.full_name?.split(' ')[0] || 'Student') : `Welcome, ${profile?.full_name || 'Student'}`}
                 </h1>
-                <p className="text-sm text-gray-600">{profile?.email}</p>
+                <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">{profile?.email}</p>
+                <p className="text-xs text-gray-600 sm:hidden truncate max-w-[120px]">{profile?.email}</p>
               </div>
-            </div>
+            </motion.div>
           </div>
 
           {/* Desktop Navigation */}
-          <NavigationMenu.List className="hidden md:flex items-center space-x-4">
+          <NavigationMenu.List className="hidden lg:flex items-center space-x-2">
             {navigationItems.map((item) => (
               <NavigationMenu.Item key={item.href}>
                 <Link to={item.href}>
-                  <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="flex items-center space-x-2 hover:bg-primary/10 hover:text-primary transition-all duration-200"
+                  >
                     <item.icon className="h-4 w-4" />
-                    <span>{item.label}</span>
+                    <span className="font-medium">{item.label}</span>
                   </Button>
                 </Link>
               </NavigationMenu.Item>
             ))}
             
             <NavigationMenu.Item>
-              <Button variant="ghost" size="sm" className="hidden lg:flex">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="hover:bg-gray-100"
+              >
                 <Bell className="h-4 w-4" />
               </Button>
             </NavigationMenu.Item>
             
             <NavigationMenu.Item>
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleSignOut}
+                className="ml-2 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+              >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
               </Button>
@@ -127,7 +145,7 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
 
           {/* Mobile Menu Button */}
           <motion.button
-            className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="lg:hidden p-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 touch-target"
             onClick={toggleMenu}
             whileTap={{ scale: 0.95 }}
             aria-label={isOpen ? "Close menu" : "Open menu"}
@@ -166,7 +184,7 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
           <>
             {/* Backdrop */}
             <motion.div
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -175,7 +193,7 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
 
             {/* Mobile Menu */}
             <motion.div
-              className="fixed top-0 right-0 h-full w-80 max-w-[90vw] bg-white shadow-2xl z-50 md:hidden"
+              className="fixed top-0 right-0 h-full w-80 max-w-[90vw] bg-white shadow-2xl z-50 lg:hidden safe-area-top safe-area-bottom"
               variants={menuVariants}
               initial="closed"
               animate="open"
@@ -183,28 +201,28 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
             >
               <div className="flex flex-col h-full">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                  <div className="flex items-center space-x-2">
-                    <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                      <User className="h-4 w-4 text-white" />
+                <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-primary/5 to-secondary/5">
+                  <div className="flex items-center space-x-3">
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
+                      <User className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900">{profile?.full_name || 'Student'}</p>
-                      <p className="text-sm text-gray-600">{profile?.email}</p>
+                      <p className="font-bold text-gray-900 text-lg">{profile?.full_name || 'Student'}</p>
+                      <p className="text-sm text-gray-600 truncate max-w-[180px]">{profile?.email}</p>
                     </div>
                   </div>
                   <motion.button
-                    className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 touch-target"
                     onClick={closeMenu}
                     whileTap={{ scale: 0.95 }}
                     aria-label="Close menu"
                   >
-                    <X className="h-5 w-5" />
+                    <X className="h-6 w-6" />
                   </motion.button>
                 </div>
 
                 {/* Navigation Items */}
-                <NavigationMenu.List className="flex flex-col space-y-2 p-6 flex-1">
+                <NavigationMenu.List className="flex flex-col space-y-3 p-6 flex-1 custom-scrollbar overflow-y-auto">
                   {navigationItems.map((item, index) => (
                     <NavigationMenu.Item key={item.href}>
                       <motion.div
@@ -216,16 +234,21 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
                         <Link 
                           to={item.href}
                           onClick={closeMenu}
-                          className="flex items-center w-full p-4 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 font-medium"
+                          className="mobile-nav-item mobile-nav-focus text-gray-700 hover:bg-primary/10 hover:text-primary border border-gray-200 hover:border-primary/30 transition-all duration-300"
                         >
-                          <item.icon className="h-5 w-5 mr-3" />
-                          {item.label}
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center space-x-3">
+                              <item.icon className="h-5 w-5" />
+                              <span className="mobile-nav-text">{item.label}</span>
+                            </div>
+                          </div>
                         </Link>
                       </motion.div>
                     </NavigationMenu.Item>
                   ))}
 
-                  <NavigationMenu.Item>
+                  {/* Sign Out */}
+                  <NavigationMenu.Item className="mt-4">
                     <motion.div
                       variants={itemVariants}
                       custom={navigationItems.length}
@@ -237,20 +260,29 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
                           closeMenu()
                           handleSignOut()
                         }}
-                        className="flex items-center w-full p-4 rounded-lg text-red-600 hover:bg-red-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500/50 font-medium"
+                        className="mobile-nav-item mobile-nav-focus w-full bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-xl border-2 border-red-400 hover:border-red-500"
                       >
-                        <LogOut className="h-5 w-5 mr-3" />
-                        Sign Out
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center space-x-3">
+                            <LogOut className="h-5 w-5" />
+                            <span className="mobile-nav-text">Sign Out</span>
+                          </div>
+                        </div>
                       </button>
                     </motion.div>
                   </NavigationMenu.Item>
                 </NavigationMenu.List>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-gray-200">
-                  <p className="text-gray-500 text-sm text-center">
-                    MIHAS-KATC Student Portal
-                  </p>
+                <div className="p-6 border-t border-gray-200 bg-gray-50">
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-gray-700 mb-1">
+                      MIHAS-KATC Student Portal
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Your Academic Journey Starts Here
+                    </p>
+                  </div>
                 </div>
               </div>
             </motion.div>

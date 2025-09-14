@@ -68,7 +68,7 @@ export const applicationSchema = z.object({
   nrc_number: z.string().optional(),
   passport_number: z.string().optional(),
   date_of_birth: z.string().min(1, 'Date of birth is required'),
-  gender: z.enum(['Male', 'Female'], { required_error: 'Please select gender' }),
+  sex: z.enum(['Male', 'Female'], { required_error: 'Please select sex' }),
   marital_status: z.enum(['Single', 'Married', 'Divorced', 'Widowed'], { required_error: 'Please select marital status' }),
   nationality: z.string().min(1, 'Nationality is required'),
   province: z.string().min(1, 'Province is required'),
@@ -153,7 +153,7 @@ export interface Subject {
 
 export interface ProfileData {
   date_of_birth?: string
-  gender?: string
+  sex?: string
   nationality?: string
   country?: string
   address?: string

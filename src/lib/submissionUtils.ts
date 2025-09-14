@@ -79,7 +79,7 @@ export const validateSubmissionData = (data: ApplicationFormData): string[] => {
   if (!data.program_id) errors.push('Program selection is required')
   if (!data.intake_id) errors.push('Intake selection is required')
   if (!data.date_of_birth) errors.push('Date of birth is required')
-  if (!data.gender) errors.push('Gender is required')
+  if (!data.sex) errors.push('Sex is required')
   if (!data.nationality) errors.push('Nationality is required')
   if (!data.physical_address) errors.push('Physical address is required')
   if (!data.nrc_number && !data.passport_number) errors.push('Either NRC or Passport number is required')

@@ -101,116 +101,185 @@ export default function Analytics() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <AdminNavigation />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Analytics & Reporting</h1>
-          <p className="mt-2 text-gray-600">Application statistics and trends analysis</p>
+      <main className="container-mobile py-4 sm:py-6 lg:py-8 safe-area-bottom">
+        {/* Header - Mobile First */}
+        <div className="bg-gradient-to-r from-green-500 to-teal-600 rounded-2xl p-6 text-white shadow-xl mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+            <div>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold">
+                📊 Analytics & Reporting
+              </h1>
+              <p className="text-lg sm:text-xl text-white/90 mt-2">
+                Application statistics and trends analysis
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl sm:text-3xl font-bold">{totalApplications}</div>
+              <div className="text-sm text-white/80">Total Applications</div>
+            </div>
+          </div>
         </div>
 
-        {/* Date Range Selector */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <div className="flex flex-wrap items-center gap-4">
+        {/* Date Range Selector - Mobile First */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-6 sm:mb-8">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+            📅 Date Range Filter
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
               <input
                 type="date"
                 value={dateRange.start}
                 onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                className="border border-gray-300 rounded-md px-3 py-2"
+                className="form-input-mobile w-full border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
               <input
                 type="date"
                 value={dateRange.end}
                 onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                className="border border-gray-300 rounded-md px-3 py-2"
+                className="form-input-mobile w-full border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
             </div>
-            <Button onClick={generateReport} className="mt-6">
-              <Download className="h-4 w-4 mr-2" />
-              Generate Report
-            </Button>
-          </div>
-        </div>
-
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Applications</p>
-                <p className="text-3xl font-bold text-gray-900">{totalApplications}</p>
-              </div>
-              <FileText className="h-8 w-8 text-blue-500" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Approval Rate</p>
-                <p className="text-3xl font-bold text-green-600">{overallApprovalRate}%</p>
-              </div>
-              <CheckCircle className="h-8 w-8 text-green-500" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Eligibility Success</p>
-                <p className="text-3xl font-bold text-purple-600">{avgEligibilitySuccess}%</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-purple-500" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Active Users</p>
-                <p className="text-3xl font-bold text-indigo-600">{uniqueUsers}</p>
-              </div>
-              <Users className="h-8 w-8 text-indigo-500" />
+            <div className="flex items-end">
+              <Button 
+                onClick={generateReport} 
+                className="btn-responsive bg-gradient-to-r from-green-500 to-teal-600 text-white font-semibold shadow-lg hover:shadow-xl"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Generate Report
+              </Button>
             </div>
           </div>
         </div>
 
-        {/* Program Analytics */}
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Program Performance</h3>
+        {/* Key Metrics - Mobile First */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">Total Applications</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900">{totalApplications}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-2xl">
+                <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">Approval Rate</p>
+                <p className="text-2xl sm:text-3xl font-bold text-green-600">{overallApprovalRate}%</p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-2xl">
+                <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">Eligibility Success</p>
+                <p className="text-2xl sm:text-3xl font-bold text-purple-600">{avgEligibilitySuccess}%</p>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-2xl">
+                <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">Active Users</p>
+                <p className="text-2xl sm:text-3xl font-bold text-indigo-600">{uniqueUsers}</p>
+              </div>
+              <div className="p-3 bg-indigo-100 rounded-2xl">
+                <Users className="h-6 w-6 sm:h-8 sm:w-8 text-indigo-600" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Program Analytics - Mobile First */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 mb-6 sm:mb-8 overflow-hidden">
+          <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-200">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center">
+              🏆 Program Performance
+            </h3>
           </div>
           <div className="p-6">
-            <div className="overflow-x-auto">
+            {/* Mobile Cards View */}
+            <div className="block lg:hidden space-y-4">
+              {programAnalytics.map((program, index) => (
+                <div key={index} className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <h4 className="font-bold text-lg text-gray-900 mb-3">{program.programName}</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-gray-500">Applications:</span>
+                      <div className="font-semibold text-blue-600">{program.applicationsCount}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Approval Rate:</span>
+                      <div className="font-semibold text-green-600">{program.approvalRate}%</div>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-gray-500">Avg Processing:</span>
+                      <div className="font-semibold text-purple-600">{program.averageProcessingDays} days</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+                <thead className="bg-gradient-to-r from-gray-50 to-blue-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Program</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applications</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Approval Rate</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Processing Days</th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                      🎓 Program
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                      📋 Applications
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                      ✅ Approval Rate
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                      ⏱️ Avg Processing
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {programAnalytics.map((program, index) => (
-                    <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {program.programName}
+                    <tr key={index} className="hover:bg-blue-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="font-semibold text-gray-900">{program.programName}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {program.applicationsCount}
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                          {program.applicationsCount}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {program.approvalRate}%
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                          {program.approvalRate}%
+                        </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {program.averageProcessingDays} days
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                          {program.averageProcessingDays} days
+                        </span>
                       </td>
                     </tr>
                   ))}

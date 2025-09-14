@@ -13,6 +13,7 @@ import {
   DialogDescription
 } from '@/components/ui/Dialog'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { AdminNavigation } from '@/components/ui/AdminNavigation'
 import { Pencil, Trash2, Plus, ArrowLeft } from 'lucide-react'
 
 export default function AdminPrograms() {
@@ -158,62 +159,173 @@ export default function AdminPrograms() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <Link to="/admin">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <AdminNavigation />
+      <div className="container-mobile py-4 sm:py-6 lg:py-8 safe-area-bottom">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          {/* Header - Mobile First */}
+          <div className="bg-gradient-to-r from-primary to-secondary p-6 text-white">
+            <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+              <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
+                <Link to="/admin">
+                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 border-white/30">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back
+                  </Button>
+                </Link>
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold">🎓 Programs</h1>
+                  <p className="text-white/90 text-sm sm:text-base">Manage academic programs</p>
+                </div>
+              </div>
+              <Button 
+                onClick={openCreate}
+                className="bg-white text-primary hover:bg-gray-100 font-semibold shadow-lg"
+              >
+                <Plus className="h-4 w-4 mr-2" /> Add Program
               </Button>
-            </Link>
-            <h1 className="text-2xl font-bold text-secondary">Programs</h1>
+            </div>
           </div>
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4 mr-2" /> Add Program
-          </Button>
-        </div>
 
-        {loading ? (
-          <div className="flex justify-center py-10">
-            <LoadingSpinner />
-          </div>
-        ) : error ? (
-          <p className="text-red-600">{error}</p>
-        ) : programs.length === 0 ? (
-          <p className="text-secondary">No programs found.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">Duration (years)</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-secondary uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {programs.map((program) => (
-                  <tr key={program.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary">{program.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary">{program.duration_years}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
-                        <Button variant="outline" size="sm" onClick={() => openEdit(program)}>
-                          <Pencil className="h-4 w-4" />
+          {/* Content */}
+          <div className="p-6">
+
+            {loading ? (
+              <div className="flex justify-center py-16">
+                <div className="text-center">
+                  <LoadingSpinner size="lg" />
+                  <p className="mt-4 text-lg text-gray-600">Loading programs...</p>
+                </div>
+              </div>
+            ) : error ? (
+              <div className="rounded-xl bg-red-50 border border-red-200 p-6 text-center">
+                <div className="text-6xl mb-4">😱</div>
+                <p className="text-red-600 font-medium text-lg">{error}</p>
+                <Button 
+                  onClick={loadPrograms} 
+                  variant="outline" 
+                  className="mt-4 text-red-600 border-red-300 hover:bg-red-50"
+                >
+                  Try Again
+                </Button>
+              </div>
+            ) : programs.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="text-8xl mb-6">🎓</div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">No Programs Yet</h3>
+                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                  Start by creating your first academic program. Programs define the courses and duration for student applications.
+                </p>
+                <Button onClick={openCreate} className="bg-gradient-to-r from-primary to-secondary text-white font-semibold">
+                  <Plus className="h-5 w-5 mr-2" />
+                  Create First Program
+                </Button>
+              </div>
+            ) : (
+              <>
+                {/* Mobile Cards View */}
+                <div className="block sm:hidden space-y-4">
+                  {programs.map((program) => (
+                    <div key={program.id} className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-lg text-gray-900">{program.name}</h3>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Duration: {program.duration_years} year{program.duration_years !== 1 ? 's' : ''}
+                          </p>
+                          {program.description && (
+                            <p className="text-sm text-gray-500 mt-2 line-clamp-2">{program.description}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => openEdit(program)}
+                          className="flex-1 text-blue-600 border-blue-300 hover:bg-blue-50"
+                        >
+                          <Pencil className="h-4 w-4 mr-1" />
+                          Edit
                         </Button>
-                        <Button variant="danger" size="sm" onClick={() => openDelete(program)}>
-                          <Trash2 className="h-4 w-4" />
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => openDelete(program)}
+                          className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
                         </Button>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden sm:block overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gradient-to-r from-gray-50 to-blue-50">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                          🎓 Program Name
+                        </th>
+                        <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                          🕰️ Duration
+                        </th>
+                        <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                          📝 Description
+                        </th>
+                        <th className="px-6 py-4 text-right text-sm font-bold text-gray-700 uppercase tracking-wider">
+                          ⚙️ Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {programs.map((program) => (
+                        <tr key={program.id} className="hover:bg-blue-50 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="font-semibold text-gray-900">{program.name}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                              {program.duration_years} year{program.duration_years !== 1 ? 's' : ''}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-600 max-w-xs truncate">
+                              {program.description || 'No description provided'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end space-x-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => openEdit(program)}
+                                className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => openDelete(program)}
+                                className="text-red-600 border-red-300 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Create Program Dialog */}

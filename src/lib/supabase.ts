@@ -19,7 +19,7 @@ export interface UserProfile {
   phone?: string
   role: string
   date_of_birth?: string
-  gender?: string
+  sex?: string
   nationality?: string
   country?: string
   address?: string

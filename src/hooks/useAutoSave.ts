@@ -100,11 +100,9 @@ export function useAutoSave({
       }
 
       if (!isOnline) {
-        // Save to localStorage for offline
-        localStorage.setItem('applicationDraftOffline', JSON.stringify({
-          ...draftData,
-          timestamp: Date.now()
-        }))
+        // Use enhanced offline storage
+        const { offlineSyncService } = await import('@/services/offlineSync')
+        await offlineSyncService.storeOffline(userId, 'application_draft', draftData)
         setPendingChanges(true)
         onSaveError?.('Saved offline - will sync when connection restored')
         return

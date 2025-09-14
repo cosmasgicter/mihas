@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { AuthenticatedNavigation } from '@/components/ui/AuthenticatedNavigation'
+import { motion } from 'framer-motion'
 import { ArrowLeft, User, Mail, Phone, MapPin, Save } from 'lucide-react'
 
 const optionalString = () => z.string().optional().or(z.literal(''))
@@ -16,7 +17,7 @@ const profileSchema = z.object({
   full_name: z.string().min(2, 'Full name must be at least 2 characters'),
   phone: z.string().min(10, 'Please enter a valid phone number').or(z.literal('')).optional(),
   date_of_birth: optionalString(),
-  gender: z.enum(['Male', 'Female', 'Other'], { required_error: 'Please select a gender' }).optional(),
+  sex: z.enum(['Male', 'Female'], { required_error: 'Please select a sex' }).optional(),
   nationality: optionalString(),
   address: optionalString(),
   city: optionalString(),
@@ -43,7 +44,7 @@ export default function StudentSettings() {
       full_name: profile?.full_name || '',
       phone: profile?.phone || '',
       date_of_birth: profile?.date_of_birth || '',
-      gender: (profile?.gender as 'Male' | 'Female' | 'Other') || undefined,
+      sex: (profile?.sex as 'Male' | 'Female') || undefined,
       nationality: profile?.nationality || '',
       address: profile?.address || '',
       city: profile?.city || '',
@@ -70,78 +71,109 @@ export default function StudentSettings() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <AuthenticatedNavigation />
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <Link to="/student/dashboard" className="inline-flex items-center text-primary hover:text-primary mb-4">
+      <div className="container-mobile py-4 sm:py-6 lg:py-8 safe-area-bottom">
+        {/* Header - Mobile First */}
+        <div className="mb-6 sm:mb-8">
+          <Link to="/student/dashboard" className="inline-flex items-center text-primary hover:text-primary/80 mb-4 font-medium transition-colors">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Link>
-          <h1 className="text-3xl font-bold text-secondary mb-2">
-            Profile Settings
-          </h1>
-          <p className="text-secondary">
-            Update your personal information and contact details.
-          </p>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-r from-primary to-secondary rounded-2xl p-6 sm:p-8 text-white shadow-xl"
+          >
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">
+              ⚙️ Profile Settings
+            </h1>
+            <p className="text-lg sm:text-xl text-white/90">
+              Update your personal information and contact details
+            </p>
+          </motion.div>
         </div>
 
         {error && (
-          <div className="rounded-md bg-red-50 p-4 mb-6">
-            <div className="text-sm text-red-700">{error}</div>
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl bg-red-50 border border-red-200 p-4 sm:p-6 mb-6 shadow-lg"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="text-4xl">😱</div>
+              <div className="text-red-700 font-medium">{error}</div>
+            </div>
+          </motion.div>
         )}
 
         {success && (
-          <div className="rounded-md bg-green-50 p-4 mb-6">
-            <div className="text-sm text-green-700">{success}</div>
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl bg-green-50 border border-green-200 p-4 sm:p-6 mb-6 shadow-lg"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="text-4xl">✅</div>
+              <div className="text-green-700 font-medium">{success}</div>
+            </div>
+          </motion.div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
           {/* Basic Information */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6"
+          >
             <div className="flex items-center space-x-3 mb-6">
-              <User className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-semibold text-secondary">
-                Basic Information
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <User className="h-5 w-5 text-blue-600" />
+              </div>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">
+                👤 Basic Information
               </h2>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Input
                 {...register('full_name')}
                 type="text"
                 label="Full Name"
                 error={errors.full_name?.message}
                 required
+                className="form-input-mobile"
               />
               
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email Address
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-secondary" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
                   <input
                     type="email"
                     value={profile?.email || ''}
                     disabled
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-secondary cursor-not-allowed"
+                    className="form-input-mobile w-full pl-10 pr-3 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
                   />
                 </div>
-                <p className="mt-1 text-xs text-secondary">Email cannot be changed</p>
+                <p className="mt-2 text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-lg inline-block">
+                  🔒 Email cannot be changed
+                </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
               <Input
                 {...register('phone')}
                 type="tel"
                 label="Phone Number"
                 placeholder="+260-123-456-789"
                 error={errors.phone?.message}
+                className="form-input-mobile"
               />
               
               <Input
@@ -149,44 +181,52 @@ export default function StudentSettings() {
                 type="date"
                 label="Date of Birth"
                 error={errors.date_of_birth?.message}
+                className="form-input-mobile"
               />
               
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">
-                  Gender
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Sex
                 </label>
                 <select
-                  {...register('gender')}
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                  {...register('sex')}
+                  className="form-input-mobile w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 >
-                  <option value="">Select Gender</option>
+                  <option value="">Select Sex</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
-                  <option value="Other">Other</option>
                 </select>
-                {errors.gender && (
-                  <p className="mt-1 text-sm text-red-600">{errors.gender.message}</p>
+                {errors.sex && (
+                  <p className="mt-2 text-sm text-red-600 bg-red-50 px-3 py-1 rounded-lg">{errors.sex.message}</p>
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Address Information */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6"
+          >
             <div className="flex items-center space-x-3 mb-6">
-              <MapPin className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-semibold text-secondary">
-                Address Information
+              <div className="p-2 bg-green-100 rounded-lg">
+                <MapPin className="h-5 w-5 text-green-600" />
+              </div>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">
+                📍 Address Information
               </h2>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Input
                 {...register('nationality')}
                 type="text"
                 label="Nationality"
                 placeholder="Zambian"
                 error={errors.nationality?.message}
+                className="form-input-mobile"
               />
               
               <Input
@@ -195,22 +235,23 @@ export default function StudentSettings() {
                 label="Country"
                 placeholder="Zambia"
                 error={errors.country?.message}
+                className="form-input-mobile"
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Address
                 </label>
                 <textarea
                   {...register('address')}
-                  rows={3}
+                  rows={4}
                   placeholder="House number, street, area"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                  className="w-full rounded-xl border-2 border-gray-200 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary resize-none"
                 />
                 {errors.address && (
-                  <p className="mt-1 text-sm text-red-600">{errors.address.message}</p>
+                  <p className="mt-2 text-sm text-red-600 bg-red-50 px-3 py-1 rounded-lg">{errors.address.message}</p>
                 )}
               </div>
               
@@ -220,26 +261,35 @@ export default function StudentSettings() {
                 label="City"
                 placeholder="Kitwe"
                 error={errors.city?.message}
+                className="form-input-mobile"
               />
             </div>
-          </div>
+          </motion.div>
 
           {/* Emergency Contact */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6"
+          >
             <div className="flex items-center space-x-3 mb-6">
-              <Phone className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-semibold text-secondary">
-                Emergency Contact
+              <div className="p-2 bg-red-100 rounded-lg">
+                <Phone className="h-5 w-5 text-red-600" />
+              </div>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">
+                🆘 Emergency Contact
               </h2>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Input
                 {...register('emergency_contact_name')}
                 type="text"
                 label="Emergency Contact Name"
                 placeholder="Full name of emergency contact"
                 error={errors.emergency_contact_name?.message}
+                className="form-input-mobile"
               />
               
               <Input
@@ -248,22 +298,36 @@ export default function StudentSettings() {
                 label="Emergency Contact Phone"
                 placeholder="+260-123-456-789"
                 error={errors.emergency_contact_phone?.message}
+                className="form-input-mobile"
               />
             </div>
-          </div>
+          </motion.div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end space-x-4">
-            <Link to="/student/dashboard">
-              <Button type="button" variant="outline">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="flex flex-col sm:flex-row sm:justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-6"
+          >
+            <Link to="/student/dashboard" className="w-full sm:w-auto">
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="btn-responsive border-2 hover:border-gray-400"
+              >
                 Cancel
               </Button>
             </Link>
-            <Button type="submit" loading={loading}>
+            <Button 
+              type="submit" 
+              loading={loading}
+              className="btn-responsive bg-gradient-to-r from-primary to-secondary text-white font-semibold shadow-lg hover:shadow-xl"
+            >
               <Save className="h-4 w-4 mr-2" />
-              Save Changes
+              {loading ? 'Saving...' : 'Save Changes'}
             </Button>
-          </div>
+          </motion.div>
         </form>
       </div>
     </div>

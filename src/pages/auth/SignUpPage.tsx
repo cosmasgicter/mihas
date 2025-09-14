@@ -19,7 +19,7 @@ const signUpSchema = z.object({
   full_name: z.string().min(2, 'Full name must be at least 2 characters'),
   phone: z.string().min(10, 'Please enter a valid phone number'),
   date_of_birth: z.string().min(1, 'Date of birth is required'),
-  gender: z.enum(['Male', 'Female', 'Other'], { required_error: 'Please select a gender' }),
+  sex: z.enum(['Male', 'Female'], { required_error: 'Please select a sex' }),
   nationality: z.string().min(2, 'Nationality is required'),
   address: z.string().min(10, 'Please enter your full address'),
   city: z.string().min(2, 'City is required'),
@@ -223,19 +223,18 @@ setSuccess('Account created successfully! Redirecting to sign in...')
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-secondary mb-1">
-                  Gender <span className="text-red-500">*</span>
+                  Sex <span className="text-red-500">*</span>
                 </label>
                 <select
-                  {...register('gender')}
+                  {...register('sex')}
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 >
-                  <option value="">Select Gender</option>
+                  <option value="">Select Sex</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
-                  <option value="Other">Other</option>
                 </select>
-                {errors.gender && (
-                  <p className="mt-1 text-sm text-red-600">{errors.gender.message}</p>
+                {errors.sex && (
+                  <p className="mt-1 text-sm text-red-600">{errors.sex.message}</p>
                 )}
               </div>
               

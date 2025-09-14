@@ -17,6 +17,7 @@ import {
   Plus,
   X
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export default function StudentDashboard() {
   const isMobile = useIsMobile()
@@ -172,43 +173,91 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
       <AuthenticatedNavigation />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {error && (
-          <div className="rounded-md bg-red-50 p-4 mb-6">
-            <div className="text-sm text-red-700">{error}</div>
+      <main className="container-mobile py-4 sm:py-6 lg:py-8 safe-area-bottom">
+        {/* Welcome Section - Mobile First */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 sm:mb-8"
+        >
+          <div className="bg-gradient-to-r from-primary to-secondary rounded-2xl p-6 sm:p-8 text-white shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+              <div>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">
+                  🎓 Welcome back, {profile?.full_name?.split(' ')[0] || 'Student'}!
+                </h1>
+                <p className="text-lg sm:text-xl text-white/90">
+                  Track your applications and manage your profile
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-3xl sm:text-4xl font-bold">{applications.length}</div>
+                <div className="text-sm sm:text-base text-white/80">Applications</div>
+              </div>
+            </div>
           </div>
-        )}
+        </motion.div>
+
+        {/* Error Display */}
+        <AnimatePresence>
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="rounded-xl bg-red-50 border border-red-200 p-4 sm:p-6 mb-6 shadow-lg"
+            >
+              <div className="flex items-center space-x-3">
+                <XCircle className="h-6 w-6 text-red-500 flex-shrink-0" />
+                <div className="text-sm sm:text-base text-red-700 font-medium">{error}</div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Continue Application */}
-        <div className="mb-8">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mb-6 sm:mb-8"
+        >
           <ContinueApplication />
-        </div>
+        </motion.div>
 
-        <div className={`grid ${isMobile ? 'grid-cols-1 gap-6' : 'grid-cols-1 lg:grid-cols-3 gap-8'}`}>
-          {/* Applications List */}
-          <div className={isMobile ? '' : 'lg:col-span-2'}>
-            <div className="bg-white rounded-lg shadow">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-secondary">My Applications</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+          {/* Applications List - Mobile First */}
+          <div className="lg:col-span-2">
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-white rounded-2xl shadow-lg border border-gray-100"
+            >
+              <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center">
+                  📋 My Applications
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">Track your application progress</p>
               </div>
               
               <div className="divide-y divide-gray-200">
                 {applications.length === 0 && !hasDraft ? (
-                  <div className="px-6 py-12 text-center">
-                    <FileText className="h-12 w-12 text-secondary mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-secondary mb-2">
+                  <div className="px-6 py-16 text-center">
+                    <div className="text-8xl mb-6">📋</div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">
                       No Applications Yet
                     </h3>
-                    <p className="text-secondary mb-6">
+                    <p className="text-gray-600 mb-6 max-w-md mx-auto">
                       You haven't submitted any applications. Start your journey by applying to our programs.
                     </p>
                     <Link to="/student/application-wizard">
-                      <Button>
-                        <Plus className="h-4 w-4 mr-2" />
+                      <Button className="bg-gradient-to-r from-primary to-secondary text-white font-semibold shadow-lg hover:shadow-xl">
+                        <Plus className="h-5 w-5 mr-2" />
                         Create First Application
                       </Button>
                     </Link>
@@ -217,34 +266,43 @@ export default function StudentDashboard() {
                   <>
                     {/* Show draft applications from database */}
                     {applications.filter(app => app.status === 'draft').map((application) => (
-                      <div key={`draft-${application.id}`} className="px-6 py-4 hover:bg-gray-50 bg-yellow-50 border-l-4 border-yellow-400">
-                        <div className="flex items-center justify-between">
+                      <motion.div 
+                        key={`draft-${application.id}`} 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="px-6 py-4 hover:bg-yellow-50 bg-gradient-to-r from-yellow-50 to-orange-50 border-l-4 border-yellow-400 transition-all duration-300"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-2">
-                              <Clock className="h-5 w-5 text-yellow-500" />
-                              <h4 className="text-sm font-medium text-secondary">
-                                Draft Application
+                              <Clock className="h-5 w-5 text-yellow-600" />
+                              <h4 className="text-base font-semibold text-gray-900">
+                                📝 Draft Application
                               </h4>
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-yellow-200 text-yellow-800">
                                 DRAFT
                               </span>
                             </div>
                             
-                            <div className="text-sm text-secondary space-y-1">
-                              <p>Application #{application.application_number}</p>
-                              <p>Program: {application.program}</p>
-                              <p>Intake: {application.intake}</p>
-                              <p>Created: {formatDate(application.created_at)}</p>
+                            <div className="text-sm text-gray-700 space-y-1">
+                              <p><strong>Application:</strong> #{application.application_number}</p>
+                              <p><strong>Program:</strong> {application.program}</p>
+                              <p><strong>Intake:</strong> {application.intake}</p>
+                              <p><strong>Created:</strong> {formatDate(application.created_at)}</p>
                             </div>
                           </div>
                           
                           <Link to="/student/application-wizard">
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="w-full sm:w-auto text-yellow-700 border-yellow-300 hover:bg-yellow-100 font-semibold"
+                            >
                               Continue Draft
                             </Button>
                           </Link>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
                     
                     {/* Show localStorage draft if exists */}
@@ -280,102 +338,151 @@ export default function StudentDashboard() {
                       </div>
                     )}
                     {/* Show submitted applications */}
-                    {applications.filter(app => app.status !== 'draft').map((application) => (
-                      <div key={application.id} className="px-6 py-4 hover:bg-gray-50">
-                        <div className="flex items-center justify-between">
+                    {applications.filter(app => app.status !== 'draft').map((application, index) => (
+                      <motion.div 
+                        key={application.id} 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="px-6 py-4 hover:bg-blue-50 transition-all duration-300 border-l-4 border-transparent hover:border-primary"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-2">
                               {getStatusIcon(application.status)}
-                              <h4 className="text-sm font-medium text-secondary">
+                              <h4 className="text-base font-semibold text-gray-900">
                                 {getProgramName(application.program)}
                               </h4>
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
                                 getStatusColor(application.status)
                               }`}>
                                 {application.status.replace('_', ' ').toUpperCase()}
                               </span>
                             </div>
                             
-                            <div className="text-sm text-secondary space-y-1">
-                              <p>Application #{application.application_number}</p>
-                              <p>Intake: {getIntakeName(application.intake)}</p>
-                              <p>Submitted: {formatDate(application.submitted_at)}</p>
+                            <div className="text-sm text-gray-700 space-y-1">
+                              <p><strong>Application:</strong> #{application.application_number}</p>
+                              <p><strong>Intake:</strong> {getIntakeName(application.intake)}</p>
+                              <p><strong>Submitted:</strong> {formatDate(application.submitted_at)}</p>
                             </div>
                           </div>
                           
                           <Link to={`/application/${application.id}`}>
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="w-full sm:w-auto text-primary border-primary hover:bg-primary hover:text-white font-semibold"
+                            >
                               View Details
                             </Button>
                           </Link>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
                   </>
                 )}
               </div>
-            </div>
+            </motion.div>
           </div>
 
-          {/* Sidebar */}
+          {/* Sidebar - Mobile First */}
           <div className="space-y-6">
             {/* Profile Summary */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-medium text-secondary mb-4">Profile Summary</h3>
-              <div className="space-y-3 text-sm">
-                <div>
-                  <span className="text-secondary">Full Name:</span>
-                  <p className="font-medium">{profile?.full_name}</p>
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+              className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6"
+            >
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                👤 Profile Summary
+              </h3>
+              <div className="space-y-4 text-sm">
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <span className="text-gray-600 text-xs uppercase tracking-wide">Full Name</span>
+                  <p className="font-semibold text-gray-900">{profile?.full_name || 'Not provided'}</p>
                 </div>
-                <div>
-                  <span className="text-secondary">Email:</span>
-                  <p className="font-medium">{profile?.email}</p>
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <span className="text-gray-600 text-xs uppercase tracking-wide">Email</span>
+                  <p className="font-semibold text-gray-900 truncate">{profile?.email || 'Not provided'}</p>
                 </div>
-                <div>
-                  <span className="text-secondary">Phone:</span>
-                  <p className="font-medium">{profile?.phone || 'Not provided'}</p>
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <span className="text-gray-600 text-xs uppercase tracking-wide">Phone</span>
+                  <p className="font-semibold text-gray-900">{profile?.phone || 'Not provided'}</p>
                 </div>
-                <div>
-                  <span className="text-secondary">City:</span>
-                  <p className="font-medium">{profile?.city || 'Not provided'}</p>
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <span className="text-gray-600 text-xs uppercase tracking-wide">City</span>
+                  <p className="font-semibold text-gray-900">{profile?.city || 'Not provided'}</p>
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="w-full mt-4">
-                Update Profile
-              </Button>
-            </div>
+              <Link to="/settings">
+                <Button variant="outline" size="sm" className="w-full mt-4 border-2 hover:border-primary hover:bg-primary hover:text-white font-semibold">
+                  <User className="h-4 w-4 mr-2" />
+                  Update Profile
+                </Button>
+              </Link>
+            </motion.div>
 
             {/* Upcoming Deadlines */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-medium text-secondary mb-4">Upcoming Deadlines</h3>
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5 }}
+              className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6"
+            >
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                ⏰ Upcoming Deadlines
+              </h3>
               <div className="space-y-3">
-                {intakes.slice(0, 3).map((intake) => (
-                  <div key={intake.id} className="border-l-4 border-primary pl-4">
-                    <p className="text-sm font-medium text-secondary">{intake.name}</p>
-                    <p className="text-xs text-secondary">
+                {intakes.slice(0, 3).map((intake, index) => (
+                  <motion.div 
+                    key={intake.id} 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 + index * 0.1 }}
+                    className="border-l-4 border-red-400 pl-4 p-3 bg-red-50 rounded-r-xl"
+                  >
+                    <p className="text-sm font-semibold text-gray-900">{intake.name}</p>
+                    <p className="text-xs text-red-600 font-medium">
                       Deadline: {formatDate(intake.application_deadline)}
                     </p>
-                  </div>
+                  </motion.div>
                 ))}
+                {intakes.length === 0 && (
+                  <div className="text-center py-4">
+                    <p className="text-gray-500 text-sm">No upcoming deadlines</p>
+                  </div>
+                )}
               </div>
-            </div>
+            </motion.div>
 
             {/* Quick Links */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-medium text-secondary mb-4">Quick Links</h3>
-              <div className="space-y-2">
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6 }}
+              className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6"
+            >
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                ⚡ Quick Actions
+              </h3>
+              <div className="space-y-3">
                 {hasDraft ? (
                   <>
                     <Link to="/student/application-wizard" className="block">
-                      <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full justify-start bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100 font-semibold"
+                      >
                         <FileText className="h-4 w-4 mr-2" />
                         Continue Draft
                       </Button>
                     </Link>
                     <Button 
-                      variant="ghost" 
+                      variant="outline" 
                       size="sm" 
-                      className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="w-full justify-start text-red-600 border-red-300 hover:bg-red-50 font-semibold"
                       onClick={() => {
                         localStorage.removeItem('applicationWizardDraft')
                         setHasDraft(false)
@@ -388,24 +495,36 @@ export default function StudentDashboard() {
                   </>
                 ) : (
                   <Link to="/student/application-wizard" className="block">
-                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full justify-start bg-gradient-to-r from-primary to-secondary text-white border-primary hover:from-primary/90 hover:to-secondary/90 font-semibold shadow-lg"
+                    >
                       <Plus className="h-4 w-4 mr-2" />
                       New Application
                     </Button>
                   </Link>
                 )}
-                <Button variant="ghost" size="sm" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start border-gray-300 hover:bg-gray-50 font-semibold"
+                >
                   <FileText className="h-4 w-4 mr-2" />
                   Document Templates
                 </Button>
                 <Link to="/settings" className="block">
-                  <Button variant="ghost" size="sm" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start border-purple-300 text-purple-700 hover:bg-purple-50 font-semibold"
+                  >
                     <User className="h-4 w-4 mr-2" />
                     Profile Settings
                   </Button>
                 </Link>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </main>
