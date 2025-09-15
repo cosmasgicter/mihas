@@ -124,14 +124,14 @@ export class PredictiveAnalytics {
   private calculateProbabilityScore(applicationData: any, historicalData: any[]): number {
     let score = 0.4 // Base score
     
-    // Grade-based scoring (40% weight)
+    // Grade-based scoring (40% weight) - 1 is best, 9 is worst in Zambian system
     if (applicationData.grades?.length >= 6) score += 0.15
     if (applicationData.grades?.length >= 8) score += 0.1
     
     const avgGrade = applicationData.grades?.reduce((sum: number, g: any) => sum + g.grade, 0) / (applicationData.grades?.length || 1)
-    if (avgGrade <= 3) score += 0.2
-    else if (avgGrade <= 4) score += 0.15
-    else if (avgGrade <= 5) score += 0.1
+    if (avgGrade <= 3) score += 0.2  // Excellent grades (1-3)
+    else if (avgGrade <= 4) score += 0.15  // Good grades (4)
+    else if (avgGrade <= 5) score += 0.1   // Average grades (5)
     
     // Document completeness (20% weight)
     if (applicationData.result_slip_url) score += 0.1
@@ -151,8 +151,8 @@ export class PredictiveAnalytics {
     
     if (coreGrades.length >= coreSubjects.length) {
       const avgCoreGrade = coreGrades.reduce((sum: number, g: any) => sum + g.grade, 0) / coreGrades.length
-      if (avgCoreGrade <= 3) score += 0.15
-      else if (avgCoreGrade <= 4) score += 0.1
+      if (avgCoreGrade <= 3) score += 0.15  // Excellent core grades
+      else if (avgCoreGrade <= 4) score += 0.1   // Good core grades
     }
     
     return Math.min(Math.max(score, 0.05), 0.98)
@@ -170,9 +170,9 @@ export class PredictiveAnalytics {
     if (applicationData.grades?.length < 5) baseTime += 2
     if (applicationData.grades?.length < 6) baseTime += 1
     
-    // Quality factors that speed up processing
+    // Quality factors that speed up processing (1 is best grade)
     const avgGrade = applicationData.grades?.reduce((sum: number, g: any) => sum + g.grade, 0) / (applicationData.grades?.length || 1)
-    if (avgGrade <= 3 && applicationData.grades?.length >= 6) baseTime -= 1
+    if (avgGrade <= 3 && applicationData.grades?.length >= 6) baseTime -= 1  // Excellent grades speed up processing
     
     return Math.max(baseTime, 1) // Minimum 1 day
   }
@@ -192,7 +192,7 @@ export class PredictiveAnalytics {
       risks.push('Missing proof of payment')
     }
     
-    // Check grade quality
+    // Check grade quality (1 is best, 9 is worst in Zambian system)
     if (applicationData.grades?.some((g: any) => g.grade > 6)) {
       risks.push('Some grades may not meet program requirements')
     }
@@ -222,7 +222,8 @@ export class PredictiveAnalytics {
     return coreSubjectsMap[program] || []
   }
 
-  private generateRecommendations(applicationData: any, score: number): string[] {
+  private async generateRecommendations(applicationData: any, score: number): Promise<string[]> {
+    // Generate intelligent recommendations using local logic (100% free)
     const recommendations: string[] = []
     
     if (score < 0.6) {

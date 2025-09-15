@@ -278,11 +278,15 @@ function SubjectCard({
                 className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
                 <option value="">Select grade</option>
-                <option value="A">A (Distinction)</option>
-                <option value="B">B (Merit)</option>
-                <option value="C">C (Credit)</option>
-                <option value="D">D (Pass)</option>
-                <option value="F">F (Fail)</option>
+                <option value="1">1 (A+ - Distinction)</option>
+                <option value="2">2 (A - Distinction)</option>
+                <option value="3">3 (B+ - Merit)</option>
+                <option value="4">4 (B - Merit)</option>
+                <option value="5">5 (C+ - Credit)</option>
+                <option value="6">6 (C - Credit)</option>
+                <option value="7">7 (D+ - Pass)</option>
+                <option value="8">8 (D - Pass)</option>
+                <option value="9">9 (F - Fail)</option>
               </select>
             </div>
             

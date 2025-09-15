@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { sessionManager } from './session'
+import { freeOCR } from './freeOCR'
 
 export interface OCRResult {
   text: string
@@ -35,34 +36,13 @@ export class DocumentAI {
     const startTime = Date.now()
     
     try {
-      // Validate session
-      const isValid = await sessionManager.isSessionValid()
-      if (!isValid) {
-        throw new Error('Session expired. Please sign in again.')
-      }
-
-      // Validate file
-      this.validateFile(file)
+      // Add timeout wrapper
+      const analysisPromise = this.performAnalysis(file, applicationId)
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Analysis timeout')), 10000) // 10 second timeout
+      )
       
-      const ocrResult = await this.performOCR(file)
-      const quality = this.assessQuality(file, ocrResult)
-      const extractedData = this.extractStructuredData(ocrResult)
-      const processingTime = Date.now() - startTime
-      
-      const analysis: DocumentAnalysis = {
-        quality,
-        completeness: this.calculateCompleteness(extractedData),
-        suggestions: this.generateSuggestions(quality, extractedData),
-        autoFillData: extractedData,
-        processingTime
-      }
-
-      // Store analysis results if applicationId provided
-      if (applicationId) {
-        await this.storeAnalysisResults(applicationId, file.name, analysis)
-      }
-      
-      return analysis
+      return await Promise.race([analysisPromise, timeoutPromise])
     } catch (error) {
       console.error('Document analysis failed:', error)
       return {
@@ -73,6 +53,39 @@ export class DocumentAI {
         processingTime: Date.now() - startTime
       }
     }
+  }
+
+  private async performAnalysis(file: File, applicationId?: string): Promise<DocumentAnalysis> {
+    const startTime = Date.now()
+    
+    // Validate session
+    const isValid = await sessionManager.isSessionValid()
+    if (!isValid) {
+      throw new Error('Session expired. Please sign in again.')
+    }
+
+    // Validate file
+    this.validateFile(file)
+    
+    const ocrResult = await this.performOCR(file)
+    const quality = this.assessQuality(file, ocrResult)
+    const extractedData = this.extractStructuredData(ocrResult)
+    const processingTime = Date.now() - startTime
+    
+    const analysis: DocumentAnalysis = {
+      quality,
+      completeness: this.calculateCompleteness(extractedData),
+      suggestions: this.generateSuggestions(quality, extractedData),
+      autoFillData: extractedData,
+      processingTime
+    }
+
+    // Store analysis results if applicationId provided
+    if (applicationId) {
+      await this.storeAnalysisResults(applicationId, file.name, analysis)
+    }
+    
+    return analysis
   }
 
   private validateFile(file: File): void {
@@ -90,65 +103,57 @@ export class DocumentAI {
 
   private async performOCR(file: File): Promise<OCRResult> {
     try {
-      // Enhanced OCR simulation with realistic patterns
-      const fileName = file.name.toLowerCase()
-      const isResultSlip = fileName.includes('result') || fileName.includes('grade')
-      const isPayment = fileName.includes('payment') || fileName.includes('receipt')
+      // Use 100% free OCR processing
+      const result = await freeOCR.processDocument(file)
       
-      // Simulate processing time based on file size
-      const processingTime = Math.min(file.size / 100000, 3000)
-      await new Promise(resolve => setTimeout(resolve, processingTime))
-      
-      let mockResult: OCRResult
-      
-      if (isResultSlip) {
-        mockResult = {
-          text: 'ZAMBIA EXAMINATIONS COUNCIL\nGRADE 12 CERTIFICATE\nCandidate Name: STUDENT NAME\nNRC: 123456/12/1\nExam Number: 2023001234\nSchool: SAMPLE HIGH SCHOOL\n\nSUBJECT RESULTS:\nMathematics: 2\nEnglish: 3\nBiology: 2\nChemistry: 4\nPhysics: 3\nGeography: 2',
-          confidence: 0.92,
-          extractedData: {
-            name: 'STUDENT NAME',
-            nrc: '123456/12/1',
-            examNumber: '2023001234',
-            school: 'SAMPLE HIGH SCHOOL',
-            grades: [
-              { subject: 'Mathematics', grade: 2 },
-              { subject: 'English', grade: 3 },
-              { subject: 'Biology', grade: 2 },
-              { subject: 'Chemistry', grade: 4 },
-              { subject: 'Physics', grade: 3 },
-              { subject: 'Geography', grade: 2 }
-            ]
-          }
-        }
-      } else if (isPayment) {
-        mockResult = {
-          text: 'MTN MOBILE MONEY\nTransaction Receipt\nAmount: K150.00\nReference: MP123456789\nDate: 2024-01-15\nTo: KATC/MIHAS',
-          confidence: 0.88,
-          extractedData: {
-            name: 'Payment Receipt',
-            examNumber: 'MP123456789'
-          }
-        }
-      } else {
-        mockResult = {
-          text: 'Document text extracted',
-          confidence: 0.75,
-          extractedData: {}
-        }
+      return {
+        text: result.text,
+        confidence: result.confidence,
+        extractedData: result.extractedData
       }
-      
-      return mockResult
     } catch (error) {
-      throw new Error('OCR processing failed')
+      console.error('OCR processing error:', error)
+      return {
+        text: 'Document processed',
+        confidence: 0.5,
+        extractedData: {}
+      }
     }
   }
 
+  private parseOCRText(text: string): any {
+    const data: any = {}
+    const lines = text.split('\n')
+    
+    // Extract common patterns
+    for (const line of lines) {
+      // NRC pattern
+      const nrcMatch = line.match(/(\d{6}\/\d{2}\/\d)/)
+      if (nrcMatch) data.nrc = nrcMatch[1]
+      
+      // Name patterns
+      if (line.toLowerCase().includes('name') && line.includes(':')) {
+        data.name = line.split(':')[1]?.trim()
+      }
+      
+      // Exam number
+      const examMatch = line.match(/exam.*?(\d{8,})/i)
+      if (examMatch) data.examNumber = examMatch[1]
+      
+      // School
+      if (line.toLowerCase().includes('school') && line.includes(':')) {
+        data.school = line.split(':')[1]?.trim()
+      }
+    }
+    
+    return data
+  }
+
   private assessQuality(file: File, ocrResult: OCRResult): 'excellent' | 'good' | 'poor' {
-    const size = file.size
     const confidence = ocrResult.confidence
     
-    if (confidence > 0.9 && size > 100000) return 'excellent'
-    if (confidence > 0.7 && size > 50000) return 'good'
+    if (confidence > 0.85) return 'excellent'
+    if (confidence > 0.65) return 'good'
     return 'poor'
   }
 
@@ -191,9 +196,8 @@ export class DocumentAI {
     if (quality === 'poor') {
       suggestions.push('Consider retaking the photo with better lighting')
       suggestions.push('Ensure the document is flat and all text is visible')
-      suggestions.push('Try scanning in PDF format for better quality')
     } else if (quality === 'good') {
-      suggestions.push('Document quality is acceptable but could be improved')
+      suggestions.push('Document quality is good')
     } else {
       suggestions.push('Excellent document quality detected')
     }
@@ -203,13 +207,10 @@ export class DocumentAI {
     }
     
     if (data.grades && data.grades.length > 0) {
-      suggestions.push(`${data.grades.length} subjects detected automatically`)
-      if (data.grades.length < 5) {
-        suggestions.push('Consider adding more subjects to meet minimum requirements')
-      }
+      suggestions.push(`${data.grades.length} subjects detected`)
     }
     
-    return suggestions
+    return suggestions.slice(0, 3) // Limit to 3 suggestions
   }
 
   private async storeAnalysisResults(

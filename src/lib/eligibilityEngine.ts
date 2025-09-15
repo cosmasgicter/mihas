@@ -156,14 +156,14 @@ export class EligibilityEngine {
 
   private calculateSubjectCountScore(grades: SubjectGrade[], conditions: any): number {
     const { min_subjects, grade_threshold } = conditions
-    const qualifyingSubjects = grades.filter(g => g.grade >= grade_threshold).length
+    const qualifyingSubjects = grades.filter(g => g.grade <= grade_threshold).length
     return Math.min(100, (qualifyingSubjects / min_subjects) * 100)
   }
 
   private calculateGradeAverageScore(grades: SubjectGrade[]): number {
     if (grades.length === 0) return 0
     const average = grades.reduce((sum, g) => sum + g.grade, 0) / grades.length
-    return Math.min(100, (average / 9) * 100) // Assuming 9 is max grade
+    return Math.min(100, ((10 - average) / 9) * 100) // 1 is best, 9 is worst in Zambian system
   }
 
   private async calculateCoreSubjectsScore(grades: SubjectGrade[], conditions: any): Promise<number> {
@@ -176,8 +176,8 @@ export class EligibilityEngine {
         g.subject_name.toLowerCase().includes(requiredSubject.toLowerCase())
       )
       
-      if (grade && grade.grade >= min_grade) {
-        score += (grade.grade / 9) * 100 // Convert to percentage
+      if (grade && grade.grade <= min_grade) {
+        score += ((10 - grade.grade) / 9) * 100 // Convert to percentage
       }
     }
 
@@ -225,7 +225,7 @@ export class EligibilityEngine {
           g.subject_name.toLowerCase().includes(req.subjects.name.toLowerCase())
         )
         
-        if (grade && grade.grade < req.minimum_grade) {
+        if (grade && grade.grade > req.minimum_grade) {
           missing.push({
             type: 'grade',
             description: `Grade ${grade.grade} in ${req.subjects.name} is below required ${req.minimum_grade}`,
@@ -254,7 +254,7 @@ export class EligibilityEngine {
     }
 
     // Grade improvements
-    const lowGrades = grades.filter(g => g.grade < 6)
+    const lowGrades = grades.filter(g => g.grade > 6)
     if (lowGrades.length > 0) {
       recommendations.push('Consider retaking exams to improve grades in: ' + 
         lowGrades.map(g => g.subject_name).join(', '))
@@ -303,7 +303,7 @@ export class EligibilityEngine {
     switch (rule.rule_type) {
       case 'subject_count': {
         const { min_subjects, grade_threshold } = rule.condition_json
-        return grades.filter(g => g.grade >= grade_threshold).length >= min_subjects
+        return grades.filter(g => g.grade <= grade_threshold).length >= min_subjects
       }
       
       case 'specific_subject': {
@@ -311,7 +311,7 @@ export class EligibilityEngine {
         return required_subjects.every((subject: string) =>
           grades.some(g => 
             g.subject_name.toLowerCase().includes(subject.toLowerCase()) && 
-            g.grade >= min_grade
+            g.grade <= min_grade
           )
         )
       }

@@ -6,6 +6,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { predictiveAnalytics } from '@/lib/predictiveAnalytics'
 import { documentAI } from '@/lib/documentAI'
+import { localAI } from '@/lib/localAI'
+
 
 interface Message {
   id: string
@@ -128,7 +130,7 @@ export function AIAssistant({ applicationData, currentStep, onSuggestionApply, o
     
     if (appData?.grades?.length > 0) {
       const avgGrade = appData.grades.reduce((sum: number, g: any) => sum + g.grade, 0) / appData.grades.length
-      if (avgGrade > 4) {
+      if (avgGrade > 4) {  // In Zambian system, higher numbers are worse grades
         tips.push('📈 Focus on your strongest subjects - quality over quantity')
       } else {
         tips.push('🌟 Great grades! You have excellent admission chances')
@@ -153,52 +155,7 @@ export function AIAssistant({ applicationData, currentStep, onSuggestionApply, o
   }
 
   const generateContextualSuggestions = (userMessage: string, appData: any): string[] => {
-    const lowerMessage = userMessage.toLowerCase()
-    
-    if (lowerMessage.includes('eligibility')) {
-      return [
-        'How can I improve my chances?',
-        'What documents do I still need?',
-        'Show me program requirements'
-      ]
-    }
-    
-    if (lowerMessage.includes('document')) {
-      return [
-        'Help me upload my result slip',
-        'What if my document is unclear?',
-        'Check my document quality'
-      ]
-    }
-    
-    if (lowerMessage.includes('subject') || lowerMessage.includes('grade')) {
-      return [
-        'What subjects should I add?',
-        'How do grades affect my application?',
-        'Can I add more subjects?'
-      ]
-    }
-    
-    // Default contextual suggestions based on application state
-    const suggestions = []
-    
-    if (!appData?.program) {
-      suggestions.push('Help me choose a program')
-    }
-    
-    if (!appData?.grades?.length) {
-      suggestions.push('Guide me through adding subjects')
-    }
-    
-    if (!appData?.result_slip_url) {
-      suggestions.push('Help with document upload')
-    }
-    
-    if (suggestions.length === 0) {
-      suggestions.push('What\'s my next step?', 'Check my application status', 'Any tips for me?')
-    }
-    
-    return suggestions.slice(0, 3)
+    return localAI.generateSuggestions(userMessage, { applicationData: appData, currentStep })
   }
 
   const saveConversation = async (messages: Message[]): Promise<void> => {
@@ -312,9 +269,23 @@ export function AIAssistant({ applicationData, currentStep, onSuggestionApply, o
 
   const generateResponse = async (userMessage: string): Promise<string> => {
     try {
-      // Simulate AI processing with realistic delay
+      // Use local AI processing (100% free)
       await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1200))
       
+      // Generate intelligent response using local AI
+      return localAI.generateResponse(userMessage, {
+        applicationData,
+        currentStep,
+        profile
+      })
+    } catch (error) {
+      console.error('Error generating response:', error)
+      return 'I apologize, but I\'m having trouble processing your request right now. Please try again or contact support if the issue persists.'
+    }
+  }
+
+  const generateLegacyResponse = async (userMessage: string): Promise<string> => {
+    try {
       const lowerMessage = userMessage.toLowerCase()
       
       if (lowerMessage.includes('eligibility') || lowerMessage.includes('qualify')) {
@@ -415,12 +386,12 @@ ${subjects.length > 0 ?
 }**Requirements**:
 • Minimum 5 subjects (you have ${currentGrades.length})
 • Maximum 10 subjects allowed
-• Grades on 1-9 scale (1 = highest)
+• Grades on 1-9 scale (1=A+, 9=F)
 • Core subjects are most important
 
 **Grade Quality**:
 ${currentGrades.length > 0 ? 
-  `• Average grade: ${(currentGrades.reduce((sum: number, g: any) => sum + g.grade, 0) / currentGrades.length).toFixed(1)}\n• Best grade: ${Math.min(...currentGrades.map((g: any) => g.grade))}` :
+  `• Average grade: ${(currentGrades.reduce((sum: number, g: any) => sum + g.grade, 0) / currentGrades.length).toFixed(1)}\n• Best grade: ${Math.min(...currentGrades.map((g: any) => g.grade))} (1=A+, 9=F)` :
   '• Add subjects to see grade analysis'
 }
 

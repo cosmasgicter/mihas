@@ -134,7 +134,7 @@ export function checkEligibility(
     )
   )
 
-  const lowGrades = requiredSubjectGrades.filter(g => g.grade < rules.minGrade)
+  const lowGrades = requiredSubjectGrades.filter(g => g.grade > rules.minGrade)
   
   if (lowGrades.length > 0) {
     const lowGradeSubjects = lowGrades.map(g => `${g.subject_name} (${g.grade})`).join(', ')
@@ -149,9 +149,9 @@ export function checkEligibility(
     }
   }
 
-  // Calculate eligibility score
+  // Calculate eligibility score (1 is best, 9 is worst in Zambian system)
   const averageGrade = grades.reduce((sum, g) => sum + g.grade, 0) / grades.length
-  const score = Math.round((averageGrade / 9) * 100)
+  const score = Math.round(((10 - averageGrade) / 9) * 100)
 
   return {
     eligible: true,
@@ -237,14 +237,14 @@ export function checkEnhancedEligibility(
 }
 
 function calculateSubjectCountScore(grades: SubjectGrade[], rules: EligibilityRule): number {
-  const qualifyingSubjects = grades.filter(g => g.grade >= rules.minGrade).length
+  const qualifyingSubjects = grades.filter(g => g.grade <= rules.minGrade).length
   return Math.min(100, (qualifyingSubjects / rules.minSubjects) * 100)
 }
 
 function calculateGradeAverageScore(grades: SubjectGrade[]): number {
   if (grades.length === 0) return 0
   const average = grades.reduce((sum, g) => sum + g.grade, 0) / grades.length
-  return Math.min(100, (average / 9) * 100)
+  return Math.min(100, ((10 - average) / 9) * 100)
 }
 
 function calculateCoreSubjectsScore(grades: SubjectGrade[], rules: EligibilityRule): number {
@@ -258,8 +258,8 @@ function calculateCoreSubjectsScore(grades: SubjectGrade[], rules: EligibilityRu
     
     if (grade) {
       coreSubjectsFound++
-      if (grade.grade >= rules.minGrade) {
-        score += (grade.grade / 9) * 100
+      if (grade.grade <= rules.minGrade) {
+        score += ((10 - grade.grade) / 9) * 100
       }
     }
   }
@@ -296,7 +296,7 @@ function identifyMissingRequirements(grades: SubjectGrade[], rules: EligibilityR
       g.subject_name.toLowerCase().includes(requiredSubject.toLowerCase())
     )
     
-    if (grade && grade.grade < rules.minGrade) {
+    if (grade && grade.grade > rules.minGrade) {
       missing.push({
         type: 'grade',
         description: `Grade ${grade.grade} in ${requiredSubject} is below required ${rules.minGrade}`,
@@ -329,7 +329,7 @@ function generateRecommendations(program: string, grades: SubjectGrade[], missin
   }
 
   // Add grade improvement suggestions
-  const lowGrades = grades.filter(g => g.grade < 6)
+  const lowGrades = grades.filter(g => g.grade > 6)
   if (lowGrades.length > 0) {
     recommendations.push(
       `Consider retaking exams to improve grades in: ${lowGrades.map(g => g.subject_name).join(', ')}`
