@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { cspPlugin } from './vite-csp-plugin.js'
 import path from 'path'
 
 // https://vitejs.dev/config/
@@ -10,6 +11,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
+      cspPlugin(),
       VitePWA({
         registerType: 'autoUpdate',
         devOptions: {
