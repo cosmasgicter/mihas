@@ -16,9 +16,12 @@ class SessionManagerImpl implements SessionManager {
     }
 
     this.refreshPromise = this.performRefresh()
-    const result = await this.refreshPromise
-    this.refreshPromise = null
-    return result
+    try {
+      const result = await this.refreshPromise
+      return result
+    } finally {
+      this.refreshPromise = null
+    }
   }
 
   private async performRefresh(): Promise<boolean> {

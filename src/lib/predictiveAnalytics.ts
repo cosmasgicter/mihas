@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { sessionManager } from './session'
+import { sanitizeForLog } from './security'
 
 export interface PredictionResult {
   admissionProbability: number
@@ -60,7 +61,7 @@ export class PredictiveAnalytics {
       
       return result
     } catch (error) {
-      const sanitizedError = error instanceof Error ? error.message : 'Unknown error'
+      const sanitizedError = sanitizeForLog(error instanceof Error ? error.message : 'Unknown error')
       console.error('Prediction failed:', sanitizedError)
       return {
         admissionProbability: 0.5,

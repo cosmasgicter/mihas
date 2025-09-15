@@ -4,8 +4,8 @@ export function cspPlugin() {
   return {
     name: 'csp-nonce',
     transformIndexHtml: {
-      enforce: 'pre',
-      transform(html) {
+      order: 'pre',
+      handler(html) {
         const nonce = createHash('sha256').update(Date.now().toString()).digest('base64').slice(0, 16);
         
         // Add nonce to script tags

@@ -4,6 +4,17 @@ import { EMAIL_TEMPLATES } from './emailTemplates'
 import type { EmailNotificationData } from '@/types/notifications'
 
 export class EmailService {
+  private static sanitizeHtmlContent(content: string): string {
+    if (!content) return ''
+    // Remove all HTML tags and dangerous characters
+    return content
+      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/javascript:/gi, '') // Remove javascript: URLs
+      .replace(/on\w+\s*=/gi, '') // Remove event handlers
+      .replace(/[<>"'`]/g, '') // Remove dangerous characters
+      .trim()
+  }
+
   static async queueEmailNotification(data: EmailNotificationData): Promise<boolean> {
     const sanitizedEmail = sanitizeEmail(data.recipientEmail)
     if (!sanitizedEmail || !data.applicationId || !data.subject || !data.body) {
@@ -18,7 +29,7 @@ export class EmailService {
           application_id: data.applicationId,
           recipient_email: sanitizedEmail,
           subject: sanitizeText(data.subject),
-          body: sanitizeText(data.body).substring(0, 5000),
+          body: this.sanitizeHtmlContent(data.body).substring(0, 5000),
           status: 'pending'
         })
 

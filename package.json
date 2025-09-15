@@ -35,10 +35,13 @@
     "migrate:enhanced": "node apply_enhanced_features.js",
     "ai:setup": "node apply_enhanced_features.js",
     "features:deploy": "npm run migrate:enhanced && npm run build:prod",
-    "analytics:init": "node -e \"console.log('🤖 AI Analytics initialized - check admin dashboard')\""
+    "analytics:init": "node -e \"console.log('🤖 AI Analytics initialized - check admin dashboard')\"",
+    "mcp:install": "npm install -g @modelcontextprotocol/server-postgres",
+    "mcp:setup": "echo 'Add your Supabase connection string to .env as POSTGRES_CONNECTION_STRING'"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
+    "@modelcontextprotocol/sdk": "^1.18.0",
     "@radix-ui/react-accordion": "^1.2.2",
     "@radix-ui/react-alert-dialog": "^1.1.4",
     "@radix-ui/react-aspect-ratio": "^1.1.1",

@@ -11,7 +11,7 @@ export const createSecureFilePath = (fileName: string, folder: string = ''): str
   
   // Generate timestamp-based path to avoid collisions
   const timestamp = Date.now()
-  const randomSuffix = Math.random().toString(36).substring(2, 8)
+  const randomSuffix = crypto.randomUUID ? crypto.randomUUID().substring(0, 8) : Math.random().toString(36).substring(2, 8)
   
   const securePath = sanitizedFolder 
     ? `${sanitizedFolder}/${timestamp}-${randomSuffix}-${sanitizedFileName}`
