@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { sanitizeForLog } from '@/lib/security'
 
 export interface FeedbackData {
   rating: number
@@ -15,10 +16,10 @@ export function useFeedback() {
     setIsSubmitting(true)
     try {
       // Implementation for submitting feedback
-      console.log('Feedback submitted:', feedback)
+      console.log('Feedback submitted:', sanitizeForLog(JSON.stringify(feedback)))
       return { success: true }
     } catch (error) {
-      console.error('Failed to submit feedback:', error)
+      console.error('Failed to submit feedback:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
       return { success: false, error }
     } finally {
       setIsSubmitting(false)

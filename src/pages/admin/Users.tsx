@@ -13,7 +13,7 @@ import { UserActivityLog } from '@/components/admin/UserActivityLog'
 import { UserExport } from '@/components/admin/UserExport'
 import { UserImport } from '@/components/admin/UserImport'
 import { ArrowLeft, Users, Shield, User, Plus, Edit, Trash2, Search, Filter, UserPlus, Settings, Eye, EyeOff, BarChart3, CheckSquare, Square, Lock, Clock, Download, Upload } from 'lucide-react'
-import { sanitizeForLog } from '@/lib/sanitize'
+import { sanitizeForLog } from '@/lib/security'
 
 interface CreateUserForm {
   email: string

@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase, UserProfile } from '@/lib/supabase'
-import { sanitizeForLog, sanitizeForDisplay } from '@/lib/sanitize'
+import { sanitizeForLog } from '@/lib/security'
+import { sanitizeForDisplay } from '@/lib/sanitize'
 import { sessionManager, setupSessionTimeout } from '@/lib/session'
 
 interface UserRole {
@@ -230,12 +231,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle()
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error loading user role:', error)
+        console.error('Error loading user role:', sanitizeForLog(error.message || 'Unknown error'))
       }
 
       setUserRole(data || null)
     } catch (error) {
-      console.error('Error loading user role:', error)
+      console.error('Error loading user role:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
       setUserRole(null)
     }
   }

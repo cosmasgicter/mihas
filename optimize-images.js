@@ -2,9 +2,26 @@
 
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 
 const accreditationDir = './public/images/accreditation';
+
+// Secure path validation
+function validatePath(inputPath) {
+  const resolvedPath = path.resolve(inputPath);
+  const basePath = path.resolve('./public/images');
+  
+  if (!resolvedPath.startsWith(basePath)) {
+    throw new Error('Path traversal attempt detected');
+  }
+  
+  return resolvedPath;
+}
+
+// Sanitize file names
+function sanitizeFileName(fileName) {
+  return fileName.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 255);
+}
 
 // Check if ImageMagick is available
 function checkImageMagick() {
@@ -26,14 +43,16 @@ function optimizeImages() {
     return;
   }
 
-  const files = fs.readdirSync(accreditationDir);
+  const validatedDir = validatePath(accreditationDir);
+  const files = fs.readdirSync(validatedDir);
   
   files.forEach(file => {
-    const filePath = path.join(accreditationDir, file);
-    const ext = path.extname(file).toLowerCase();
+    const sanitizedFile = sanitizeFileName(file);
+    const filePath = validatePath(path.join(validatedDir, sanitizedFile));
+    const ext = path.extname(sanitizedFile).toLowerCase();
     
     if (['.png', '.jpg', '.jpeg'].includes(ext)) {
-      console.log(`Optimizing ${file}...`);
+      console.log(`Optimizing ${sanitizedFile}...`);
       
       try {
         // Create backup
@@ -42,17 +61,19 @@ function optimizeImages() {
           fs.copyFileSync(filePath, backupPath);
         }
         
-        // Optimize image
-        const command = `convert "${filePath}" -resize 200x200> -quality 85 -strip "${filePath}"`;
-        execSync(command);
+        // Optimize image with safe command execution
+        const args = [filePath, '-resize', '200x200>', '-quality', '85', '-strip', filePath];
+        execSync(`convert ${args.map(arg => JSON.stringify(arg)).join(' ')}`, {
+          stdio: 'ignore'
+        });
         
         const originalSize = fs.statSync(backupPath).size;
         const optimizedSize = fs.statSync(filePath).size;
         const savings = ((originalSize - optimizedSize) / originalSize * 100).toFixed(1);
         
-        console.log(`✓ ${file}: ${(originalSize/1024).toFixed(1)}KB → ${(optimizedSize/1024).toFixed(1)}KB (${savings}% reduction)`);
+        console.log(`✓ ${sanitizedFile}: ${(originalSize/1024).toFixed(1)}KB → ${(optimizedSize/1024).toFixed(1)}KB (${savings}% reduction)`);
       } catch (error) {
-        console.error(`Error optimizing ${file}:`, error.message);
+        console.error(`Error optimizing ${sanitizedFile}:`, error.message);
       }
     }
   });

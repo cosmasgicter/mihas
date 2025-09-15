@@ -661,7 +661,9 @@ define(['exports'], (function (exports) { 'use strict';
       const urlObj = new URL(String(url), location.href);
       // See https://github.com/GoogleChrome/workbox/issues/2323
       // We want to include everything, except for the origin if it's same-origin.
-      return urlObj.href.replace(new RegExp(`^${location.origin}`), '');
+      // Sanitize URL to prevent XSS in console logs
+      const sanitizedUrl = urlObj.href.replace(new RegExp(`^${location.origin}`), '').replace(/[<>"'&]/g, '');
+      return sanitizedUrl;
     };
 
     /*
@@ -748,6 +750,10 @@ define(['exports'], (function (exports) { 'use strict';
       addCacheListener() {
         // See https://github.com/Microsoft/TypeScript/issues/28357#issuecomment-436484705
         self.addEventListener('message', event => {
+          // Verify origin for security (CWE-346 fix)
+          if (event.origin !== location.origin) {
+            return;
+          }
           // event.data is type 'any'
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           if (event.data && event.data.type === 'CACHE_URLS') {
@@ -2250,7 +2256,11 @@ define(['exports'], (function (exports) { 'use strict';
      * @private
      */
     function timeout(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
+      const sanitizedMs = Number(ms);
+      if (!Number.isFinite(sanitizedMs) || sanitizedMs < 0) {
+        throw new Error('Invalid timeout value');
+      }
+      return new Promise(resolve => setTimeout(resolve, sanitizedMs));
     }
 
     // @ts-ignore

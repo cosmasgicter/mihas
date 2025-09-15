@@ -359,7 +359,7 @@ export function UserExport({ users, isOpen, onClose }: UserExportProps) {
                         : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
                     }`}
                   >
-                    {role.replace('_', ' ').toUpperCase()}
+                    {role.replace(/[^a-zA-Z0-9_]/g, '').replace(/_/g, ' ').toUpperCase()}
                   </button>
                 ))}
               </div>

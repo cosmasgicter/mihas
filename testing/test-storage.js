@@ -2,7 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { readFileSync } from 'fs'
-import { join, dirname } from 'path'
+import { join, dirname, resolve, relative } from 'path'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 
@@ -40,8 +40,17 @@ async function testFileUpload(bucketName, file) {
   console.log(`📤 Testing upload to '${bucketName}' with ${file.name}...`)
   
   try {
-    const fileBuffer = readFileSync(file.path)
-    const fileName = `test-${Date.now()}-${file.name}`
+    // Secure path validation
+    const resolvedPath = resolve(file.path)
+    const basePath = resolve(__dirname)
+    const relativePath = relative(basePath, resolvedPath)
+    
+    if (relativePath.startsWith('..')) {
+      throw new Error('Path traversal attempt detected')
+    }
+    
+    const fileBuffer = readFileSync(resolvedPath)
+    const fileName = `test-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`
     
     const { data, error } = await supabase.storage
       .from(bucketName)

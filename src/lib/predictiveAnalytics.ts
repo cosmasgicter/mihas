@@ -60,7 +60,8 @@ export class PredictiveAnalytics {
       
       return result
     } catch (error) {
-      console.error('Prediction failed:', error)
+      const sanitizedError = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Prediction failed:', sanitizedError)
       return {
         admissionProbability: 0.5,
         processingTimeEstimate: 5,
@@ -96,7 +97,8 @@ export class PredictiveAnalytics {
         avgProcessingTime: this.calculateAvgProcessingTime(apps)
       }
     } catch (error) {
-      console.error('Trend analysis failed:', error)
+      const sanitizedError = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Trend analysis failed:', sanitizedError)
       return {
         applicationTrend: 'stable',
         peakTimes: [],
@@ -222,7 +224,7 @@ export class PredictiveAnalytics {
     return coreSubjectsMap[program] || []
   }
 
-  private async generateRecommendations(applicationData: any, score: number): Promise<string[]> {
+  private generateRecommendations(applicationData: any, score: number): string[] {
     // Generate intelligent recommendations using local logic (100% free)
     const recommendations: string[] = []
     
@@ -390,10 +392,12 @@ export class PredictiveAnalytics {
         })
       
       if (error) {
-        console.error('Failed to store prediction results:', error)
+        const sanitizedError = error.message || 'Unknown error'
+        console.error('Failed to store prediction results:', sanitizedError)
       }
     } catch (error) {
-      console.error('Error storing prediction results:', error)
+      const sanitizedError = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Error storing prediction results:', sanitizedError)
     }
   }
 }

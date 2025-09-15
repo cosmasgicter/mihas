@@ -9,6 +9,9 @@ import { ContinueApplication } from '@/components/application/ContinueApplicatio
 import { formatDate, getStatusColor } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { applicationSessionManager } from '@/lib/applicationSession'
+import { draftManager } from '@/lib/draftManager'
+import { useDraftManager } from '@/hooks/useDraftManager'
+import { sanitizeForLog, safeJsonParse } from '@/lib/sanitize'
 import { 
   User, 
   FileText, 
@@ -23,6 +26,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 export default function StudentDashboard() {
   const isMobile = useIsMobile()
   const { user, profile } = useAuth()
+  const { deleteDraft, clearAllDrafts } = useDraftManager()
   const [applications, setApplications] = useState<Application[]>([])
   const [programs, setPrograms] = useState<Program[]>([])
   const [intakes, setIntakes] = useState<Intake[]>([])
@@ -42,11 +46,11 @@ export default function StudentDashboard() {
     const handleStorageChange = () => {
       const savedDraft = localStorage.getItem('applicationWizardDraft')
       if (savedDraft) {
-        try {
-          const draft = JSON.parse(savedDraft)
+        const draft = safeJsonParse(savedDraft, null)
+        if (draft) {
           setHasDraft(true)
           setDraftData(draft)
-        } catch (error) {
+        } else {
           setHasDraft(false)
           setDraftData(null)
         }
@@ -75,12 +79,12 @@ export default function StudentDashboard() {
       // Check for saved draft in localStorage
       const savedDraft = localStorage.getItem('applicationWizardDraft')
       if (savedDraft) {
-        try {
-          const draft = JSON.parse(savedDraft)
+        const draft = safeJsonParse(savedDraft, null)
+        if (draft) {
           setHasDraft(true)
           setDraftData(draft)
-        } catch (error) {
-          console.error('Error parsing draft:', error)
+        } else {
+          console.error('Error parsing draft:', sanitizeForLog('Invalid JSON in localStorage'))
           localStorage.removeItem('applicationWizardDraft')
           setHasDraft(false)
         }
@@ -119,8 +123,8 @@ export default function StudentDashboard() {
       setPrograms(programsResponse.data || [])
       setIntakes(intakesResponse.data || [])
     } catch (error) {
-      console.error('Error loading dashboard data:', error)
-      setError(error instanceof Error ? error.message : 'Failed to load dashboard data')
+      console.error('Error loading dashboard data:', sanitizeForLog(error))
+      setError(error instanceof Error ? sanitizeForLog(error.message) : 'Failed to load dashboard data')
     } finally {
       setLoading(false)
     }
@@ -307,20 +311,10 @@ export default function StudentDashboard() {
                               variant="outline" 
                               size="sm"
                               className="w-full sm:w-auto text-red-600 border-red-300 hover:bg-red-50 font-semibold"
-                              onClick={async () => {
-                                if (confirm('Are you sure you want to delete this draft? This action cannot be undone.')) {
-                                  try {
-                                    // Use the centralized deletion method
-                                    await applicationSessionManager.deleteDraft(profile?.user_id || user?.id)
-                                    
-                                    // Refresh the dashboard data
-                                    loadDashboardData()
-                                  } catch (error) {
-                                    console.error('Error deleting draft:', error)
-                                    alert('Failed to delete draft. Please try again.')
-                                  }
-                                }
-                              }}
+                              onClick={() => deleteDraft(
+                                () => loadDashboardData(),
+                                (error) => setError(error)
+                              )}
                             >
                               <X className="h-4 w-4 mr-1" />
                               Delete
@@ -368,24 +362,14 @@ export default function StudentDashboard() {
                               variant="outline" 
                               size="sm"
                               className="w-full sm:w-auto text-red-600 border-red-300 hover:bg-red-50 font-semibold"
-                              onClick={async () => {
-                                if (confirm('Are you sure you want to delete this draft? This action cannot be undone.')) {
-                                  try {
-                                    // Use the centralized deletion method
-                                    await applicationSessionManager.deleteDraft(profile?.user_id || user?.id)
-                                    
-                                    // Update local state
-                                    setHasDraft(false)
-                                    setDraftData(null)
-                                    
-                                    // Refresh the dashboard data
-                                    loadDashboardData()
-                                  } catch (error) {
-                                    console.error('Error deleting draft:', error)
-                                    alert('Failed to delete draft. Please try again.')
-                                  }
-                                }
-                              }}
+                              onClick={() => deleteDraft(
+                                () => {
+                                  setHasDraft(false)
+                                  setDraftData(null)
+                                  loadDashboardData()
+                                },
+                                (error) => setError(error)
+                              )}
                             >
                               <X className="h-4 w-4 mr-1" />
                               Delete
@@ -540,24 +524,14 @@ export default function StudentDashboard() {
                       variant="outline" 
                       size="sm" 
                       className="w-full justify-start text-red-600 border-red-300 hover:bg-red-50 font-semibold"
-                      onClick={async () => {
-                        if (confirm('Are you sure you want to clear all drafts? This action cannot be undone.')) {
-                          try {
-                            // Use the centralized deletion method
-                            await applicationSessionManager.deleteDraft(profile?.user_id || user?.id)
-                            
-                            // Update local state
-                            setHasDraft(false)
-                            setDraftData(null)
-                            
-                            // Refresh the dashboard data
-                            loadDashboardData()
-                          } catch (error) {
-                            console.error('Error clearing drafts:', error)
-                            alert('Failed to clear drafts. Please try again.')
-                          }
-                        }
-                      }}
+                      onClick={() => clearAllDrafts(
+                        async () => {
+                          setHasDraft(false)
+                          setDraftData(null)
+                          await loadDashboardData()
+                        },
+                        (error) => setError(error)
+                      )}
                     >
                       <X className="h-4 w-4 mr-2" />
                       Clear Draft

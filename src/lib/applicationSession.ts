@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { ApplicationFormData } from '@/forms/applicationSchema'
+import { sanitizeForLog, safeJsonParse, generateSecureId } from './sanitize'
 
 export interface ApplicationDraft {
   id?: string
@@ -21,6 +22,22 @@ export interface SessionWarning {
   canExtend: boolean
 }
 
+// Constants for configuration
+const AUTO_SAVE_INTERVAL = 10000 // 10 seconds
+const SESSION_WARNING_TIME = 25 * 60 * 1000 // 25 minutes
+const SESSION_EXPIRY_TIME = 30 * 60 * 1000 // 30 minutes
+const DRAFT_STORAGE_KEYS = [
+  'applicationDraft',
+  'applicationWizardDraft',
+  'applicationDraftOffline',
+  'draftFormData',
+  'wizardFormData'
+]
+const SESSION_STORAGE_KEYS = [
+  'applicationDraft',
+  'applicationWizardDraft'
+]
+
 class ApplicationSessionManager {
   private sessionId: string
   private saveInterval: NodeJS.Timeout | null = null
@@ -30,11 +47,7 @@ class ApplicationSessionManager {
   private onExpiry?: () => void
 
   constructor() {
-    this.sessionId = this.generateSessionId()
-  }
-
-  private generateSessionId(): string {
-    return `session_${Date.now()}_${Math.random().toString(36).substring(2)}`
+    this.sessionId = generateSecureId()
   }
 
   // Initialize session management
@@ -45,7 +58,7 @@ class ApplicationSessionManager {
     this.setupSessionWarnings()
   }
 
-  // Setup automatic saving every 30 seconds
+  // Setup automatic saving every 10 seconds
   private setupAutoSave() {
     if (this.saveInterval) {
       clearInterval(this.saveInterval)
@@ -53,7 +66,7 @@ class ApplicationSessionManager {
     
     this.saveInterval = setInterval(() => {
       this.autoSaveDraft()
-    }, 30000) // 30 seconds
+    }, AUTO_SAVE_INTERVAL)
   }
 
   // Setup session timeout warnings
@@ -66,12 +79,12 @@ class ApplicationSessionManager {
         timeRemaining: 5 * 60 * 1000,
         canExtend: true
       })
-    }, 25 * 60 * 1000) // 25 minutes (30min session - 5min warning)
+    }, SESSION_WARNING_TIME)
 
     // Expiry at 30 minutes
     this.expiryTimeout = setTimeout(() => {
       this.handleSessionExpiry()
-    }, 30 * 60 * 1000) // 30 minutes
+    }, SESSION_EXPIRY_TIME)
   }
 
   // Save draft to both localStorage and database
@@ -95,7 +108,12 @@ class ApplicationSessionManager {
       }
 
       // Save to localStorage for immediate recovery
-      localStorage.setItem('applicationDraft', JSON.stringify(draft))
+      try {
+        localStorage.setItem('applicationDraft', JSON.stringify(draft))
+      } catch (error) {
+        console.warn('localStorage save failed:', sanitizeForLog(error))
+        return { success: false, error: 'Storage quota exceeded' }
+      }
 
       // Try to save to database if table exists
       try {
@@ -109,17 +127,17 @@ class ApplicationSessionManager {
             onConflict: 'user_id'
           })
 
-        if (error) console.warn('Database save failed:', error)
+        if (error) console.warn('Database save failed:', sanitizeForLog(error))
       } catch (dbError) {
         console.warn('Database not available, using localStorage only')
       }
 
       return { success: true }
     } catch (error) {
-      console.error('Error saving draft:', error)
+      console.error('Error saving draft:', sanitizeForLog(error))
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to save draft'
+        error: error instanceof Error ? sanitizeForLog(error.message) : 'Failed to save draft'
       }
     }
   }
@@ -129,7 +147,8 @@ class ApplicationSessionManager {
     try {
       const savedDraft = localStorage.getItem('applicationDraft')
       if (savedDraft) {
-        const draft = JSON.parse(savedDraft)
+        const draft = safeJsonParse(savedDraft, null)
+        if (!draft) return
         // Update last saved timestamp
         draft.last_saved_at = new Date().toISOString()
         localStorage.setItem('applicationDraft', JSON.stringify(draft))
@@ -144,7 +163,7 @@ class ApplicationSessionManager {
           .eq('user_id', draft.user_id)
       }
     } catch (error) {
-      console.error('Auto-save failed:', error)
+      console.error('Auto-save failed:', sanitizeForLog(error))
     }
   }
 
@@ -180,7 +199,11 @@ class ApplicationSessionManager {
       // Fallback to localStorage
       const localDraft = localStorage.getItem('applicationDraft')
       if (localDraft) {
-        const draft = JSON.parse(localDraft)
+        const draft = safeJsonParse(localDraft, null)
+        if (!draft) {
+          localStorage.removeItem('applicationDraft')
+          return null
+        }
         if (draft.user_id === userId) {
           return draft
         } else {
@@ -190,41 +213,55 @@ class ApplicationSessionManager {
 
       return null
     } catch (error) {
-      console.error('Error loading draft:', error)
+      console.error('Error loading draft:', sanitizeForLog(error))
       return null
     }
   }
 
-  // Delete draft
-  async deleteDraft(userId: string): Promise<void> {
+  // Delete draft with comprehensive cleanup
+  async deleteDraft(userId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      // Remove from application_drafts table
-      try {
-        await supabase
-          .from('application_drafts')
-          .delete()
-          .eq('user_id', userId)
-      } catch (dbError) {
-        console.warn('Failed to delete from application_drafts:', dbError)
+      const errors: string[] = []
+
+      // Parallel database operations
+      const [draftResult, appResult] = await Promise.allSettled([
+        supabase.from('application_drafts').delete().eq('user_id', userId),
+        supabase.from('applications_new').delete().eq('user_id', userId).eq('status', 'draft')
+      ])
+
+      // Check results
+      if (draftResult.status === 'rejected' || draftResult.value.error) {
+        errors.push('Database draft cleanup failed')
+      }
+      if (appResult.status === 'rejected' || appResult.value.error) {
+        errors.push('Draft applications cleanup failed')
       }
 
-      // Remove draft applications from applications_new table
+      // Clear storage (batch operations)
       try {
-        await supabase
-          .from('applications_new')
-          .delete()
-          .eq('user_id', userId)
-          .eq('status', 'draft')
-      } catch (dbError) {
-        console.warn('Failed to delete draft applications:', dbError)
+        [...DRAFT_STORAGE_KEYS, ...SESSION_STORAGE_KEYS].forEach(key => {
+          localStorage.removeItem(key)
+          sessionStorage.removeItem(key)
+        })
+      } catch {
+        errors.push('Storage cleanup failed')
       }
 
-      // Remove from localStorage (both keys)
-      localStorage.removeItem('applicationDraft')
-      localStorage.removeItem('applicationWizardDraft')
+      // Clear intervals
+      if (this.saveInterval) {
+        clearInterval(this.saveInterval)
+        this.saveInterval = null
+      }
+
+      return {
+        success: errors.length === 0,
+        error: errors.length > 0 ? errors.join(', ') : undefined
+      }
     } catch (error) {
-      console.error('Error deleting draft:', error)
-      throw error
+      return {
+        success: false,
+        error: error instanceof Error ? sanitizeForLog(error.message) : 'Unknown error occurred'
+      }
     }
   }
 
@@ -248,7 +285,7 @@ class ApplicationSessionManager {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to extend session'
+        error: error instanceof Error ? sanitizeForLog(error.message) : 'Failed to extend session'
       }
     }
   }
@@ -274,9 +311,15 @@ class ApplicationSessionManager {
     // Keep data but mark as expired
     const localDraft = localStorage.getItem('applicationDraft')
     if (localDraft) {
-      const draft = JSON.parse(localDraft)
-      draft.expired = true
-      localStorage.setItem('applicationDraft', JSON.stringify(draft))
+      const draft = safeJsonParse(localDraft, null)
+      if (draft) {
+        draft.expired = true
+        try {
+          localStorage.setItem('applicationDraft', JSON.stringify(draft))
+        } catch (error) {
+          console.warn('Failed to mark draft as expired:', sanitizeForLog(error))
+        }
+      }
     }
   }
 
@@ -309,8 +352,8 @@ class ApplicationSessionManager {
       // Check localStorage first
       const localDraft = localStorage.getItem('applicationWizardDraft')
       if (localDraft) {
-        try {
-          const draft = JSON.parse(localDraft)
+        const draft = safeJsonParse(localDraft, null)
+        if (draft) {
           const steps = ['Basic KYC', 'Education', 'Payment', 'Submit']
           return {
             exists: true,
@@ -319,7 +362,7 @@ class ApplicationSessionManager {
             progress: `Step ${draft.currentStep || 1}/4: ${steps[(draft.currentStep || 1) - 1]}`,
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
           }
-        } catch (error) {
+        } else {
           localStorage.removeItem('applicationWizardDraft')
         }
       }
@@ -353,7 +396,7 @@ class ApplicationSessionManager {
 
       return { exists: false }
     } catch (error) {
-      console.error('Error getting draft info:', error)
+      console.error('Error getting draft info:', sanitizeForLog(error))
       return { exists: false }
     }
   }
@@ -362,12 +405,15 @@ class ApplicationSessionManager {
   cleanup() {
     if (this.saveInterval) {
       clearInterval(this.saveInterval)
+      this.saveInterval = null
     }
     if (this.warningTimeout) {
       clearTimeout(this.warningTimeout)
+      this.warningTimeout = null
     }
     if (this.expiryTimeout) {
       clearTimeout(this.expiryTimeout)
+      this.expiryTimeout = null
     }
   }
 }

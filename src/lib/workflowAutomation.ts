@@ -2,6 +2,7 @@ import { supabase } from './supabase'
 import { multiChannelNotifications } from './multiChannelNotifications'
 import { predictiveAnalytics } from './predictiveAnalytics'
 import { sessionManager } from './session'
+import { sanitizeForLog } from './security'
 
 export interface WorkflowRule {
   id: string
@@ -190,9 +191,10 @@ export class WorkflowAutomationEngine {
         this.executionQueue.delete(queueKey)
       }
     } catch (error) {
-      console.error('Workflow processing failed:', error)
-      errors.push(error instanceof Error ? error.message : 'Unknown error')
-      await this.logWorkflowExecution('error', applicationId, 'failed', errors.join(', '))
+      const sanitizedError = sanitizeForLog(error instanceof Error ? error.message : 'Unknown error')
+      console.error('Workflow processing failed:', sanitizedError)
+      errors.push(sanitizedError)
+      await this.logWorkflowExecution('error', applicationId, 'failed', sanitizedError)
       
       return {
         success: false,
@@ -231,7 +233,7 @@ export class WorkflowAutomationEngine {
           actionsExecuted += rule.actions.length
         }
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+        const errorMsg = sanitizeForLog(error instanceof Error ? error.message : 'Unknown error')
         errors.push(`Rule ${rule.id}: ${errorMsg}`)
         await this.logWorkflowExecution(rule.id, applicationId, 'failed', errorMsg)
       }
@@ -272,7 +274,8 @@ export class WorkflowAutomationEngine {
             errors++
           }
         } catch (error) {
-          console.error(`Failed to process application ${application.id}:`, error)
+          const sanitizedError = sanitizeForLog(error instanceof Error ? error.message : 'Unknown error')
+          console.error(`Failed to process application ${application.id}:`, sanitizedError)
           errors++
         }
       })
@@ -291,7 +294,8 @@ export class WorkflowAutomationEngine {
 
       return { processed, errors }
     } catch (error) {
-      console.error('Scheduled workflow execution failed:', error)
+      const sanitizedError = sanitizeForLog(error instanceof Error ? error.message : 'Unknown error')
+      console.error('Scheduled workflow execution failed:', sanitizedError)
       return { processed, errors: errors + 1 }
     }
   }
@@ -308,7 +312,8 @@ export class WorkflowAutomationEngine {
         .single()
 
       if (error) {
-        console.error('Error fetching application data:', error)
+        const sanitizedError = sanitizeForLog(error.message || 'Unknown error')
+        console.error('Error fetching application data:', sanitizedError)
         return null
       }
 
@@ -320,7 +325,8 @@ export class WorkflowAutomationEngine {
 
       return data
     } catch (error) {
-      console.error('Error getting application data:', error)
+      const sanitizedError = sanitizeForLog(error instanceof Error ? error.message : 'Unknown error')
+      console.error('Error getting application data:', sanitizedError)
       return null
     }
   }
@@ -339,7 +345,8 @@ export class WorkflowAutomationEngine {
             const prediction = await predictiveAnalytics.predictAdmissionSuccess(application)
             value = prediction.admissionProbability
           } catch (error) {
-            console.error('Failed to get admission probability:', error)
+            const sanitizedError = sanitizeForLog(error instanceof Error ? error.message : 'Unknown error')
+            console.error('Failed to get admission probability:', sanitizedError)
             return false
           }
           break
@@ -401,31 +408,83 @@ export class WorkflowAutomationEngine {
 
   private evaluateCondition(value: any, condition: any): boolean {
     if (typeof condition === 'object' && condition.operator) {
+      const allowedOperators = ['>=', '<=', '==', '!=', '>', '<', 'in', 'not_in', 'contains'] as const
+      
+      if (!allowedOperators.includes(condition.operator as any)) {
+        console.warn(`Invalid operator rejected: ${sanitizeForLog(condition.operator)}`)
+        return false
+      }
+      
+      const sanitizedValue = this.sanitizeConditionValue(value)
+      const sanitizedConditionValue = this.sanitizeConditionValue(condition.value)
+      
       switch (condition.operator) {
         case '>=':
-          return value >= condition.value
+          return typeof sanitizedValue === 'number' && typeof sanitizedConditionValue === 'number' && sanitizedValue >= sanitizedConditionValue
         case '<=':
-          return value <= condition.value
+          return typeof sanitizedValue === 'number' && typeof sanitizedConditionValue === 'number' && sanitizedValue <= sanitizedConditionValue
         case '==':
-          return value === condition.value
+          return sanitizedValue === sanitizedConditionValue
         case '!=':
-          return value !== condition.value
+          return sanitizedValue !== sanitizedConditionValue
         case '>':
-          return value > condition.value
+          return typeof sanitizedValue === 'number' && typeof sanitizedConditionValue === 'number' && sanitizedValue > sanitizedConditionValue
         case '<':
-          return value < condition.value
+          return typeof sanitizedValue === 'number' && typeof sanitizedConditionValue === 'number' && sanitizedValue < sanitizedConditionValue
         case 'in':
-          return Array.isArray(condition.value) && condition.value.includes(value)
+          return Array.isArray(sanitizedConditionValue) && sanitizedConditionValue.includes(sanitizedValue)
         case 'not_in':
-          return Array.isArray(condition.value) && !condition.value.includes(value)
+          return Array.isArray(sanitizedConditionValue) && !sanitizedConditionValue.includes(sanitizedValue)
         case 'contains':
-          return typeof value === 'string' && value.toLowerCase().includes(condition.value.toLowerCase())
+          return typeof sanitizedValue === 'string' && typeof sanitizedConditionValue === 'string' && sanitizedValue.toLowerCase().includes(sanitizedConditionValue.toLowerCase())
         default:
           return false
       }
     }
 
-    return value === condition
+    return this.sanitizeConditionValue(value) === this.sanitizeConditionValue(condition)
+  }
+
+  private sanitizeConditionValue(value: any): any {
+    if (value === null || value === undefined) {
+      return value
+    }
+    
+    if (typeof value === 'string') {
+      // Remove potentially dangerous characters and limit length
+      return value.replace(/[<>"'`\\]/g, '').substring(0, 1000)
+    }
+    
+    if (typeof value === 'number') {
+      // Ensure it's a safe number
+      return isFinite(value) ? value : 0
+    }
+    
+    if (typeof value === 'boolean') {
+      return value
+    }
+    
+    if (Array.isArray(value)) {
+      // Recursively sanitize array elements
+      return value.map(item => this.sanitizeConditionValue(item)).slice(0, 100)
+    }
+    
+    if (typeof value === 'object') {
+      // Only allow plain objects with safe properties
+      const sanitized: Record<string, any> = {}
+      const allowedKeys = ['operator', 'value', 'status', 'type', 'priority']
+      
+      for (const key of allowedKeys) {
+        if (key in value) {
+          sanitized[key] = this.sanitizeConditionValue(value[key])
+        }
+      }
+      
+      return sanitized
+    }
+    
+    // For any other type, convert to string and sanitize
+    return String(value).replace(/[<>"'`\\]/g, '').substring(0, 100)
   }
 
   private async executeActions(
@@ -437,7 +496,8 @@ export class WorkflowAutomationEngine {
       try {
         await this.executeAction(action, application, context)
       } catch (error) {
-        console.error(`Action execution failed: ${action.type}`, error)
+        const sanitizedError = sanitizeForLog(error instanceof Error ? error.message : 'Unknown error')
+        console.error(`Action execution failed: ${action.type}`, sanitizedError)
       }
     }
   }
@@ -619,7 +679,7 @@ export class WorkflowAutomationEngine {
         console.error('Failed to log workflow execution:', logError)
       }
     } catch (error) {
-      console.error('Error logging workflow execution:', error)
+      // Don't log errors in logging function to avoid recursion
     }
   }
 
@@ -633,7 +693,8 @@ export class WorkflowAutomationEngine {
       }
       return false
     } catch (error) {
-      console.error('Error enabling rule:', error)
+      const sanitizedError = sanitizeForLog(error instanceof Error ? error.message : 'Unknown error')
+      console.error('Error enabling rule:', sanitizedError)
       return false
     }
   }
@@ -647,7 +708,8 @@ export class WorkflowAutomationEngine {
       }
       return false
     } catch (error) {
-      console.error('Error disabling rule:', error)
+      const sanitizedError = sanitizeForLog(error instanceof Error ? error.message : 'Unknown error')
+      console.error('Error disabling rule:', sanitizedError)
       return false
     }
   }
@@ -675,7 +737,8 @@ export class WorkflowAutomationEngine {
       this.rules.push(rule)
       return true
     } catch (error) {
-      console.error('Error adding custom rule:', error)
+      const sanitizedError = sanitizeForLog(error instanceof Error ? error.message : 'Unknown error')
+      console.error('Error adding custom rule:', sanitizedError)
       return false
     }
   }
@@ -700,7 +763,8 @@ export class WorkflowAutomationEngine {
       
       return stats
     } catch (error) {
-      console.error('Error getting workflow stats:', error)
+      const sanitizedError = sanitizeForLog(error instanceof Error ? error.message : 'Unknown error')
+      console.error('Error getting workflow stats:', sanitizedError)
       return {
         totalExecutions: 0,
         successfulExecutions: 0,

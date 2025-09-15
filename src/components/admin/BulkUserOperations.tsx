@@ -137,8 +137,8 @@ export function BulkUserOperations({
                     <CheckSquare className="h-4 w-4" />
                   </button>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{user.full_name || 'No name'}</p>
-                    <p className="text-xs text-gray-500">{user.email}</p>
+                    <p className="text-sm font-medium text-gray-900">{user.full_name?.replace(/[<>"'&]/g, '') || 'No name'}</p>
+                    <p className="text-xs text-gray-500">{user.email?.replace(/[<>"'&]/g, '')}</p>
                   </div>
                 </div>
                 <span className="text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded">
@@ -272,7 +272,7 @@ export function BulkUserOperations({
                   <p className="text-sm font-medium text-red-700 mb-2">Errors:</p>
                   <ul className="text-xs text-red-600 space-y-1">
                     {operationResult.errors.map((error: string, index: number) => (
-                      <li key={index}>• {error}</li>
+                      <li key={index}>• {error?.replace(/[<>"'&]/g, '')}</li>
                     ))}
                   </ul>
                 </div>

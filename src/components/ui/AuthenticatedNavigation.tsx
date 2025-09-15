@@ -5,6 +5,7 @@ import * as NavigationMenu from '@radix-ui/react-navigation-menu'
 import { Button } from './Button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { NotificationBell } from '@/components/student/NotificationBell'
 import { 
   User, 
   LogOut, 
@@ -121,13 +122,7 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
             ))}
             
             <NavigationMenu.Item>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="hover:bg-gray-100"
-              >
-                <Bell className="h-4 w-4" />
-              </Button>
+              <NotificationBell />
             </NavigationMenu.Item>
             
             <NavigationMenu.Item>
@@ -246,6 +241,21 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
                       </motion.div>
                     </NavigationMenu.Item>
                   ))}
+
+                  {/* Notifications in Mobile Menu */}
+                  <NavigationMenu.Item>
+                    <motion.div
+                      variants={itemVariants}
+                      custom={navigationItems.length}
+                      initial="closed"
+                      animate="open"
+                      className="flex justify-center"
+                    >
+                      <div className="mobile-nav-item mobile-nav-focus bg-blue-50 border-blue-200 hover:bg-blue-100 transition-all duration-300 flex items-center justify-center">
+                        <NotificationBell />
+                      </div>
+                    </motion.div>
+                  </NavigationMenu.Item>
 
                   {/* Sign Out */}
                   <NavigationMenu.Item className="mt-4">

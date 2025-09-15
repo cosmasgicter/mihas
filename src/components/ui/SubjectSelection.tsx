@@ -11,16 +11,54 @@ interface SubjectSelectionProps {
 }
 
 const AVAILABLE_SUBJECTS: Subject[] = [
+  // Core Subjects (Required)
   { id: 'math', name: 'Mathematics', code: 'MATH', category: 'core' },
   { id: 'eng', name: 'English', code: 'ENG', category: 'core' },
   { id: 'bio', name: 'Biology', code: 'BIO', category: 'core' },
   { id: 'chem', name: 'Chemistry', code: 'CHEM', category: 'core' },
   { id: 'phy', name: 'Physics', code: 'PHY', category: 'core' },
+  
+  // Sciences
+  { id: 'agr_sci', name: 'Agricultural Science', code: 'AGR', category: 'elective' },
+  { id: 'add_math', name: 'Additional Mathematics', code: 'ADDMATH', category: 'elective' },
+  { id: 'comp_sci', name: 'Computer Science', code: 'CS', category: 'elective' },
+  
+  // Languages
+  { id: 'bemba', name: 'Bemba', code: 'BEMBA', category: 'elective' },
+  { id: 'nyanja', name: 'Nyanja', code: 'NYANJA', category: 'elective' },
+  { id: 'tonga', name: 'Tonga', code: 'TONGA', category: 'elective' },
+  { id: 'lozi', name: 'Lozi', code: 'LOZI', category: 'elective' },
+  { id: 'kaonde', name: 'Kaonde', code: 'KAONDE', category: 'elective' },
+  { id: 'lunda', name: 'Lunda', code: 'LUNDA', category: 'elective' },
+  { id: 'luvale', name: 'Luvale', code: 'LUVALE', category: 'elective' },
+  { id: 'french', name: 'French', code: 'FRENCH', category: 'elective' },
+  { id: 'portuguese', name: 'Portuguese', code: 'PORT', category: 'elective' },
+  
+  // Social Sciences
   { id: 'geo', name: 'Geography', code: 'GEO', category: 'elective' },
   { id: 'hist', name: 'History', code: 'HIST', category: 'elective' },
+  { id: 'rel_ed', name: 'Religious Education', code: 'RE', category: 'elective' },
+  { id: 'civic_ed', name: 'Civic Education', code: 'CE', category: 'elective' },
+  { id: 'dev_studies', name: 'Development Studies', code: 'DS', category: 'elective' },
+  
+  // Business & Economics
+  { id: 'accounts', name: 'Principles of Accounts', code: 'POA', category: 'elective' },
+  { id: 'commerce', name: 'Commerce', code: 'COM', category: 'elective' },
+  { id: 'economics', name: 'Economics', code: 'ECON', category: 'elective' },
+  { id: 'business', name: 'Business Studies', code: 'BS', category: 'elective' },
+  
+  // Technical & Practical
+  { id: 'design_tech', name: 'Design & Technology', code: 'DT', category: 'elective' },
+  { id: 'home_econ', name: 'Home Economics', code: 'HE', category: 'elective' },
   { id: 'art', name: 'Art', code: 'ART', category: 'elective' },
+  { id: 'music', name: 'Music', code: 'MUSIC', category: 'elective' },
   { id: 'pe', name: 'Physical Education', code: 'PE', category: 'elective' },
-  { id: 'ict', name: 'ICT', code: 'ICT', category: 'elective' }
+  { id: 'ict', name: 'Information & Communication Technology', code: 'ICT', category: 'elective' },
+  
+  // Applied Sciences
+  { id: 'env_sci', name: 'Environmental Science', code: 'ES', category: 'elective' },
+  { id: 'food_nutr', name: 'Food & Nutrition', code: 'FN', category: 'elective' },
+  { id: 'health_sci', name: 'Health Science', code: 'HS', category: 'elective' }
 ]
 
 export function SubjectSelection({ selectedSubjects, onSubjectsChange, error }: SubjectSelectionProps) {
@@ -189,6 +227,12 @@ export function SubjectSelection({ selectedSubjects, onSubjectsChange, error }: 
                   />
                 ))}
               </div>
+              {/* Add subject button after core subjects */}
+              <AddSubjectButton 
+                onClick={() => setShowAddForm(!showAddForm)}
+                isOpen={showAddForm}
+                disabled={selectedSubjects.length >= 10}
+              />
             </div>
           )}
 
@@ -210,6 +254,25 @@ export function SubjectSelection({ selectedSubjects, onSubjectsChange, error }: 
                   />
                 ))}
               </div>
+              {/* Add subject button after elective subjects */}
+              <AddSubjectButton 
+                onClick={() => setShowAddForm(!showAddForm)}
+                isOpen={showAddForm}
+                disabled={selectedSubjects.length >= 10}
+              />
+            </div>
+          )}
+          
+          {/* Show add button if no subjects selected */}
+          {selectedSubjects.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-500 mb-4">No subjects selected yet</p>
+              <AddSubjectButton 
+                onClick={() => setShowAddForm(!showAddForm)}
+                isOpen={showAddForm}
+                disabled={false}
+                variant="primary"
+              />
             </div>
           )}
         </div>
@@ -230,6 +293,44 @@ interface SubjectCardProps {
   onDragStart: (index: number) => void
   onDragOver: (e: React.DragEvent) => void
   onDrop: (e: React.DragEvent, index: number) => void
+}
+
+interface AddSubjectButtonProps {
+  onClick: () => void
+  isOpen: boolean
+  disabled: boolean
+  variant?: 'primary' | 'secondary'
+}
+
+function AddSubjectButton({ onClick, isOpen, disabled, variant = 'secondary' }: AddSubjectButtonProps) {
+  const isPrimary = variant === 'primary'
+  
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`w-full p-4 border-2 border-dashed rounded-lg transition-all duration-200 ${
+        disabled 
+          ? 'border-gray-200 text-gray-400 cursor-not-allowed'
+          : isPrimary
+          ? 'border-blue-300 text-blue-600 hover:border-blue-400 hover:bg-blue-50'
+          : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-50'
+      } ${isOpen ? 'bg-blue-50 border-blue-400' : ''}`}
+    >
+      <div className="flex items-center justify-center space-x-2">
+        <Plus className={`h-5 w-5 ${isOpen ? 'rotate-45' : ''} transition-transform duration-200`} />
+        <span className="font-medium">
+          {isOpen ? 'Close Subject Selection' : 'Add Another Subject'}
+        </span>
+      </div>
+      {!disabled && (
+        <p className="text-sm mt-1 opacity-75">
+          {isPrimary ? 'Start by adding your first subject' : 'Click to browse available subjects'}
+        </p>
+      )}
+    </button>
+  )
 }
 
 function SubjectCard({ 
@@ -261,7 +362,7 @@ function SubjectCard({
             <button
               type="button"
               onClick={() => onRemove(subject.id)}
-              className="text-red-500 hover:text-red-700"
+              className="text-red-500 hover:text-red-700 transition-colors"
             >
               <X className="h-4 w-4" />
             </button>

@@ -19,12 +19,24 @@ export function ContinueApplication() {
   const [draftInfo, setDraftInfo] = useState<DraftInfo>({ exists: false })
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
+  const [currentTime, setCurrentTime] = useState(Date.now())
 
   useEffect(() => {
     if (user) {
       loadDraftInfo()
     }
   }, [user])
+
+  // Update timer every minute
+  useEffect(() => {
+    if (!draftInfo.exists || !draftInfo.expiresAt) return
+
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now())
+    }, 60000) // Update every minute
+
+    return () => clearInterval(interval)
+  }, [draftInfo.exists, draftInfo.expiresAt])
 
   const loadDraftInfo = async () => {
     if (!user) return
@@ -59,16 +71,14 @@ export function ContinueApplication() {
   const isExpiringSoon = () => {
     if (!draftInfo.expiresAt) return false
     const expiryTime = new Date(draftInfo.expiresAt).getTime()
-    const now = Date.now()
-    const hoursUntilExpiry = (expiryTime - now) / (1000 * 60 * 60)
+    const hoursUntilExpiry = (expiryTime - currentTime) / (1000 * 60 * 60)
     return hoursUntilExpiry < 2 // Less than 2 hours
   }
 
   const getTimeUntilExpiry = () => {
     if (!draftInfo.expiresAt) return ''
     const expiryTime = new Date(draftInfo.expiresAt).getTime()
-    const now = Date.now()
-    const msUntilExpiry = expiryTime - now
+    const msUntilExpiry = expiryTime - currentTime
     
     if (msUntilExpiry <= 0) return 'Expired'
     

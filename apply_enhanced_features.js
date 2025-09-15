@@ -5,6 +5,7 @@
  * Applies all new database schema and features for MIHAS/KATC Application System
  */
 
+// Load required modules at the top
 const { createClient } = require('@supabase/supabase-js')
 const fs = require('fs')
 const path = require('path')

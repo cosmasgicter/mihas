@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { AdminRoute } from '@/components/AdminRoute'
+import { ToastProvider } from '@/components/ui/Toast'
 
 import { OfflineIndicator } from '@/components/ui/OfflineIndicator'
 import { AuthDebug } from '@/components/ui/AuthDebug'
@@ -72,7 +73,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router>
+        <ToastProvider>
+          <Router>
           <div className="min-h-screen bg-gray-50 relative overflow-hidden">
             <div className="relative z-10">
               <Routes>
@@ -176,7 +178,8 @@ function App() {
               <AuthDebug />
             </div>
           </div>
-        </Router>
+          </Router>
+        </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>
   )

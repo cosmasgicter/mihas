@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/Button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog'
 import { supabase } from '@/lib/supabase'
 import { Upload, FileText, AlertTriangle, CheckCircle, XCircle, Users, Download } from 'lucide-react'
-import { sanitizeForLog } from '@/lib/sanitize'
+import { sanitizeForLog, sanitizeText, sanitizeEmail } from '@/lib/sanitize'
 
 interface UserImportProps {
   isOpen: boolean
@@ -86,15 +86,15 @@ export function UserImport({ isOpen, onClose, onImportComplete }: UserImportProp
         
         headers.forEach((header, index) => {
           if (header.includes('name') || header.includes('full_name')) {
-            userData.full_name = values[index]
+            userData.full_name = sanitizeText(values[index])
           } else if (header.includes('email')) {
-            userData.email = values[index]
+            userData.email = sanitizeEmail(values[index])
           } else if (header.includes('phone')) {
-            userData.phone = values[index]
+            userData.phone = sanitizeText(values[index])
           } else if (header.includes('role')) {
-            userData.role = values[index]
+            userData.role = sanitizeText(values[index])
           } else if (header.includes('password')) {
-            userData.password = values[index]
+            userData.password = sanitizeText(values[index])
           }
         })
         
@@ -158,15 +158,15 @@ export function UserImport({ isOpen, onClose, onImportComplete }: UserImportProp
           
           headers.forEach((header, index) => {
             if (header.includes('name') || header.includes('full_name')) {
-              userData.full_name = values[index]
+              userData.full_name = sanitizeText(values[index])
             } else if (header.includes('email')) {
-              userData.email = values[index]
+              userData.email = sanitizeEmail(values[index])
             } else if (header.includes('phone')) {
-              userData.phone = values[index]
+              userData.phone = sanitizeText(values[index])
             } else if (header.includes('role')) {
-              userData.role = values[index]?.toLowerCase()
+              userData.role = sanitizeText(values[index])?.toLowerCase()
             } else if (header.includes('password')) {
-              userData.password = values[index]
+              userData.password = sanitizeText(values[index])
             }
           })
 
@@ -360,12 +360,12 @@ export function UserImport({ isOpen, onClose, onImportComplete }: UserImportProp
                       <tbody className="bg-white divide-y divide-gray-200">
                         {previewData.map((user, index) => (
                           <tr key={index}>
-                            <td className="px-3 py-2 text-sm text-gray-900">{user.full_name}</td>
-                            <td className="px-3 py-2 text-sm text-gray-900">{user.email}</td>
-                            <td className="px-3 py-2 text-sm text-gray-900">{user.phone || '-'}</td>
+                            <td className="px-3 py-2 text-sm text-gray-900">{sanitizeText(user.full_name)}</td>
+                            <td className="px-3 py-2 text-sm text-gray-900">{sanitizeText(user.email)}</td>
+                            <td className="px-3 py-2 text-sm text-gray-900">{sanitizeText(user.phone) || '-'}</td>
                             <td className="px-3 py-2 text-sm text-gray-900">
                               <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
-                                {user.role}
+                                {sanitizeText(user.role)}
                               </span>
                             </td>
                           </tr>
@@ -416,7 +416,7 @@ export function UserImport({ isOpen, onClose, onImportComplete }: UserImportProp
                         <p className="font-medium">Row {error.row}: {error.error}</p>
                         {error.data && (
                           <p className="text-xs text-red-600 mt-1">
-                            Data: {JSON.stringify(error.data)}
+                            Data: {sanitizeForLog(JSON.stringify(error.data))}
                           </p>
                         )}
                       </div>

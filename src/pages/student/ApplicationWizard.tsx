@@ -17,6 +17,9 @@ import { ArrowLeft, CheckCircle, ArrowRight, X, Sparkles, FileText, CreditCard, 
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AIAssistant } from '@/components/application/AIAssistant'
+import { draftManager } from '@/lib/draftManager'
+import { sanitizeForLog } from '@/lib/security'
+import { safeJsonParse } from '@/lib/utils'
 
 const wizardSchema = z.object({
   full_name: z.string().min(2, 'Full name is required'),
@@ -33,7 +36,7 @@ const wizardSchema = z.object({
     required_error: 'Please select a program' 
   }),
   intake: z.string().min(1, 'Please select an intake'),
-  payment_method: z.enum(['pay_now']).default('pay_now'),
+  payment_method: z.enum(['pay_now', 'pay_later']).default('pay_now'),
   payer_name: z.string().optional(),
   payer_phone: z.string().optional(),
   amount: z.number().min(150, 'Minimum amount is K150').optional(),
@@ -88,7 +91,7 @@ export default function ApplicationWizard() {
   
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<WizardFormData>({
     resolver: zodResolver(wizardSchema),
-    defaultValues: { amount: 150 }
+    defaultValues: { amount: 150, payment_method: 'pay_now' }
   })
 
   const selectedProgram = watch('program')
@@ -98,6 +101,20 @@ export default function ApplicationWizard() {
       navigate('/auth/signin?redirect=/student/application-wizard')
     }
   }, [user, authLoading, navigate])
+
+  // Prevent accidental page refresh when user has unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (currentStep > 1 && !success) {
+        e.preventDefault()
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?'
+        return e.returnValue
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [currentStep, success])
 
   // Auto-populate form with user data
   useEffect(() => {
@@ -143,8 +160,8 @@ export default function ApplicationWizard() {
         // First check localStorage for wizard draft
         const savedDraft = localStorage.getItem('applicationWizardDraft')
         if (savedDraft) {
-          try {
-            const draft = JSON.parse(savedDraft)
+          const draft = safeJsonParse(savedDraft, null)
+          if (draft) {
             if (draft.formData) {
               Object.keys(draft.formData).forEach(key => {
                 setValue(key as keyof WizardFormData, draft.formData[key])
@@ -160,8 +177,8 @@ export default function ApplicationWizard() {
               setApplicationId(draft.applicationId)
             }
             return // Exit early if we found a draft
-          } catch (error) {
-            console.error('Error loading draft:', error)
+          } else {
+            console.error('Error loading draft: Invalid JSON in localStorage')
             localStorage.removeItem('applicationWizardDraft')
           }
         }
@@ -229,7 +246,7 @@ export default function ApplicationWizard() {
           }
         }
       } catch (error) {
-        console.error('Error loading existing draft application:', error)
+        console.error('Error loading existing draft application:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
       } finally {
         setRestoringDraft(false)
       }
@@ -241,16 +258,29 @@ export default function ApplicationWizard() {
   // Save draft on form changes
   // Auto-save on form changes with debouncing
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout
+    
     const subscription = watch(() => {
-      if (currentStep > 1) {
-        const timeoutId = setTimeout(() => {
+      if (currentStep >= 1 && !isDraftSaving) {
+        // Clear previous timeout
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+        }
+        
+        // Set new timeout for auto-save
+        timeoutId = setTimeout(() => {
           saveDraft()
-        }, 2000)
-        return () => clearTimeout(timeoutId)
+        }, 8000) // Increased to 8 seconds to reduce API calls
       }
     })
-    return () => subscription.unsubscribe()
-  }, [watch, currentStep])
+
+    return () => {
+      subscription.unsubscribe()
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+    }
+  }, [watch, currentStep, isDraftSaving])
 
   const saveDraft = async () => {
     if (!user || isDraftSaving) return
@@ -264,10 +294,22 @@ export default function ApplicationWizard() {
         applicationId,
         savedAt: new Date().toISOString()
       }
-      localStorage.setItem('applicationWizardDraft', JSON.stringify(draft))
+      
+      // Save to localStorage with error handling
+      try {
+        localStorage.setItem('applicationWizardDraft', JSON.stringify(draft))
+      } catch (storageError) {
+        console.warn('localStorage save failed:', storageError)
+        // Try sessionStorage as fallback
+        try {
+          sessionStorage.setItem('applicationWizardDraft', JSON.stringify(draft))
+        } catch (sessionError) {
+          console.error('Both localStorage and sessionStorage failed:', sessionError)
+        }
+      }
       
       // Also save to application session manager for dashboard display
-      await applicationSessionManager.saveDraft(
+      const saveResult = await applicationSessionManager.saveDraft(
         user.id,
         formData,
         currentStep,
@@ -275,10 +317,14 @@ export default function ApplicationWizard() {
         selectedGrades
       )
       
-      setDraftSaved(true)
-      setTimeout(() => setDraftSaved(false), 2000)
+      if (saveResult.success) {
+        setDraftSaved(true)
+        setTimeout(() => setDraftSaved(false), 2000)
+      } else {
+        console.warn('Draft save warning:', saveResult.error)
+      }
     } catch (error) {
-      console.error('Error saving draft:', error)
+      console.error('Error saving draft:', sanitizeForLog(error))
     } finally {
       setIsDraftSaving(false)
     }
@@ -299,7 +345,7 @@ export default function ApplicationWizard() {
       if (error) throw error
       setSubjects(data || [])
     } catch (err) {
-      console.error('Error loading subjects:', err)
+      console.error('Error loading subjects:', sanitizeForLog(err instanceof Error ? err.message : 'Unknown error'))
     }
   }
 
@@ -353,21 +399,27 @@ export default function ApplicationWizard() {
         setDocumentAnalysis(analysis)
         
         // Auto-fill form if data extracted
-        if (analysis.autoFillData) {
-          Object.entries(analysis.autoFillData).forEach(([key, value]) => {
-            if (value && key !== 'grades') {
-              setValue(key as keyof WizardFormData, value)
+        if (analysis && typeof analysis === 'object' && 'autoFillData' in analysis) {
+          const autoFillData = analysis.autoFillData as Record<string, any>
+          if (autoFillData) {
+            Object.entries(autoFillData).forEach(([key, value]) => {
+              if (value && key !== 'grades') {
+                setValue(key as keyof WizardFormData, value as any)
+              }
+            })
+            
+            if (autoFillData.grades) {
+              setSelectedGrades(autoFillData.grades)
             }
-          })
-          
-          if (analysis.autoFillData.grades) {
-            setSelectedGrades(analysis.autoFillData.grades)
           }
         }
         
-        setSmartSuggestions(analysis.suggestions)
+        if (analysis && typeof analysis === 'object' && 'suggestions' in analysis) {
+          const suggestions = analysis.suggestions as string[]
+          setSmartSuggestions(suggestions || [])
+        }
       } catch (error) {
-        console.error('Document analysis failed:', error)
+        console.error('Document analysis failed:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
         setDocumentAnalysis({
           quality: 'good',
           completeness: 75,
@@ -432,7 +484,7 @@ export default function ApplicationWizard() {
 
       return publicUrl
     } catch (error) {
-      console.error('File upload error:', error)
+      console.error('File upload error:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
       throw error
     } finally {
       clearInterval(progressInterval)
@@ -632,13 +684,18 @@ export default function ApplicationWizard() {
       if (updateError) throw updateError
       
       // Clear saved draft on successful submission
-      localStorage.removeItem('applicationWizardDraft')
-      await applicationSessionManager.deleteDraft(user.id)
+      try {
+        const deleteResult = await draftManager.clearAllDrafts(user.id)
+        if (!deleteResult.success) {
+          console.warn('Draft cleanup warning:', deleteResult.error)
+        }
+      } catch (cleanupError) {
+        console.warn('Draft cleanup failed:', cleanupError)
+      }
       setSuccess(true)
     } catch (err: any) {
-      const sanitizedMessage = err instanceof Error ? err.message.replace(/[\r\n\t]/g, ' ') : 'Unknown error'
-      console.error('Submission error:', sanitizedMessage)
-      setError(err.message || 'Failed to submit application')
+      console.error('Submission error:', sanitizeForLog(err instanceof Error ? err.message : 'Unknown error'))
+      setError(err instanceof Error ? err.message : 'Failed to submit application')
     } finally {
       setLoading(false)
     }
@@ -1394,7 +1451,8 @@ export default function ApplicationWizard() {
                         className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         defaultValue="pay_now"
                       >
-                        <option value="pay_now">Mobile Money Payment</option>
+                        <option value="pay_now">Pay Now</option>
+                        <option value="pay_later">Pay Later</option>
                       </select>
                     </div>
                     

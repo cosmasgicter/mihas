@@ -44,11 +44,12 @@ export class DocumentAI {
       
       return await Promise.race([analysisPromise, timeoutPromise])
     } catch (error) {
-      console.error('Document analysis failed:', error)
+      const sanitizedError = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Document analysis failed:', sanitizedError)
       return {
         quality: 'poor',
         completeness: 0,
-        suggestions: [error instanceof Error ? error.message : 'Document could not be analyzed. Please ensure it is clear and readable.'],
+        suggestions: ['Document could not be analyzed. Please ensure it is clear and readable.'],
         autoFillData: {},
         processingTime: Date.now() - startTime
       }
@@ -112,7 +113,8 @@ export class DocumentAI {
         extractedData: result.extractedData
       }
     } catch (error) {
-      console.error('OCR processing error:', error)
+      const sanitizedError = error instanceof Error ? error.message : 'Unknown error'
+      console.error('OCR processing error:', sanitizedError)
       return {
         text: 'Document processed',
         confidence: 0.5,
@@ -232,10 +234,12 @@ export class DocumentAI {
         })
       
       if (error) {
-        console.error('Failed to store analysis results:', error)
+        const sanitizedError = error.message || 'Unknown error'
+        console.error('Failed to store analysis results:', sanitizedError)
       }
     } catch (error) {
-      console.error('Error storing analysis results:', error)
+      const sanitizedError = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Error storing analysis results:', sanitizedError)
     }
   }
 }

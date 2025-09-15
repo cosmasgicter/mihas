@@ -1,10 +1,22 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 export function DashboardRedirect() {
   const { user, profile, userRole, loading, isAdmin } = useAuth()
+  const [profileTimeout, setProfileTimeout] = useState(false)
+
+  // Set timeout for profile loading
+  useEffect(() => {
+    if (!loading && user && !profile) {
+      const timer = setTimeout(() => {
+        setProfileTimeout(true)
+      }, 3000) // 3 second timeout for profile loading
+      
+      return () => clearTimeout(timer)
+    }
+  }, [loading, user, profile])
 
   if (loading) {
     return (
@@ -18,8 +30,8 @@ export function DashboardRedirect() {
     return <Navigate to="/auth/signin" replace />
   }
 
-  // Wait for profile to load before redirecting
-  if (!profile) {
+  // If profile loading times out or we have a profile, proceed with redirect
+  if (!profile && !profileTimeout) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

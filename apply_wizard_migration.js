@@ -5,9 +5,6 @@
  * Run this script to set up the new application system
  */
 
-const fs = require('fs')
-const path = require('path')
-
 console.log('🚀 MIHAS/KATC Application Wizard Migration')
 console.log('==========================================')
 console.log('')
@@ -52,6 +49,8 @@ console.log('  • Storage bucket "app_docs" will be created')
 console.log('')
 
 // Check if schema file exists
+const fs = require('fs')
+const path = require('path')
 const schemaPath = path.join(__dirname, 'new_wizard_schema.sql')
 if (fs.existsSync(schemaPath)) {
   console.log('✅ Schema file found: new_wizard_schema.sql')

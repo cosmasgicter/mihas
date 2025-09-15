@@ -33,9 +33,17 @@ async function testAdminAccess() {
     
     // Test 2: Sign in as admin user
     console.log('\n2. Signing in as admin user...')
+    const adminEmail = process.env.TEST_ADMIN_EMAIL
+    const adminPassword = process.env.TEST_ADMIN_PASSWORD
+    
+    if (!adminEmail || !adminPassword) {
+      console.log('❌ Admin credentials not provided in environment variables (TEST_ADMIN_EMAIL, TEST_ADMIN_PASSWORD)')
+      return
+    }
+    
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: 'cosmas@beanola.com',
-      password: 'password123' // You'll need to use the actual password
+      email: adminEmail,
+      password: adminPassword
     })
     
     if (authError) {

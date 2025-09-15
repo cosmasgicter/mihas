@@ -110,7 +110,10 @@ async function syncOfflineData() {
     // This would integrate with your offline sync service
     const clients = await self.clients.matchAll()
     clients.forEach(client => {
-      client.postMessage({ type: 'SYNC_OFFLINE_DATA' })
+      // Verify client origin before sending message
+      if (client.url && new URL(client.url).origin === self.location.origin) {
+        client.postMessage({ type: 'SYNC_OFFLINE_DATA' })
+      }
     })
   } catch (error) {
     console.error('Background sync failed:', error)
@@ -138,7 +141,26 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   
-  event.waitUntil(
-    clients.openWindow(event.notification.data?.url || '/')
-  )
+  const targetUrl = event.notification.data?.url || '/'
+  
+  // Strict origin verification for CWE-346 compliance
+  if (typeof targetUrl !== 'string') {
+    event.waitUntil(self.clients.openWindow('/'))
+    return
+  }
+  
+  try {
+    const url = new URL(targetUrl, self.location.origin)
+    
+    // Only allow same-origin URLs with matching protocol and host
+    if (url.origin === self.location.origin && 
+        url.protocol === self.location.protocol &&
+        url.hostname === self.location.hostname) {
+      event.waitUntil(self.clients.openWindow(url.href))
+    } else {
+      event.waitUntil(self.clients.openWindow('/'))
+    }
+  } catch (error) {
+    event.waitUntil(self.clients.openWindow('/'))
+  }
 })

@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sanitizeForLog } from './security'
 
 export interface UploadResult {
   success: boolean
@@ -110,7 +111,7 @@ export async function uploadFile(
       })
 
     if (error) {
-      console.error('Storage upload error:', error)
+      console.error('Storage upload error:', sanitizeForLog(error.message || 'Unknown error'))
       return {
         success: false,
         error: error.message
@@ -128,7 +129,7 @@ export async function uploadFile(
       url: urlData.publicUrl
     }
   } catch (error) {
-    console.error('Upload error:', error)
+    console.error('Upload error:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Upload failed'
@@ -143,7 +144,7 @@ export async function deleteFile(bucket: string, path: string): Promise<{ succes
       .remove([path])
 
     if (error) {
-      console.error('Storage delete error:', error)
+      console.error('Storage delete error:', sanitizeForLog(error.message || 'Unknown error'))
       return {
         success: false,
         error: error.message
@@ -152,7 +153,7 @@ export async function deleteFile(bucket: string, path: string): Promise<{ succes
 
     return { success: true }
   } catch (error) {
-    console.error('Delete error:', error)
+    console.error('Delete error:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Delete failed'

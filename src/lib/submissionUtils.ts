@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { SubmissionResult, SubmissionStatus, EmailReceipt, RetryConfig } from '@/types/submission'
 import { ApplicationFormData } from '@/forms/applicationSchema'
+import { sanitizeForLog } from './security'
 
 const RETRY_CONFIG: RetryConfig = {
   maxRetries: 3,
@@ -120,7 +121,7 @@ export const sendEmailReceipt = async (receipt: EmailReceipt): Promise<boolean> 
 
     return !error
   } catch (error) {
-    console.error('Failed to send email receipt:', error)
+    console.error('Failed to send email receipt:', sanitizeForLog(error))
     return false
   }
 }
@@ -140,6 +141,6 @@ export const saveSubmissionStatus = async (
         step: status.step
       })
   } catch (error) {
-    console.error('Failed to save submission status:', error)
+    console.error('Failed to save submission status:', sanitizeForLog(error))
   }
 }

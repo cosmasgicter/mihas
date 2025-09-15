@@ -215,7 +215,7 @@ export function ApplicationStatusBadge({
     }
   }
 
-  const sanitizedStatus = status.replace(/[<>&"']/g, '').replace('_', ' ').toUpperCase()
+  const sanitizedStatus = status.replace(/[<>&"'`]/g, '').replace(/_/g, ' ').substring(0, 50).toUpperCase()
   
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(status)} ${className}`}>

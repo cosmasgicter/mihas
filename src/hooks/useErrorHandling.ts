@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react'
 import { ErrorLogger, TransactionManager, handleDatabaseError, safeDbOperation } from '@/lib/errorHandling'
 import { supabase } from '@/lib/supabase'
+import { sanitizeForLog } from '@/lib/security'
 
 interface ErrorState {
   hasError: boolean
@@ -95,7 +96,7 @@ export function useErrorHandling(): UseErrorHandlingReturn {
       
       // Show user-friendly error message if enabled
       if (showUserError) {
-        console.error(`Error in ${operationName}:`, error)
+        console.error(`Error in ${sanitizeForLog(operationName)}:`, sanitizeForLog(error?.message || 'Unknown error'))
       }
       
       return null

@@ -1,27 +1,62 @@
-/**
- * Sanitizes user input for logging to prevent log injection
- */
-export function sanitizeForLog(input: string): string {
-  return input.replace(/[\r\n\t]/g, ' ').substring(0, 100)
+export function sanitizeText(input: string | null | undefined): string {
+  if (!input || typeof input !== 'string') {
+    return ''
+  }
+  return input.replace(/[<>"'&]/g, '')
 }
 
-/**
- * Sanitizes user input for display to prevent XSS
- */
-export function sanitizeForDisplay(input: string): string {
-  if (typeof input !== 'string') {
-    return String(input)
+export function sanitizeEmail(email: string): string {
+  if (!email || typeof email !== 'string') {
+    return ''
+  }
+  return email.toLowerCase().trim()
+}
+
+export function sanitizeForLog(input: any): string {
+  if (typeof input === 'string') {
+    return input.replace(/[<>"'&]/g, '')
+  }
+  return JSON.stringify(input).replace(/[<>"'&]/g, '')
+}
+
+export function sanitizeObject(obj: any): any {
+  if (typeof obj !== 'object' || obj === null) {
+    return obj
   }
   
-  return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .replace(/\\/g, '&#x2F;')
-    .replace(/javascript:/gi, '')
-    .replace(/on\w+=/gi, '')
-    .replace(/<script[^>]*>.*?<\/script>/gi, '')
-    .trim()
+  const sanitized: any = {}
+  for (const [key, value] of Object.entries(obj)) {
+    if (typeof value === 'string') {
+      sanitized[key] = sanitizeText(value)
+    } else {
+      sanitized[key] = value
+    }
+  }
+  return sanitized
+}
+
+export function safeJsonParse<T>(jsonString: string, fallback: T): T {
+  try {
+    return JSON.parse(jsonString)
+  } catch {
+    return fallback
+  }
+}
+
+export function generateSecureId(): string {
+  return Math.random().toString(36).substring(2) + Date.now().toString(36)
+}
+
+export function sanitizeHtml(input: string): string {
+  if (!input || typeof input !== 'string') {
+    return ''
+  }
+  return input.replace(/<[^>]*>/g, '')
+}
+
+export function sanitizeForDisplay(input: string | null | undefined): string {
+  if (!input || typeof input !== 'string') {
+    return ''
+  }
+  return input.replace(/[<>"'&]/g, '')
 }

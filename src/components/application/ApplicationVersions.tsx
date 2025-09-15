@@ -160,7 +160,16 @@ export function ApplicationVersions({ applicationId, onRestoreVersion }: Applica
                       
                       {version.change_summary && (
                         <p className="text-xs text-gray-600 truncate">
-                          {version.change_summary}
+                          {version.change_summary.replace(/[<>&"']/g, (char) => {
+                            const entities: Record<string, string> = {
+                              '<': '&lt;',
+                              '>': '&gt;',
+                              '&': '&amp;',
+                              '"': '&quot;',
+                              "'": '&#x27;'
+                            }
+                            return entities[char] || char
+                          })}
                         </p>
                       )}
                       
@@ -224,7 +233,16 @@ export function ApplicationVersions({ applicationId, onRestoreVersion }: Applica
                         Changes
                       </label>
                       <p className="text-sm text-gray-900">
-                        {selectedVersion.change_summary}
+                        {selectedVersion.change_summary?.replace(/[<>&"']/g, (char) => {
+                          const entities: Record<string, string> = {
+                            '<': '&lt;',
+                            '>': '&gt;',
+                            '&': '&amp;',
+                            '"': '&quot;',
+                            "'": '&#x27;'
+                          }
+                          return entities[char] || char
+                        })}
                       </p>
                     </div>
                   )}

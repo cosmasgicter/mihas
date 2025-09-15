@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
+import path from 'path'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -32,8 +33,16 @@ async function applyDatabaseFixes() {
   try {
     console.log('🔧 Applying admin dashboard database fixes...')
     
-    // Read the SQL fix file
-    const sqlFixes = readFileSync(join(__dirname, 'sql', 'fix_admin_rls_policies.sql'), 'utf8')
+    // Read the SQL fix file with path validation
+    const sqlPath = join(__dirname, 'sql', 'fix_admin_rls_policies.sql')
+    const resolvedPath = path.resolve(sqlPath)
+    const basePath = path.resolve(__dirname)
+    
+    if (!resolvedPath.startsWith(basePath)) {
+      throw new Error('Invalid file path')
+    }
+    
+    const sqlFixes = readFileSync(resolvedPath, 'utf8')
     
     // Split SQL into individual statements
     const statements = sqlFixes

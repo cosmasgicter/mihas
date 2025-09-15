@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { AnalyticsService, ApplicationStats, ProgramAnalytics, EligibilityAnalytics, AutomatedReport } from '@/lib/analytics'
 import { ReportsGenerator } from '@/components/admin/ReportsGenerator'
+import { sanitizeForDisplay } from '@/lib/sanitize'
 import { TrendingUp, Users, FileText, CheckCircle, Download, Plus, Edit, Trash2, RefreshCw, Eye, Filter, BarChart3 } from 'lucide-react'
 
 export default function Analytics() {
@@ -152,7 +153,7 @@ export default function Analytics() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${report.reportName.replace(/\s+/g, '_')}.json`
+      a.download = `${sanitizeForDisplay(report.reportName).replace(/\s+/g, '_')}.json`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -410,7 +411,7 @@ export default function Analytics() {
                       {programAnalytics.map((program, index) => (
                         <tr key={index} className="hover:bg-blue-50 transition-colors">
                           <td className="px-6 py-4">
-                            <div className="font-semibold text-gray-900">{program.programName}</div>
+                            <div className="font-semibold text-gray-900">{sanitizeForDisplay(program.programName)}</div>
                           </td>
                           <td className="px-6 py-4">
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
@@ -622,8 +623,8 @@ export default function Analytics() {
                     <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h4 className="font-semibold text-gray-900">{report.reportName}</h4>
-                          <p className="text-sm text-gray-500">{report.reportType}</p>
+                          <h4 className="font-semibold text-gray-900">{sanitizeForDisplay(report.reportName)}</h4>
+                          <p className="text-sm text-gray-500">{sanitizeForDisplay(report.reportType)}</p>
                           <p className="text-xs text-gray-400">{new Date(report.createdAt || '').toLocaleString()}</p>
                         </div>
                         <div className="flex space-x-2">
@@ -633,7 +634,7 @@ export default function Analytics() {
                               const url = URL.createObjectURL(blob)
                               const a = document.createElement('a')
                               a.href = url
-                              a.download = `${report.reportName.replace(/\s+/g, '_')}.json`
+                              a.download = `${sanitizeForDisplay(report.reportName).replace(/\s+/g, '_')}.json`
                               document.body.appendChild(a)
                               a.click()
                               document.body.removeChild(a)

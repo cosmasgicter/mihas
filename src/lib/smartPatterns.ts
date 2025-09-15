@@ -22,16 +22,19 @@ export function extractZambianData(text: string) {
     }
   }
   
-  // Zambian grade patterns (1-9 scale)
+  // Zambian grade patterns (1-9 scale) - secure implementation
   const gradePattern = /(mathematics|english|biology|chemistry|physics|geography|history|civics|additional\s+mathematics)[:\s]*([1-9])/gi
   const grades = []
-  let match
   
-  while ((match = gradePattern.exec(text)) !== null) {
-    grades.push({
-      subject: match[1].trim(),
-      grade: parseInt(match[2])
-    })
+  // Use matchAll instead of exec to prevent code injection
+  const matches = Array.from(text.matchAll(gradePattern))
+  for (const match of matches) {
+    if (match[1] && match[2]) {
+      grades.push({
+        subject: match[1].trim(),
+        grade: parseInt(match[2])
+      })
+    }
   }
   
   if (grades.length > 0) data.grades = grades

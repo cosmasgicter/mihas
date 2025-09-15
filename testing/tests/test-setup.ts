@@ -6,17 +6,23 @@ export const test = base.extend<{
   adminUser: { email: string; password: string; role: string }
 }>({
   testUser: async (_, use) => {
+    const password = process.env.TEST_USER_PASSWORD
+    if (!password) throw new Error('TEST_USER_PASSWORD environment variable is required')
+    
     await use({
       email: 'student@test.com',
-      password: 'password123',
+      password,
       role: 'student'
     })
   },
   
   adminUser: async (_, use) => {
+    const password = process.env.TEST_ADMIN_PASSWORD
+    if (!password) throw new Error('TEST_ADMIN_PASSWORD environment variable is required')
+    
     await use({
-      email: 'admin@test.com', 
-      password: 'password123',
+      email: 'admin@test.com',
+      password,
       role: 'admin'
     })
   }

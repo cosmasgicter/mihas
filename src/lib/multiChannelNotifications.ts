@@ -50,7 +50,8 @@ export class MultiChannelNotificationService {
       
       return results.some(r => r.status === 'fulfilled')
     } catch (error) {
-      console.error('Notification sending failed:', error)
+      const sanitizedError = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Notification sending failed:', sanitizedError)
       return false
     }
   }
@@ -199,7 +200,8 @@ export class MultiChannelNotificationService {
       console.log('Email sent:', { to: user.user.email, subject, content })
       return true
     } catch (error) {
-      console.error('Email sending failed:', error)
+      const sanitizedError = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Email sending failed:', sanitizedError)
       return false
     }
   }
@@ -210,7 +212,8 @@ export class MultiChannelNotificationService {
       console.log('SMS sent:', { userId, content })
       return true
     } catch (error) {
-      console.error('SMS sending failed:', error)
+      const sanitizedError = error instanceof Error ? error.message : 'Unknown error'
+      console.error('SMS sending failed:', sanitizedError)
       return false
     }
   }
@@ -221,7 +224,8 @@ export class MultiChannelNotificationService {
       console.log('WhatsApp sent:', { userId, content })
       return true
     } catch (error) {
-      console.error('WhatsApp sending failed:', error)
+      const sanitizedError = error instanceof Error ? error.message : 'Unknown error'
+      console.error('WhatsApp sending failed:', sanitizedError)
       return false
     }
   }
@@ -232,7 +236,8 @@ export class MultiChannelNotificationService {
       console.log('Push notification sent:', { userId, title, content })
       return true
     } catch (error) {
-      console.error('Push notification failed:', error)
+      const sanitizedError = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Push notification failed:', sanitizedError)
       return false
     }
   }
@@ -251,7 +256,8 @@ export class MultiChannelNotificationService {
 
       return !error
     } catch (error) {
-      console.error('In-app notification failed:', error)
+      const sanitizedError = error instanceof Error ? error.message : 'Unknown error'
+      console.error('In-app notification failed:', sanitizedError)
       return false
     }
   }
@@ -302,7 +308,8 @@ export class MultiChannelNotificationService {
       })
 
     if (error) {
-      console.error('Failed to log notification:', error)
+      const sanitizedError = error.message || 'Unknown error'
+      console.error('Failed to log notification:', sanitizedError)
     }
   }
 }

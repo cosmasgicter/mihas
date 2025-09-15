@@ -1,7 +1,7 @@
 {
-  "name": "my-v0-project",
+  "name": "mihas-katc-application-system",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "security-audit": "npm audit --audit-level moderate",
+    "security-scan": "node security-audit.js",
     "install-deps": "npm install",
     "clean": "rm -rf node_modules package-lock.json",
     "setup-storage": "node setup-storage-fixed.js",
@@ -71,6 +72,7 @@
     "clsx": "^2.1.1",
     "cmdk": "1.0.0",
     "date-fns": "^3.0.0",
+    "dompurify": "^3.0.8",
     "dotenv": "^17.2.2",
     "embla-carousel-react": "^8.5.2",
     "framer-motion": "^11.18.2",
@@ -100,6 +102,7 @@
   "devDependencies": {
     "@eslint/js": "^9.15.0",
     "@playwright/test": "^1.55.0",
+    "@types/dompurify": "^3.0.5",
     "@types/node": "^22.10.7",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
