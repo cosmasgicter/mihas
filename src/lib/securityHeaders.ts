@@ -1,6 +1,6 @@
 // Security Headers Configuration
 export const SECURITY_HEADERS = {
-  CSP: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self';",
+  CSP: "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';",
   HSTS: "max-age=31536000; includeSubDomains; preload",
   REFERRER_POLICY: "strict-origin-when-cross-origin",
   X_CONTENT_TYPE_OPTIONS: "nosniff",

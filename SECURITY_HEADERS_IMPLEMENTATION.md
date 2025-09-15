@@ -16,18 +16,25 @@ This implementation addresses all security issues identified in your scan and sh
 
 ### 🚀 Implementation Details
 
-#### 1. **Content Security Policy (CSP)**
+#### 1. **Content Security Policy (CSP)** - Secure Implementation
 ```
 default-src 'self'; 
-script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com; 
+script-src 'self' https://challenges.cloudflare.com; 
 style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
 font-src 'self' https://fonts.gstatic.com; 
-img-src 'self' data: blob: https:; 
+img-src 'self' data: blob:; 
 connect-src 'self' https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com; 
+object-src 'none'; 
 frame-ancestors 'none'; 
 base-uri 'self'; 
 form-action 'self';
 ```
+
+**Security Improvements:**
+- ❌ Removed `unsafe-inline` and `unsafe-eval` from script-src
+- ✅ Added explicit `object-src 'none'`
+- ✅ Restricted `img-src` (removed broad `https:`)
+- ✅ Nonce-based script execution for development
 
 #### 2. **HSTS with Preload**
 ```
