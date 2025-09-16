@@ -402,19 +402,24 @@ export default function ApplicationWizard() {
       throw new Error('Please sign in again to upload files')
     }
 
+    // Reset any previous upload state
     setUploadProgress(prev => ({ ...prev, [fileType]: 0 }))
+    setUploadedFiles(prev => ({ ...prev, [fileType]: false }))
     
-    const progressInterval = setInterval(() => {
-      setUploadProgress(prev => {
-        const current = prev[fileType] || 0
-        if (current < 90) {
-          return { ...prev, [fileType]: current + 10 }
-        }
-        return prev
-      })
-    }, 200)
+    let progressInterval: NodeJS.Timeout | null = null
     
     try {
+      // Start progress simulation
+      progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          const current = prev[fileType] || 0
+          if (current < 85) {
+            return { ...prev, [fileType]: current + 15 }
+          }
+          return prev
+        })
+      }, 300)
+      
       const { uploadApplicationFile } = await import('@/lib/storage')
       const result = await uploadApplicationFile(file, user.id, applicationId, fileType)
       
@@ -422,21 +427,35 @@ export default function ApplicationWizard() {
         throw new Error(result.error || 'Upload failed')
       }
 
+      // Complete progress
       setUploadProgress(prev => ({ ...prev, [fileType]: 100 }))
+      setUploadedFiles(prev => ({ ...prev, [fileType]: true }))
       
       return result.url!
     } catch (error) {
       console.error('File upload error:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
+      // Reset progress on error
+      setUploadProgress(prev => {
+        const newProgress = { ...prev }
+        delete newProgress[fileType]
+        return newProgress
+      })
+      setUploadedFiles(prev => ({ ...prev, [fileType]: false }))
       throw error
     } finally {
-      clearInterval(progressInterval)
+      // Clear progress interval
+      if (progressInterval) {
+        clearInterval(progressInterval)
+      }
+      
+      // Clear progress after delay
       setTimeout(() => {
         setUploadProgress(prev => {
           const newProgress = { ...prev }
           delete newProgress[fileType]
           return newProgress
         })
-      }, 2000)
+      }, 3000)
     }
   }
 

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Debug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        .upload-area:hover {
+            border-color: #007bff;
+        }
+        .upload-area.dragover {
+            border-color: #007bff;
+            background-color: #f0f8ff;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #007bff;
+            transition: width 0.3s ease;
+        }
+        .log-area {
+            background-color: #1a1a1a;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Upload Debug Test</h1>
+        <p>This page helps debug file upload issues by testing the upload functionality directly.</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <p>Click here or drag and drop a file to upload</p>
+            <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png" style="display: none;">
+        </div>
+        
+        <div id="fileInfo" style="display: none;">
+            <h3>Selected File:</h3>
+            <p id="fileName"></p>
+            <p id="fileSize"></p>
+            <p id="fileType"></p>
+        </div>
+        
+        <div>
+            <button id="uploadBtn" disabled>Upload File</button>
+            <button id="clearBtn">Clear Logs</button>
+        </div>
+        
+        <div id="progressContainer" style="display: none;">
+            <p>Upload Progress: <span id="progressText">0%</span></p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+        </div>
+        
+        <div id="messages"></div>
+        
+        <div class="log-area" id="logArea">
+            <div>Upload Debug Logs will appear here...</div>
+        </div>
+    </div>
+
+    <script>
+        let selectedFile = null;
+        let logs = [];
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const fileType = document.getElementById('fileType');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressText = document.getElementById('progressText');
+        const progressFill = document.getElementById('progressFill');
+        const messages = document.getElementById('messages');
+        const logArea = document.getElementById('logArea');
+
+        function addLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            logs.push(logMessage);
+            console.log(logMessage);
+            updateLogDisplay();
+        }
+
+        function updateLogDisplay() {
+            logArea.innerHTML = logs.map(log => `<div>${log}</div>`).join('');
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function showMessage(message, type = 'info') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.textContent = message;
+            messages.appendChild(messageDiv);
+            setTimeout(() => {
+                messages.removeChild(messageDiv);
+            }, 5000);
+        }
+
+        function updateProgress(percent) {
+            progressText.textContent = `${percent}%`;
+            progressFill.style.width = `${percent}%`;
+        }
+
+        // File selection handlers
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelection(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelection(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelection(file) {
+            selectedFile = file;
+            fileName.textContent = `Name: ${file.name}`;
+            fileSize.textContent = `Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+            fileType.textContent = `Type: ${file.type}`;
+            fileInfo.style.display = 'block';
+            uploadBtn.disabled = false;
+            
+            addLog(`File selected: ${file.name} (${file.size} bytes, ${file.type})`);
+            
+            // Validate file
+            if (file.size > 10 * 1024 * 1024) {
+                showMessage('File size must be less than 10MB', 'error');
+                uploadBtn.disabled = true;
+                return;
+            }
+            
+            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+            if (!allowedTypes.includes(file.type)) {
+                showMessage('Only PDF, JPG, JPEG, and PNG files are allowed', 'error');
+                uploadBtn.disabled = true;
+                return;
+            }
+            
+            addLog('File validation passed');
+        }
+
+        // Mock upload function for testing
+        async function mockUpload(file) {
+            addLog('Starting mock upload...');
+            
+            // Simulate network delay and progress
+            for (let i = 0; i <= 100; i += 10) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+                updateProgress(i);
+                addLog(`Upload progress: ${i}%`);
+                
+                if (i === 50) {
+                    // Simulate potential failure point
+                    if (Math.random() < 0.1) { // 10% chance of failure
+                        throw new Error('Simulated network error');
+                    }
+                }
+            }
+            
+            addLog('Mock upload completed successfully');
+            return {
+                success: true,
+                url: `https://example.com/uploads/${file.name}`,
+                path: `uploads/${Date.now()}-${file.name}`
+            };
+        }
+
+        uploadBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+            
+            uploadBtn.disabled = true;
+            progressContainer.style.display = 'block';
+            updateProgress(0);
+            
+            addLog('Starting upload process...');
+            
+            try {
+                const result = await mockUpload(selectedFile);
+                
+                if (result.success) {
+                    showMessage(`Upload successful! URL: ${result.url}`, 'success');
+                    addLog(`Success: ${result.url}`);
+                } else {
+                    showMessage(result.error || 'Upload failed', 'error');
+                    addLog(`Error: ${result.error}`);
+                }
+            } catch (error) {
+                showMessage(error.message, 'error');
+                addLog(`Exception: ${error.message}`);
+                updateProgress(0);
+            } finally {
+                uploadBtn.disabled = false;
+                addLog('Upload process finished');
+                
+                // Hide progress after delay
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                }, 3000);
+            }
+        });
+
+        clearBtn.addEventListener('click', () => {
+            logs = [];
+            updateLogDisplay();
+            messages.innerHTML = '';
+            progressContainer.style.display = 'none';
+            updateProgress(0);
+            addLog('Logs cleared');
+        });
+
+        // Initialize
+        addLog('Upload debugger initialized');
+    </script>
+</body>
+</html>

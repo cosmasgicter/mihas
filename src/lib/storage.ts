@@ -61,6 +61,8 @@ export async function uploadApplicationFile(
   fileType: string
 ): Promise<UploadResult> {
   try {
+    console.log(`Starting upload for ${fileType}:`, file.name, `(${file.size} bytes)`)
+    
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       return {
@@ -81,43 +83,53 @@ export async function uploadApplicationFile(
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
+      console.error('Auth error during upload:', authError)
       return {
         success: false,
         error: 'Please sign in again to upload files'
       }
     }
 
-    // Generate filename
+    // Generate filename with better sanitization
     const timestamp = Date.now()
-    const fileName = `${userId}/${applicationId}/${fileType}/${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
+    const fileName = `${userId}/${applicationId}/${fileType}/${timestamp}-${sanitizedFileName}`
+    
+    console.log('Generated filename:', fileName)
 
     // Try uploading to available buckets
     const buckets = ['app_docs', 'documents', 'application-documents']
-    let uploadError
+    let uploadError: any = null
     let usedBucket = ''
-    let uploadData
+    let uploadData: any = null
 
     for (const bucket of buckets) {
+      console.log(`Attempting upload to bucket: ${bucket}`)
+      
       const { data, error } = await supabase.storage
         .from(bucket)
         .upload(fileName, file, {
           contentType: file.type,
-          upsert: true
+          upsert: true,
+          duplex: 'half'
         })
 
-      if (!error) {
+      if (!error && data) {
         usedBucket = bucket
         uploadData = data
+        console.log(`Upload successful to bucket: ${bucket}`, data.path)
         break
+      } else {
+        console.warn(`Upload failed to bucket ${bucket}:`, error)
+        uploadError = error
       }
-      uploadError = error
     }
 
-    if (!usedBucket) {
-      console.error('Upload failed:', uploadError)
+    if (!usedBucket || !uploadData) {
+      console.error('All bucket uploads failed:', uploadError)
       return {
         success: false,
-        error: `Upload failed: ${uploadError?.message || 'No available buckets'}`
+        error: uploadError?.message || 'Upload failed - no available storage buckets'
       }
     }
 
@@ -126,6 +138,8 @@ export async function uploadApplicationFile(
       .from(usedBucket)
       .getPublicUrl(uploadData.path)
 
+    console.log('Upload completed successfully:', urlData.publicUrl)
+    
     return {
       success: true,
       path: uploadData.path,

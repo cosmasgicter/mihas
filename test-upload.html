@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .upload-area { border: 2px dashed #ccc; padding: 40px; text-align: center; margin: 20px 0; }
+        .progress { width: 100%; height: 20px; background: #f0f0f0; border-radius: 10px; overflow: hidden; margin: 10px 0; }
+        .progress-bar { height: 100%; background: #4CAF50; width: 0%; transition: width 0.3s; }
+        .status { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>File Upload Test</h1>
+    
+    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+        <p>Click here to select a file or drag and drop</p>
+        <input type="file" id="fileInput" style="display: none;" accept="image/*,.pdf,.doc,.docx">
+    </div>
+    
+    <div class="progress" style="display: none;">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+    
+    <div id="status"></div>
+    
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const progressBar = document.getElementById('progressBar');
+        const progressContainer = document.querySelector('.progress');
+        const statusDiv = document.getElementById('status');
+        
+        function showStatus(message, type = 'info') {
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        function updateProgress(percent) {
+            progressBar.style.width = percent + '%';
+            progressContainer.style.display = percent > 0 ? 'block' : 'none';
+        }
+        
+        function simulateUpload(file) {
+            showStatus('Starting upload...', 'info');
+            updateProgress(0);
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    
+                    // Simulate upload completion
+                    setTimeout(() => {
+                        showStatus(`✅ Upload successful: ${file.name} (${(file.size/1024).toFixed(1)} KB)`, 'success');
+                        setTimeout(() => {
+                            updateProgress(0);
+                        }, 2000);
+                    }, 500);
+                }
+                updateProgress(progress);
+            }, 300);
+            
+            // Simulate potential error (10% chance)
+            if (Math.random() < 0.1) {
+                setTimeout(() => {
+                    clearInterval(interval);
+                    showStatus('❌ Upload failed: Network error', 'error');
+                    updateProgress(0);
+                }, 2000);
+            }
+        }
+        
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                // Validate file
+                if (file.size > 10 * 1024 * 1024) {
+                    showStatus('❌ File too large (max 10MB)', 'error');
+                    return;
+                }
+                
+                showStatus(`📁 Selected: ${file.name} (${(file.size/1024).toFixed(1)} KB)`, 'info');
+                
+                // Start upload simulation
+                setTimeout(() => simulateUpload(file), 1000);
+            }
+        });
+        
+        // Drag and drop
+        const uploadArea = document.querySelector('.upload-area');
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#4CAF50';
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = '#ccc';
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#ccc';
+            
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                fileInput.files = e.dataTransfer.files;
+                fileInput.dispatchEvent(new Event('change'));
+            }
+        });
+        
+        console.log('Upload test page loaded. Ready to test file uploads.');
+    </script>
+</body>
+</html>
