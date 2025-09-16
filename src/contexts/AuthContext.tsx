@@ -40,8 +40,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true
     let hasLoaded = false
     
-    // Disable loading timeout to prevent auto-logout
-    const loadingTimeout = null
+    // Set a reasonable loading timeout
+    const loadingTimeout = setTimeout(() => {
+      if (mounted && !hasLoaded) {
+        console.warn('Auth loading timeout reached, forcing loading to false')
+        setLoading(false)
+        hasLoaded = true
+      }
+    }, 5000) // 5 second timeout
     
     async function loadUser() {
       try {
@@ -69,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } finally {
         if (mounted && !hasLoaded) {
+          clearTimeout(loadingTimeout)
           setLoading(false)
           hasLoaded = true
         }
@@ -129,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false
+      clearTimeout(loadingTimeout)
       subscription.unsubscribe()
       sessionManager.cleanup()
       cleanupTimeout()

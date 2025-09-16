@@ -36,8 +36,25 @@ export class SessionManager {
   }
 
   private startRefreshTimer() {
-    // Disable automatic session refresh to prevent logout issues
-    console.log('Session refresh timer disabled to prevent auto-logout')
+    // Clear existing timer
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer)
+    }
+
+    // Check session every 10 minutes (less frequent to reduce logout issues)
+    this.refreshTimer = setInterval(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          console.log('Session refresh check: Active')
+        } else {
+          console.log('Session expired, clearing timer')
+          this.stopRefreshTimer()
+        }
+      } catch (error) {
+        console.error('Session refresh check error:', error)
+      }
+    }, 10 * 60 * 1000) // 10 minutes instead of 4
   }
 
   private stopRefreshTimer() {
