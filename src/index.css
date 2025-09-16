@@ -884,12 +884,23 @@ img {
   
   /* High contrast backgrounds for mobile */
   .mobile-nav-bg {
-    background: rgb(17, 24, 39);
+    background: rgb(17, 24, 39) !important;
+    background: linear-gradient(135deg, rgb(17, 24, 39) 0%, rgb(31, 41, 55) 100%) !important;
   }
   
   /* Enhanced shadows for depth */
   .mobile-nav-shadow {
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 6px 16px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* Force solid backgrounds on mobile navigation items */
+  .mobile-nav-item {
+    background-color: rgba(17, 24, 39, 0.95) !important;
+    color: #ffffff !important;
+  }
+  
+  .mobile-nav-item * {
+    color: #ffffff !important;
   }
 }
 
@@ -949,6 +960,11 @@ img {
     
     /* Improved spacing for readability */
     margin-bottom: 0.75rem;
+    
+    /* Solid background for better visibility */
+    background: rgba(17, 24, 39, 0.95) !important;
+    border: 2px solid rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(10px);
   }
   
   .mobile-nav-item:last-child {
@@ -957,7 +973,7 @@ img {
   
   /* Enhanced contrast for navigation text */
   .mobile-nav-item .mobile-nav-text {
-    color: #ffffff;
+    color: #ffffff !important;
     font-weight: 800;
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
   }
@@ -965,12 +981,32 @@ img {
   /* Better icon visibility */
   .mobile-nav-item svg {
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+    color: #ffffff !important;
   }
   
   /* Improved active/hover states */
+  .mobile-nav-item:hover,
+  .mobile-nav-item:focus {
+    background: rgba(20, 184, 166, 0.9) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    transform: scale(1.02);
+  }
+  
   .mobile-nav-item:hover .mobile-nav-text,
   .mobile-nav-item:focus .mobile-nav-text {
     text-shadow: 0 3px 10px rgba(0, 0, 0, 0.8);
+    color: #ffffff !important;
+  }
+  
+  /* Special styling for primary action buttons */
+  .mobile-nav-item.bg-primary\/30 {
+    background: rgba(20, 184, 166, 0.9) !important;
+    border: 2px solid rgba(20, 184, 166, 0.7) !important;
+  }
+  
+  .mobile-nav-item.bg-primary\/30:hover {
+    background: rgba(20, 184, 166, 1) !important;
+    border-color: rgba(20, 184, 166, 1) !important;
   }
 }
 

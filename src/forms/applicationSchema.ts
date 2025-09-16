@@ -109,7 +109,7 @@ export const applicationSchema = z.object({
   financial_sponsor: z.string().optional(),
   sponsor_relationship: z.string().optional(),
   additional_info: z.string().optional(),
-  payment_method: z.enum(['pay_now', 'pay_later']).optional(),
+  payment_method: z.enum(['MTN Money', 'Airtel Money', 'Zamtel Money', 'Ewallet', 'Bank To Cell']).optional(),
   payment_reference: z.string().optional(),
   declaration: z.boolean().optional(),
   information_accuracy: z.boolean().optional(),

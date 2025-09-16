@@ -36,7 +36,7 @@ const wizardSchema = z.object({
     required_error: 'Please select a program' 
   }),
   intake: z.string().min(1, 'Please select an intake'),
-  payment_method: z.enum(['pay_now', 'pay_later']).default('pay_now'),
+  payment_method: z.enum(['MTN Money', 'Airtel Money', 'Zamtel Money', 'Ewallet', 'Bank To Cell']).default('MTN Money'),
   payer_name: z.string().optional(),
   payer_phone: z.string().optional(),
   amount: z.number().min(150, 'Minimum amount is K150').optional(),
@@ -65,7 +65,7 @@ interface SubjectGrade {
 export default function ApplicationWizard() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, loading: authLoading } = useAuth()
+  const { user, profile, loading: authLoading } = useAuth()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -88,10 +88,11 @@ export default function ApplicationWizard() {
   const [predictionResult, setPredictionResult] = useState<any>(null)
   const [smartSuggestions, setSmartSuggestions] = useState<string[]>([])
   const [processingDocument, setProcessingDocument] = useState(false)
+  const [confirmSubmission, setConfirmSubmission] = useState(false)
   
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<WizardFormData>({
     resolver: zodResolver(wizardSchema),
-    defaultValues: { amount: 150, payment_method: 'pay_now' }
+    defaultValues: { amount: 150, payment_method: 'MTN Money' }
   })
 
   const selectedProgram = watch('program')
@@ -118,41 +119,50 @@ export default function ApplicationWizard() {
 
   // Auto-populate form with user data
   useEffect(() => {
-    if (user) {
+    if (user && profile) {
+      // Set email from user
       setValue('email', user.email || '')
       
-      // Auto-populate from user metadata if available
+      // Auto-populate from profile first (most reliable)
+      if (profile.full_name) setValue('full_name', profile.full_name)
+      if (profile.phone) setValue('phone', profile.phone)
+      if (profile.date_of_birth) setValue('date_of_birth', profile.date_of_birth)
+      if (profile.sex) setValue('sex', profile.sex)
+      if (profile.city) setValue('residence_town', profile.city)
+      if (profile.next_of_kin_name) setValue('next_of_kin_name', profile.next_of_kin_name)
+      if (profile.next_of_kin_phone) setValue('next_of_kin_phone', profile.next_of_kin_phone)
+      
+      // Fallback to user metadata if profile fields are empty
       const metadata = user.user_metadata
       if (metadata) {
-        if (metadata.full_name) setValue('full_name', metadata.full_name)
+        if (!profile.full_name && metadata.full_name) setValue('full_name', metadata.full_name)
+        if (!profile.sex && metadata.sex) setValue('sex', metadata.sex)
         
-        // Check for sex in both direct metadata and signup_data
-        if (metadata.sex) {
-          setValue('sex', metadata.sex)
-        }
-        
-        // Also check signup_data for additional fields
+        // Parse signup_data for additional fields
         if (metadata.signup_data) {
           try {
-            const signupData = JSON.parse(metadata.signup_data)
-            if (signupData.phone) setValue('phone', signupData.phone)
-            if (signupData.date_of_birth) setValue('date_of_birth', signupData.date_of_birth)
-            if (signupData.sex && !metadata.sex) setValue('sex', signupData.sex) // Fallback if not in direct metadata
-            if (signupData.city) setValue('residence_town', signupData.city)
-            if (signupData.next_of_kin_name) setValue('next_of_kin_name', signupData.next_of_kin_name)
-            if (signupData.next_of_kin_phone) setValue('next_of_kin_phone', signupData.next_of_kin_phone)
+            const signupData = typeof metadata.signup_data === 'string' 
+              ? JSON.parse(metadata.signup_data) 
+              : metadata.signup_data
+            
+            if (!profile.phone && signupData.phone) setValue('phone', signupData.phone)
+            if (!profile.date_of_birth && signupData.date_of_birth) setValue('date_of_birth', signupData.date_of_birth)
+            if (!profile.sex && signupData.sex) setValue('sex', signupData.sex)
+            if (!profile.city && signupData.city) setValue('residence_town', signupData.city)
+            if (!profile.next_of_kin_name && signupData.next_of_kin_name) setValue('next_of_kin_name', signupData.next_of_kin_name)
+            if (!profile.next_of_kin_phone && signupData.next_of_kin_phone) setValue('next_of_kin_phone', signupData.next_of_kin_phone)
           } catch (e) {
-            console.log('Could not parse signup data')
+            console.log('Could not parse signup data:', e)
           }
         }
       }
     }
-  }, [user, setValue])
+  }, [user, profile, setValue])
 
   // Load saved application draft and restore state
   useEffect(() => {
     const loadDraftData = async () => {
-      if (!user) return
+      if (!user || authLoading) return
       
       setRestoringDraft(true)
       
@@ -253,7 +263,7 @@ export default function ApplicationWizard() {
     }
     
     loadDraftData()
-  }, [user, setValue])
+  }, [user, authLoading, setValue, location.state])
 
   // Save draft on form changes
   // Auto-save on form changes with debouncing
@@ -385,16 +395,14 @@ export default function ApplicationWizard() {
   }
 
   const analyzeUploadedDocument = async (file: File) => {
-    if (file && (file.type.includes('image') || file.type === 'application/pdf')) {
+    if (file && (file.type.includes('image') || file.type === 'application/pdf') && !processingDocument) {
       setProcessingDocument(true)
       try {
-        // Add timeout to prevent stuck processing
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Processing timeout')), 5000)
-        )
-        
         const analysisPromise = documentAI.analyzeDocument(file)
-        const analysis = await Promise.race([analysisPromise, timeoutPromise])
+        const analysis = await Promise.race([
+          analysisPromise, 
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Processing timeout')), 8000))
+        ])
         
         setDocumentAnalysis(analysis)
         
@@ -434,6 +442,10 @@ export default function ApplicationWizard() {
   }
 
   const uploadFileWithProgress = async (file: File, path: string): Promise<string> => {
+    if (!user?.id || !applicationId) {
+      throw new Error('User or application ID not available')
+    }
+
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       throw new Error('File size must be less than 10MB')
@@ -444,13 +456,17 @@ export default function ApplicationWizard() {
     if (!allowedTypes.includes(file.type)) {
       throw new Error('Only PDF, JPG, JPEG, and PNG files are allowed')
     }
-
-    // Analyze document for auto-fill
-    if (path === 'result_slip') {
-      await analyzeUploadedDocument(file)
+    
+    // Ensure we have a valid file type for upload
+    let uploadFile = file
+    if (file.type === 'image/jpg') {
+      // Convert jpg to jpeg for consistency
+      uploadFile = new File([file], file.name, { type: 'image/jpeg' })
     }
 
-    const fileName = `${user?.id}/${applicationId}/${path}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+    const fileName = `${user.id}/${applicationId}/${path}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+    
+    setUploadProgress(prev => ({ ...prev, [path]: 0 }))
     
     const progressInterval = setInterval(() => {
       setUploadProgress(prev => {
@@ -463,23 +479,35 @@ export default function ApplicationWizard() {
     }, 200)
     
     try {
-      // Use app_docs bucket instead of application-documents
-      const { error: uploadError } = await supabase.storage
-        .from('app_docs')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        })
+      // Try multiple buckets in order of preference
+      const buckets = ['app_docs', 'documents', 'application-documents']
+      let uploadError
+      let usedBucket = ''
+      
+      for (const bucket of buckets) {
+        const { error } = await supabase.storage
+          .from(bucket)
+          .upload(fileName, uploadFile, {
+            cacheControl: '3600',
+            upsert: true
+          })
+        
+        if (!error) {
+          usedBucket = bucket
+          break
+        }
+        uploadError = error
+      }
 
-      if (uploadError) {
+      if (!usedBucket) {
         console.error('Upload error:', uploadError)
-        throw new Error(`Upload failed: ${uploadError.message}`)
+        throw new Error(`Upload failed: ${uploadError?.message || 'No available buckets'}`)
       }
 
       setUploadProgress(prev => ({ ...prev, [path]: 100 }))
       
       const { data: { publicUrl } } = supabase.storage
-        .from('app_docs')
+        .from(usedBucket)
         .getPublicUrl(fileName)
 
       return publicUrl
@@ -653,8 +681,18 @@ export default function ApplicationWizard() {
   }
 
   const submitApplication = async (data: WizardFormData) => {
+    if (!confirmSubmission) {
+      setError('Please confirm that all information is accurate before submitting')
+      return
+    }
+    
     if (!popFile) {
       setError('Proof of payment is required')
+      return
+    }
+    
+    if (!applicationId) {
+      setError('Application ID not found. Please try refreshing the page.')
       return
     }
     
@@ -662,14 +700,13 @@ export default function ApplicationWizard() {
       setLoading(true)
       setError('')
       
-      setUploadProgress({ proof_of_payment: 0 })
       const popUrl = await uploadFileWithProgress(popFile, 'proof_of_payment')
       setUploadedFiles(prev => ({ ...prev, proof_of_payment: true }))
       
       const { error: updateError } = await supabase
         .from('applications_new')
         .update({
-          payment_method: data.payment_method || null,
+          payment_method: data.payment_method || 'MTN Money',
           payer_name: data.payer_name || null,
           payer_phone: data.payer_phone || null,
           amount: data.amount || 150,
@@ -685,6 +722,7 @@ export default function ApplicationWizard() {
       
       // Clear saved draft on successful submission
       try {
+        localStorage.removeItem('applicationWizardDraft')
         const deleteResult = await draftManager.clearAllDrafts(user.id)
         if (!deleteResult.success) {
           console.warn('Draft cleanup warning:', deleteResult.error)
@@ -882,7 +920,7 @@ export default function ApplicationWizard() {
           </motion.div>
         )}
 
-        <form onSubmit={handleSubmit(submitApplication)} className="space-y-6 lg:space-y-8">
+        <div className="space-y-6 lg:space-y-8">
           <AnimatePresence mode="wait">
             {/* Step 1: Basic KYC */}
             {currentStep === 1 && (
@@ -1224,68 +1262,79 @@ export default function ApplicationWizard() {
                     
                     <div className="space-y-3">
                       {selectedGrades.map((grade, index) => (
-                        <motion.div 
-                          key={index} 
-                          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-3 bg-gray-50 rounded-lg"
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <label className="block text-xs font-medium text-gray-700 mb-1 sm:hidden">
-                              Subject
-                            </label>
-                            <select
-                              value={grade.subject_id}
-                              onChange={(e) => updateGrade(index, 'subject_id', e.target.value)}
-                              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            >
-                              <option value="">Select subject</option>
-                              {subjects.map((subject) => {
-                                const isUsed = getUsedSubjects().includes(subject.id) && grade.subject_id !== subject.id
-                                return (
-                                  <option key={subject.id} value={subject.id} disabled={isUsed}>
-                                    {subject.name} {isUsed ? '(Already selected)' : ''}
-                                  </option>
-                                )
-                              })}
-                            </select>
-                          </div>
-                          
-                          <div className="w-full sm:w-24">
-                            <label className="block text-xs font-medium text-gray-700 mb-1 sm:hidden">
-                              Grade
-                            </label>
-                            <select
-                              value={grade.grade}
-                              onChange={(e) => updateGrade(index, 'grade', parseInt(e.target.value))}
-                              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            >
-                              <option value={1}>1 (A+)</option>
-                              <option value={2}>2 (A)</option>
-                              <option value={3}>3 (B+)</option>
-                              <option value={4}>4 (B)</option>
-                              <option value={5}>5 (C+)</option>
-                              <option value={6}>6 (C)</option>
-                              <option value={7}>7 (D+)</option>
-                              <option value={8}>8 (D)</option>
-                              <option value={9}>9 (F)</option>
-                            </select>
-                          </div>
-                          
-                          <div className="w-full sm:w-auto">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => removeGrade(index)}
-                              className="w-full sm:w-auto"
-                            >
-                              <X className="h-4 w-4 sm:mr-0 mr-2" />
-                              <span className="sm:hidden">Remove</span>
-                            </Button>
-                          </div>
-                        </motion.div>
+                        <div key={index}>
+                          <motion.div 
+                            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <label className="block text-xs font-medium text-gray-700 mb-1 sm:hidden">
+                                Subject
+                              </label>
+                              <select
+                                value={grade.subject_id}
+                                onChange={(e) => updateGrade(index, 'subject_id', e.target.value)}
+                                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              >
+                                <option value="">Select subject</option>
+                                {subjects.map((subject) => {
+                                  const isUsed = getUsedSubjects().includes(subject.id) && grade.subject_id !== subject.id
+                                  return (
+                                    <option key={subject.id} value={subject.id} disabled={isUsed}>
+                                      {subject.name} {isUsed ? '(Already selected)' : ''}
+                                    </option>
+                                  )
+                                })}
+                              </select>
+                            </div>
+                            
+                            <div className="w-full sm:w-24">
+                              <label className="block text-xs font-medium text-gray-700 mb-1 sm:hidden">
+                                Grade
+                              </label>
+                              <select
+                                value={grade.grade}
+                                onChange={(e) => updateGrade(index, 'grade', parseInt(e.target.value))}
+                                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              >
+                                <option value={1}>1 (A+)</option>
+                                <option value={2}>2 (A)</option>
+                                <option value={3}>3 (B+)</option>
+                                <option value={4}>4 (B)</option>
+                                <option value={5}>5 (C+)</option>
+                                <option value={6}>6 (C)</option>
+                                <option value={7}>7 (D+)</option>
+                                <option value={8}>8 (D)</option>
+                                <option value={9}>9 (F)</option>
+                              </select>
+                            </div>
+                            
+                            <div className="w-full sm:w-auto flex gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => removeGrade(index)}
+                                className="flex-1 sm:flex-none"
+                              >
+                                <X className="h-4 w-4 sm:mr-0 mr-2" />
+                                <span className="sm:hidden">Remove</span>
+                              </Button>
+                              {selectedGrades.length < 10 && (
+                                <Button
+                                  type="button"
+                                  onClick={addGrade}
+                                  size="sm"
+                                  className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700"
+                                >
+                                  + Add
+                                </Button>
+                              )}
+                            </div>
+                          </motion.div>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -1307,9 +1356,14 @@ export default function ApplicationWizard() {
                           className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                         />
                         {processingDocument && (
-                          <div className="mt-2 flex items-center text-sm text-blue-600">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                            Processing document...
+                          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="flex items-center text-sm text-blue-700 mb-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                              <span className="font-medium">🔍 Analyzing Document...</span>
+                            </div>
+                            <p className="text-xs text-blue-600">
+                              Extracting grades and personal information to auto-fill your form
+                            </p>
                           </div>
                         )}
                         {resultSlipFile && (
@@ -1419,7 +1473,7 @@ export default function ApplicationWizard() {
                     <div className="flex items-center mb-3">
                       <CreditCard className="h-5 w-5 text-blue-600 mr-2" />
                       <h3 className="text-md font-medium text-blue-800">
-                        Mobile Money Payment Required
+                        Payment Required - Multiple Options Available
                       </h3>
                     </div>
                     <div className="space-y-2 text-sm">
@@ -1429,11 +1483,36 @@ export default function ApplicationWizard() {
                       <p className="text-blue-700">
                         <strong>Payment Target:</strong> {getPaymentTarget()}
                       </p>
+                      <div className="bg-white rounded-md p-3 mt-3">
+                        <p className="text-gray-700 font-medium mb-2">Available Payment Methods:</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                          <div className="flex items-center text-green-600">
+                            <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                            MTN Money
+                          </div>
+                          <div className="flex items-center text-red-600">
+                            <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                            Airtel Money (Cross Network)
+                          </div>
+                          <div className="flex items-center text-blue-600">
+                            <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                            Zamtel Money (Cross Network)
+                          </div>
+                          <div className="flex items-center text-purple-600">
+                            <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                            Ewallet
+                          </div>
+                          <div className="flex items-center text-orange-600">
+                            <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                            Bank To Cell
+                          </div>
+                        </div>
+                      </div>
                       <p className="text-green-700 font-medium">
-                        ✓ Secure mobile money payment processing
+                        ✓ Secure payment processing
                       </p>
                       <p className="text-green-700 font-medium">
-                        ✓ Instant payment verification system
+                        ✓ Instant payment verification
                       </p>
                       <p className="text-green-700 font-medium">
                         ✓ Automated receipt generation
@@ -1444,15 +1523,18 @@ export default function ApplicationWizard() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Payment Method
+                        Payment Method <span className="text-red-500">*</span>
                       </label>
                       <select
                         {...register('payment_method')}
                         className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        defaultValue="pay_now"
+                        defaultValue="MTN Money"
                       >
-                        <option value="pay_now">Pay Now</option>
-                        <option value="pay_later">Pay Later</option>
+                        <option value="MTN Money">MTN Money</option>
+                        <option value="Airtel Money">Airtel Money (Cross Network)</option>
+                        <option value="Zamtel Money">Zamtel Money (Cross Network)</option>
+                        <option value="Ewallet">Ewallet</option>
+                        <option value="Bank To Cell">Bank To Cell</option>
                       </select>
                     </div>
                     
@@ -1507,7 +1589,27 @@ export default function ApplicationWizard() {
                       <input
                         type="file"
                         accept=".pdf,.jpg,.jpeg,.png"
-                        onChange={(e) => setPopFile(e.target.files?.[0] || null)}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null
+                          setPopFile(file)
+                          if (file) {
+                            // Validate file immediately
+                            if (file.size > 10 * 1024 * 1024) {
+                              setError('File size must be less than 10MB')
+                              e.target.value = ''
+                              setPopFile(null)
+                              return
+                            }
+                            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
+                            if (!allowedTypes.includes(file.type)) {
+                              setError('Only PDF, JPG, JPEG, and PNG files are allowed')
+                              e.target.value = ''
+                              setPopFile(null)
+                              return
+                            }
+                            setError('') // Clear any previous errors
+                          }
+                        }}
                         className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                       />
                       {popFile && (
@@ -1594,11 +1696,26 @@ export default function ApplicationWizard() {
                   </div>
                   
                   <div className="flex items-center">
-                    <input type="checkbox" id="confirm" className="mr-2" required />
+                    <input 
+                      type="checkbox" 
+                      id="confirm" 
+                      className="mr-2" 
+                      checked={confirmSubmission}
+                      onChange={(e) => setConfirmSubmission(e.target.checked)}
+                      required 
+                    />
                     <label htmlFor="confirm" className="text-sm text-gray-700">
                       I confirm that all information provided is accurate and complete.
                     </label>
                   </div>
+                  
+                  {!confirmSubmission && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                      <p className="text-sm text-yellow-800">
+                        ⚠️ Please confirm that all information is accurate before you can submit your application.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -1662,9 +1779,10 @@ export default function ApplicationWizard() {
                   whileTap={{ scale: loading ? 1 : 0.95 }}
                 >
                   <Button 
-                    type="submit" 
+                    type="button" 
+                    onClick={handleSubmit(submitApplication)}
                     loading={loading}
-                    disabled={loading}
+                    disabled={loading || !confirmSubmission}
                     className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? (
@@ -1682,7 +1800,7 @@ export default function ApplicationWizard() {
               )}
             </div>
           </motion.div>
-        </form>
+        </div>
       </div>
       
       {/* AI Assistant */}

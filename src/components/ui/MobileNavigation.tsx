@@ -230,9 +230,9 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
                       <Link 
                         to="/track-application"
                         onClick={closeMenu}
-                        className="mobile-nav-item mobile-nav-focus nav-item text-high-contrast hover:bg-white/20 shadow-sm hover:shadow-md border border-white/10 hover:border-white/30"
+                        className="mobile-nav-item mobile-nav-focus nav-item text-white font-bold shadow-lg hover:shadow-xl"
                       >
-                        <span className="mobile-nav-text">Track Application</span>
+                        <span className="mobile-nav-text text-white">Track Application</span>
                       </Link>
                     </motion.div>
                   </NavigationMenu.Item>
@@ -249,10 +249,10 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
                           <Link 
                             to="/dashboard"
                             onClick={closeMenu}
-                            className="mobile-nav-item mobile-nav-focus nav-item bg-primary/30 text-high-contrast hover:bg-primary/40 font-bold shadow-md hover:shadow-lg border-2 border-primary/50 hover:border-primary/70"
+                            className="mobile-nav-item mobile-nav-focus nav-item bg-primary/30 text-white font-bold shadow-lg hover:shadow-xl"
                           >
-                            <LayoutDashboard className="w-5 h-5 mr-3" />
-                            <span className="mobile-nav-text">Dashboard</span>
+                            <LayoutDashboard className="w-5 h-5 mr-3 text-white" />
+                            <span className="mobile-nav-text text-white">Dashboard</span>
                           </Link>
                         </motion.div>
                       </NavigationMenu.Item>
@@ -266,10 +266,10 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
                         >
                           <button 
                             onClick={handleSignOut}
-                            className="mobile-nav-item mobile-nav-focus nav-item w-full bg-gradient-to-r from-red-500/30 to-red-600/30 text-high-contrast hover:from-red-500/40 hover:to-red-600/40 font-bold shadow-md hover:shadow-lg border-2 border-red-400/50 hover:border-red-500/70"
+                            className="mobile-nav-item mobile-nav-focus nav-item w-full bg-gradient-to-r from-red-500/80 to-red-600/80 text-white font-bold shadow-lg hover:shadow-xl hover:from-red-500 hover:to-red-600"
                           >
-                            <LogOut className="w-5 h-5 mr-3" />
-                            <span className="mobile-nav-text">Sign Out</span>
+                            <LogOut className="w-5 h-5 mr-3 text-white" />
+                            <span className="mobile-nav-text text-white">Sign Out</span>
                           </button>
                         </motion.div>
                       </NavigationMenu.Item>
@@ -286,9 +286,9 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
                           <Link 
                             to="/auth/signin"
                             onClick={closeMenu}
-                            className="mobile-nav-item mobile-nav-focus nav-item text-high-contrast hover:bg-white/20 shadow-sm hover:shadow-md border border-white/10 hover:border-white/30"
+                            className="mobile-nav-item mobile-nav-focus nav-item text-white font-bold shadow-lg hover:shadow-xl"
                           >
-                            <span className="mobile-nav-text">Sign In</span>
+                            <span className="mobile-nav-text text-white">Sign In</span>
                           </Link>
                         </motion.div>
                       </NavigationMenu.Item>
@@ -303,9 +303,9 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
                           <Link 
                             to="/auth/signup"
                             onClick={closeMenu}
-                            className="mobile-nav-item mobile-nav-focus nav-item bg-primary/30 text-high-contrast hover:bg-primary/40 font-bold shadow-md hover:shadow-lg border-2 border-primary/50 hover:border-primary/70"
+                            className="mobile-nav-item mobile-nav-focus nav-item bg-primary/30 text-white font-bold shadow-lg hover:shadow-xl"
                           >
-                            <span className="mobile-nav-text">Apply Now</span>
+                            <span className="mobile-nav-text text-white">Apply Now</span>
                           </Link>
                         </motion.div>
                       </NavigationMenu.Item>
