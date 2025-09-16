@@ -36,25 +36,8 @@ export class SessionManager {
   }
 
   private startRefreshTimer() {
-    // Clear existing timer
-    if (this.refreshTimer) {
-      clearInterval(this.refreshTimer)
-    }
-
-    // Refresh session every 4 minutes (tokens expire after 1 hour)
-    this.refreshTimer = setInterval(async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session) {
-          console.log('Session refresh check: Active')
-        } else {
-          console.log('Session expired, clearing timer')
-          this.stopRefreshTimer()
-        }
-      } catch (error) {
-        console.error('Session refresh check error:', error)
-      }
-    }, 4 * 60 * 1000) // 4 minutes
+    // Disable automatic session refresh to prevent logout issues
+    console.log('Session refresh timer disabled to prevent auto-logout')
   }
 
   private stopRefreshTimer() {
