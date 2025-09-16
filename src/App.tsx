@@ -44,6 +44,9 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchInterval: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
     },
   },
 })
@@ -175,7 +178,7 @@ function App() {
               </Routes>
 
               <OfflineIndicator />
-              <AuthDebug />
+              {/* <AuthDebug /> */}
             </div>
           </div>
           </Router>

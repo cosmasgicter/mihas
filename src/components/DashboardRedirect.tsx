@@ -9,14 +9,14 @@ export function DashboardRedirect() {
 
   // Set timeout for profile loading
   useEffect(() => {
-    if (!loading && user && !profile) {
+    if (!loading && user && !profile && !profileTimeout) {
       const timer = setTimeout(() => {
         setProfileTimeout(true)
-      }, 3000) // 3 second timeout for profile loading
+      }, 2000) // 2 second timeout for profile loading
       
       return () => clearTimeout(timer)
     }
-  }, [loading, user, profile])
+  }, [loading, user, profile, profileTimeout])
 
   if (loading) {
     return (

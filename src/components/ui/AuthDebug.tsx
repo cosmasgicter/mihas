@@ -7,46 +7,29 @@ export function AuthDebug() {
   const [debugInfo, setDebugInfo] = useState<any>({})
 
   useEffect(() => {
+    // Only run debug info collection once on mount to prevent refresh loops
+    if (Object.keys(debugInfo).length > 0) return
+    
     async function getDebugInfo() {
       try {
         const { data: { user: currentUser } } = await supabase.auth.getUser()
         const { data: session } = await supabase.auth.getSession()
         
-        let profileData = null
-        let profileError = null
-        
-        if (currentUser) {
-          const { data, error } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .maybeSingle()
-          
-          profileData = data
-          profileError = error
-        }
-
         setDebugInfo({
           currentUser: currentUser ? {
             id: currentUser.id,
-            email: currentUser.email,
-            metadata: currentUser.user_metadata
+            email: currentUser.email
           } : null,
           session: session?.session ? {
             access_token: session.session.access_token ? 'present' : 'missing',
             expires_at: session.session.expires_at
           } : null,
-          profileData,
-          profileError: profileError ? {
-            code: profileError.code,
-            message: profileError.message
-          } : null,
           contextUser: user ? {
             id: user.id,
             email: user.email
           } : null,
-          contextProfile: profile,
-          contextUserRole: userRole,
+          contextProfile: profile ? { role: profile.role } : null,
+          contextUserRole: userRole ? { role: userRole.role } : null,
           contextLoading: loading
         })
       } catch (error) {
@@ -54,8 +37,9 @@ export function AuthDebug() {
       }
     }
 
-    getDebugInfo()
-  }, [user, profile, userRole, loading])
+    const timer = setTimeout(getDebugInfo, 1000)
+    return () => clearTimeout(timer)
+  }, [])
 
   if (process.env.NODE_ENV === 'production') {
     return null

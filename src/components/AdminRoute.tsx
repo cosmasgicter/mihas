@@ -23,7 +23,7 @@ export function AdminRoute({ children }: AdminRouteProps) {
   }
 
   if (!isAdmin()) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/student/dashboard" replace />
   }
 
   return <>{children}</>

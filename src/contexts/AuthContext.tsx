@@ -37,14 +37,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Load user on mount
   useEffect(() => {
     let mounted = true
+    let hasLoaded = false
     
     // Set a maximum loading timeout
     const loadingTimeout = setTimeout(() => {
-      if (mounted) {
+      if (mounted && !hasLoaded) {
         console.warn('Auth loading timeout reached, forcing loading to false')
         setLoading(false)
+        hasLoaded = true
       }
-    }, 10000) // 10 second timeout
+    }, 5000) // 5 second timeout
     
     async function loadUser() {
       try {
@@ -70,9 +72,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUserRole(null)
         }
       } finally {
-        if (mounted) {
+        if (mounted && !hasLoaded) {
           clearTimeout(loadingTimeout)
           setLoading(false)
+          hasLoaded = true
         }
       }
     }
@@ -102,7 +105,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUserRole(null)
         }
         
-        setLoading(false)
+        if (mounted && !hasLoaded) {
+          setLoading(false)
+          hasLoaded = true
+        }
       }
     )
 
