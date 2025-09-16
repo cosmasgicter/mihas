@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react'
+import React, { useEffect, useRef, useCallback, useMemo } from 'react'
 
 interface TurnstileProps {
   siteKey: string
@@ -30,8 +30,9 @@ export function Turnstile({
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetIdRef = useRef<string | null>(null)
   const isLoadedRef = useRef(false)
+  
+  const isTestMode = useMemo(() => import.meta.env.VITE_TEST_MODE === 'true', [])
 
-  // Memoize callbacks to prevent re-renders
   const handleVerify = useCallback((token: string) => {
     onVerify(token)
   }, [onVerify])
@@ -44,9 +45,25 @@ export function Turnstile({
     onExpire?.()
   }, [onExpire])
 
+  // Early return for test mode to prevent unnecessary effect execution
+  if (isTestMode) {
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        handleVerify('test-token-' + Date.now())
+      }, 100)
+      return () => clearTimeout(timer)
+    }, [handleVerify])
+
+    return (
+      <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 text-center">
+        <div className="text-sm text-gray-600 mb-2">🧪 Test Mode</div>
+        <div className="text-xs text-gray-500">Turnstile verification bypassed</div>
+      </div>
+    )
+  }
+
   useEffect(() => {
-    // Prevent multiple initializations
-    if (isLoadedRef.current || !containerRef.current) return
+    if (isLoadedRef.current || !containerRef.current || !siteKey) return
 
     const loadTurnstile = () => {
       if (window.turnstile && containerRef.current && !widgetIdRef.current) {
@@ -67,16 +84,13 @@ export function Turnstile({
       }
     }
 
-    // Check if Turnstile is already loaded
     if (window.turnstile) {
       loadTurnstile()
     } else {
-      // Check if script is already loading/loaded
       const existingScript = document.querySelector('script[src*="turnstile"]')
       if (existingScript) {
         existingScript.addEventListener('load', loadTurnstile)
       } else {
-        // Load Turnstile script
         const script = document.createElement('script')
         script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
         script.async = true

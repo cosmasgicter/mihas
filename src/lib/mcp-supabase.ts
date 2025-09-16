@@ -1,4 +1,9 @@
-import { supabase } from './supabase'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  'https://mylgegkqoddcrxtwcclb.supabase.co',
+  'sbp_a5d15dd3cf175a5b7fd47009861eca8794ead455'
+)
 
 export class SupabaseMCPClient {
   private static instance: SupabaseMCPClient

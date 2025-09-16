@@ -57,6 +57,13 @@ export default function SignUpPage() {
     }
   }, [success, navigate])
 
+  // Auto-verify in test mode
+  useEffect(() => {
+    if (import.meta.env.VITE_TEST_MODE === 'true' && !turnstileToken) {
+      setTurnstileToken('test-token-auto')
+    }
+  }, [turnstileToken])
+
   const handleTurnstileVerify = useCallback((token: string) => {
     setTurnstileToken(token)
     setError('')
@@ -74,7 +81,9 @@ export default function SignUpPage() {
   }, [])
 
   const onSubmit = async (data: SignUpForm) => {
-    if (!turnstileToken) {
+    // Only require Turnstile token if site key is configured and not in test mode
+    const requiresTurnstile = import.meta.env.VITE_TURNSTILE_SITE_KEY && import.meta.env.VITE_TEST_MODE !== 'true'
+    if (requiresTurnstile && !turnstileToken) {
       setError('Please complete the security verification.')
       return
     }
@@ -287,18 +296,20 @@ setSuccess('Account created successfully! Redirecting to sign in...')
               </div>
             </div>
 
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-medium text-secondary mb-4">Security Verification</h3>
-              <div className="flex justify-center">
-                <Turnstile
-                  key={turnstileKey}
-                  siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
-                  onVerify={handleTurnstileVerify}
-                  onError={handleTurnstileError}
-                  onExpire={handleTurnstileExpire}
-                />
+            {import.meta.env.VITE_TURNSTILE_SITE_KEY && (
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-medium text-secondary mb-4">Security Verification</h3>
+                <div className="flex justify-center">
+                  <Turnstile
+                    key={turnstileKey}
+                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                    onVerify={handleTurnstileVerify}
+                    onError={handleTurnstileError}
+                    onExpire={handleTurnstileExpire}
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {error && (
               <div className="rounded-md bg-red-50 p-4">
@@ -310,7 +321,7 @@ setSuccess('Account created successfully! Redirecting to sign in...')
               type="submit"
               className="w-full"
               loading={loading}
-              disabled={!turnstileToken}
+              disabled={import.meta.env.VITE_TURNSTILE_SITE_KEY && import.meta.env.VITE_TEST_MODE !== 'true' && !turnstileToken}
             >
               Create Account
             </Button>
