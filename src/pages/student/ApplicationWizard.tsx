@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { checkEligibility, getRecommendedSubjects } from '@/lib/eligibility'
-import { applicationSessionManager } from '@/lib/applicationSession'
+// import { applicationSessionManager } from '@/lib/applicationSession'
 
 import { ArrowLeft, CheckCircle, ArrowRight, X, FileText, CreditCard, Send, XCircle, AlertTriangle, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -313,21 +313,9 @@ export default function ApplicationWizard() {
         }
       }
       
-      // Also save to application session manager for dashboard display
-      const saveResult = await applicationSessionManager.saveDraft(
-        user.id,
-        formData,
-        currentStep,
-        [],
-        selectedGrades
-      )
-      
-      if (saveResult.success) {
-        setDraftSaved(true)
-        setTimeout(() => setDraftSaved(false), 2000)
-      } else {
-        console.warn('Draft save warning:', saveResult.error)
-      }
+      // Skip application session manager for now
+      setDraftSaved(true)
+      setTimeout(() => setDraftSaved(false), 2000)
     } catch (error) {
       console.error('Error saving draft:', sanitizeForLog(error))
     } finally {

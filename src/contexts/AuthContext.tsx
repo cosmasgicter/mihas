@@ -3,7 +3,7 @@ import { User } from '@supabase/supabase-js'
 import { supabase, UserProfile } from '@/lib/supabase'
 import { sanitizeForLog } from '@/lib/security'
 import { sanitizeForDisplay } from '@/lib/sanitize'
-import { enhancedSessionManager, setupEnhancedSessionTimeout } from '@/lib/enhancedSession'
+// import { enhancedSessionManager, setupEnhancedSessionTimeout } from '@/lib/enhancedSession'
 
 interface UserRole {
   id: string
@@ -48,17 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     async function loadUser() {
       try {
-        // Check session validity first
-        const isValid = await enhancedSessionManager.isSessionValid()
-        if (!isValid) {
-          if (mounted) {
-            setUser(null)
-            setProfile(null)
-            setUserRole(null)
-            setLoading(false)
-          }
-          return
-        }
+        // Skip enhanced session check for now to avoid device_sessions errors
 
         const { data: { user } } = await supabase.auth.getUser()
         
@@ -94,8 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (event, session) => {
         if (!mounted) return
         
-        // Handle auth state change with enhanced session manager
-        await enhancedSessionManager.handleAuthStateChange(event, session)
+        // Skip enhanced session handling for now
         
         setUser(session?.user || null)
         
@@ -117,8 +106,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     )
 
-    // Setup enhanced session timeout management
-    const cleanupTimeout = setupEnhancedSessionTimeout()
+    // Skip enhanced session timeout for now
+    const cleanupTimeout = () => {}
 
     return () => {
       mounted = false
@@ -233,7 +222,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() {
-    await enhancedSessionManager.clearSession()
+    await supabase.auth.signOut()
   }
 
   async function loadUserRole(userId: string) {
