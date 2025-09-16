@@ -1,8 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase project configuration
-const supabaseUrl = 'https://mylgegkqoddcrxtwcclb.supabase.co'
-const supabaseAnonKey = 'sbp_a5d15dd3cf175a5b7fd47009861eca8794ead455'
+// Supabase project configuration from environment variables
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables')
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
@@ -187,18 +191,6 @@ export interface SystemSetting {
   description?: string
   is_public: boolean
   updated_by?: string
-  created_at: string
-  updated_at: string
-}
-
-export interface ApplicationDraft {
-  id: string
-  user_id: string
-  form_data: Record<string, any>
-  uploaded_files: any[]
-  current_step: number
-  version: number
-  is_offline_sync: boolean
   created_at: string
   updated_at: string
 }
