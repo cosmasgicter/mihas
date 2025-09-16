@@ -229,4 +229,7 @@ export class AuthSecurityManager {
   }
 }
 
-export const authSecurity = AuthSecurityManager.getInstance()
+// Create and export the singleton instance
+const authSecurityInstance = AuthSecurityManager.getInstance()
+export { authSecurityInstance as authSecurity }
+export default authSecurityInstance

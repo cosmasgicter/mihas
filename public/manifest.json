@@ -2,7 +2,12 @@
   "name": "Apply for Health Sciences Jobs in Zambia - MIHAS-KATC",
   "short_name": "MIHAS-KATC Jobs",
   "description": "Apply for accredited health sciences careers in Zambia. Nursing, clinical medicine & environmental health programs. 95% employment rate. International students welcome.",
-  "categories": ["education", "healthcare", "career", "jobs"],
+  "categories": [
+    "education",
+    "healthcare",
+    "career",
+    "jobs"
+  ],
   "keywords": "health sciences jobs Zambia, nursing careers, clinical medicine, healthcare education, medical training Zambia",
   "start_url": "/",
   "display": "standalone",
@@ -11,28 +16,16 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
+      "src": "favicon.ico",
+      "sizes": "16x16 32x32",
+      "type": "image/x-icon",
       "purpose": "any"
-    },
-    {
-      "src": "icon-maskable-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icon-maskable-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
     }
   ]
 }

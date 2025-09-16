@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase, UserProfile } from '@/lib/supabase'
 import { sanitizeForLog, sanitizeHtml } from '@/lib/sanitizer'
+import { authSecurity } from '@/lib/authSecurity'
 
 interface UserRole {
   id: string
@@ -49,6 +50,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     async function loadUser() {
       try {
+        // Check if authSecurity is available
+        if (!authSecurity) {
+          console.error('authSecurity is not available')
+          if (mounted) {
+            setUser(null)
+            setProfile(null)
+            setUserRole(null)
+            setLoading(false)
+          }
+          return
+        }
+        
         // Use enhanced security validation
         const authResult = await authSecurity.validateAuth()
         
@@ -67,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUserRole(null)
           
           // Log failed authentication
-          if (authResult.error) {
+          if (authSecurity && authResult.error) {
             await authSecurity.logAuthEvent('auth_validation_failed', false, authResult.error)
           }
         }
@@ -95,13 +108,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!mounted) return
         
         // Log authentication events
-        await authSecurity.logAuthEvent(event, !!session, undefined, session?.user?.id)
+        if (authSecurity) {
+          await authSecurity.logAuthEvent(event, !!session, undefined, session?.user?.id)
+        }
         
         if (session?.user) {
-          // Validate the session with enhanced security
-          const authResult = await authSecurity.validateAuth()
-          
-          if (authResult.isValid) {
+          // Validate the session with enhanced security if available
+          if (authSecurity) {
+            const authResult = await authSecurity.validateAuth()
+            
+            if (authResult.isValid) {
+              setUser(session.user)
+              try {
+                await Promise.all([
+                  loadUserProfile(session.user.id),
+                  loadUserRole(session.user.id)
+                ])
+              } catch (error) {
+                console.error('Error loading profile after auth change:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
+              }
+            } else {
+              // Invalid session, clear everything
+              setUser(null)
+              setProfile(null)
+              setUserRole(null)
+              await authSecurity.secureSignOut()
+            }
+          } else {
+            // Fallback to basic auth without enhanced security
             setUser(session.user)
             try {
               await Promise.all([
@@ -111,12 +145,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } catch (error) {
               console.error('Error loading profile after auth change:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
             }
-          } else {
-            // Invalid session, clear everything
-            setUser(null)
-            setProfile(null)
-            setUserRole(null)
-            await authSecurity.secureSignOut()
           }
         } else {
           setUser(null)
@@ -221,15 +249,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const result = await supabase.auth.signInWithPassword({ email, password })
       
-      if (result.data.user) {
-        await authSecurity.logAuthEvent('sign_in', true, undefined, result.data.user.id)
-      } else if (result.error) {
-        await authSecurity.logAuthEvent('sign_in_failed', false, result.error.message)
+      if (authSecurity) {
+        if (result.data.user) {
+          await authSecurity.logAuthEvent('sign_in', true, undefined, result.data.user.id)
+        } else if (result.error) {
+          await authSecurity.logAuthEvent('sign_in_failed', false, result.error.message)
+        }
       }
       
       return result
     } catch (error) {
-      await authSecurity.logAuthEvent('sign_in_error', false, error instanceof Error ? error.message : 'Unknown error')
+      if (authSecurity) {
+        await authSecurity.logAuthEvent('sign_in_error', false, error instanceof Error ? error.message : 'Unknown error')
+      }
       throw error
     }
   }
@@ -260,7 +292,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() {
-    await authSecurity.secureSignOut()
+    if (authSecurity) {
+      await authSecurity.secureSignOut()
+    } else {
+      await supabase.auth.signOut()
+    }
   }
 
   async function loadUserRole(userId: string) {
@@ -301,6 +337,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Enhanced admin validation with security check
   async function validateAdminAccess(): Promise<boolean> {
+    if (!authSecurity) {
+      console.error('authSecurity is not available for admin validation')
+      return false
+    }
     const authResult = await authSecurity.validateAdminAccess()
     return authResult.isValid
   }
