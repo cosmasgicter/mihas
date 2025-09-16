@@ -31,8 +31,6 @@ export function Turnstile({
   const widgetIdRef = useRef<string | null>(null)
   const isLoadedRef = useRef(false)
   
-  const isTestMode = useMemo(() => import.meta.env.VITE_TEST_MODE === 'true', [])
-
   const handleVerify = useCallback((token: string) => {
     onVerify(token)
   }, [onVerify])
@@ -44,23 +42,6 @@ export function Turnstile({
   const handleExpire = useCallback(() => {
     onExpire?.()
   }, [onExpire])
-
-  // Early return for test mode to prevent unnecessary effect execution
-  if (isTestMode) {
-    useEffect(() => {
-      const timer = setTimeout(() => {
-        handleVerify('test-token-' + Date.now())
-      }, 100)
-      return () => clearTimeout(timer)
-    }, [handleVerify])
-
-    return (
-      <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 text-center">
-        <div className="text-sm text-gray-600 mb-2">🧪 Test Mode</div>
-        <div className="text-xs text-gray-500">Turnstile verification bypassed</div>
-      </div>
-    )
-  }
 
   useEffect(() => {
     if (isLoadedRef.current || !containerRef.current || !siteKey) return

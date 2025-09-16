@@ -57,12 +57,7 @@ export default function SignUpPage() {
     }
   }, [success, navigate])
 
-  // Auto-verify in test mode
-  useEffect(() => {
-    if (import.meta.env.VITE_TEST_MODE === 'true' && !turnstileToken) {
-      setTurnstileToken('test-token-auto')
-    }
-  }, [turnstileToken])
+
 
   const handleTurnstileVerify = useCallback((token: string) => {
     setTurnstileToken(token)
@@ -81,9 +76,8 @@ export default function SignUpPage() {
   }, [])
 
   const onSubmit = async (data: SignUpForm) => {
-    // Only require Turnstile token if site key is configured and not in test mode
-    const requiresTurnstile = import.meta.env.VITE_TURNSTILE_SITE_KEY && import.meta.env.VITE_TEST_MODE !== 'true'
-    if (requiresTurnstile && !turnstileToken) {
+    // Require Turnstile token if site key is configured
+    if (import.meta.env.VITE_TURNSTILE_SITE_KEY && !turnstileToken) {
       setError('Please complete the security verification.')
       return
     }
@@ -321,7 +315,7 @@ setSuccess('Account created successfully! Redirecting to sign in...')
               type="submit"
               className="w-full"
               loading={loading}
-              disabled={import.meta.env.VITE_TURNSTILE_SITE_KEY && import.meta.env.VITE_TEST_MODE !== 'true' && !turnstileToken}
+              disabled={import.meta.env.VITE_TURNSTILE_SITE_KEY && !turnstileToken}
             >
               Create Account
             </Button>
