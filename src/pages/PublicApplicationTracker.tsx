@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { AnimatedCard } from '@/components/ui/AnimatedCard'
 import { formatDate, getStatusColor } from '@/lib/utils'
+import { validateApplicationNumber } from '@/lib/applicationNumberGenerator'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Search, 
@@ -61,6 +62,11 @@ export default function PublicApplicationTracker() {
     const trimmed = term.trim()
     if (!trimmed) return false
     if (trimmed.length > 50) return false
+    
+    // Check if it's a valid application number format (KATC/MIHAS + year + sequence)
+    if (validateApplicationNumber(trimmed)) return true
+    
+    // Allow tracking codes (TRK format)
     return /^[a-zA-Z0-9\-_]+$/.test(trimmed)
   }
 

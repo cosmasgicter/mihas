@@ -447,7 +447,8 @@ export default function ApplicationWizard() {
     }
   }
 
-  const nextStep = async () => {
+  const nextStep = async (e?: React.MouseEvent) => {
+    e?.preventDefault()
     saveDraft() // Auto-save when moving to next step
     if (currentStep === 1) {
       // Validate form first
@@ -469,12 +470,13 @@ export default function ApplicationWizard() {
         setLoading(true)
         setError('')
         
-        // Generate application number and tracking code
-        const applicationNumber = `APP${Date.now().toString().slice(-8)}`
-        const trackingCode = `TRK${Math.random().toString(36).substring(2, 8).toUpperCase()}`
-        
         // Determine institution based on program
         const institution = ['Clinical Medicine', 'Environmental Health'].includes(formData.program) ? 'KATC' : 'MIHAS'
+        
+        // Generate application number and tracking code using proper format
+        const { generateApplicationNumber } = await import('@/lib/applicationNumberGenerator')
+        const applicationNumber = generateApplicationNumber({ institution: institution as 'KATC' | 'MIHAS' })
+        const trackingCode = `TRK${Math.random().toString(36).substring(2, 8).toUpperCase()}`
         
         const { data: app, error } = await supabase
           .from('applications_new')
@@ -582,14 +584,16 @@ export default function ApplicationWizard() {
     }
   }
 
-  const prevStep = () => {
+  const prevStep = (e?: React.MouseEvent) => {
+    e?.preventDefault()
     if (currentStep > 1) {
       saveDraft() // Auto-save when moving to previous step
       setCurrentStep(currentStep - 1)
     }
   }
 
-  const submitApplication = async (data: WizardFormData) => {
+  const submitApplication = async (data: WizardFormData, e?: React.FormEvent) => {
+    e?.preventDefault()
     if (!confirmSubmission) {
       setError('Please confirm that all information is accurate before submitting')
       return
@@ -792,7 +796,10 @@ export default function ApplicationWizard() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={saveDraft}
+                onClick={(e) => {
+                  e.preventDefault()
+                  saveDraft()
+                }}
                 disabled={isDraftSaving}
                 className="hover:bg-blue-50"
               >
@@ -861,7 +868,7 @@ export default function ApplicationWizard() {
           </motion.div>
         )}
 
-        <div className="space-y-6 lg:space-y-8">
+        <form onSubmit={(e) => e.preventDefault()} className="space-y-6 lg:space-y-8">
           <AnimatePresence mode="wait">
             {/* Step 1: Basic KYC */}
             {currentStep === 1 && (
@@ -1049,7 +1056,10 @@ export default function ApplicationWizard() {
                       </h3>
                       <Button 
                         type="button" 
-                        onClick={addGrade} 
+                        onClick={(e) => {
+                          e.preventDefault()
+                          addGrade()
+                        }} 
                         disabled={selectedGrades.length >= 10}
                         className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
                       >
@@ -1199,7 +1209,10 @@ export default function ApplicationWizard() {
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() => removeGrade(index)}
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  removeGrade(index)
+                                }}
                                 className="flex-1 sm:flex-none"
                               >
                                 <X className="h-4 w-4 sm:mr-0 mr-2" />
@@ -1208,7 +1221,10 @@ export default function ApplicationWizard() {
                               {selectedGrades.length < 10 && (
                                 <Button
                                   type="button"
-                                  onClick={addGrade}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    addGrade()
+                                  }}
                                   size="sm"
                                   className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700"
                                 >
@@ -1642,7 +1658,10 @@ export default function ApplicationWizard() {
                   <Button 
                     type="button" 
                     variant="outline" 
-                    onClick={prevStep}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      prevStep(e)
+                    }}
                     className="w-full sm:w-auto"
                     disabled={loading || uploading}
                   >
@@ -1661,7 +1680,10 @@ export default function ApplicationWizard() {
                 >
                   <Button 
                     type="button" 
-                    onClick={nextStep}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      nextStep(e)
+                    }}
                     loading={loading || uploading}
                     disabled={loading || uploading}
                     className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1685,7 +1707,10 @@ export default function ApplicationWizard() {
                 >
                   <Button 
                     type="button" 
-                    onClick={handleSubmit(submitApplication)}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handleSubmit((data) => submitApplication(data, e))(e)
+                    }}
                     loading={loading}
                     disabled={loading || !confirmSubmission}
                     className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1705,7 +1730,7 @@ export default function ApplicationWizard() {
               )}
             </div>
           </motion.div>
-        </div>
+        </form>
       </div>
       
       {/* AI Assistant */}
