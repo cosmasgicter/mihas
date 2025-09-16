@@ -125,6 +125,74 @@ interface StatusHistory {
   created_at: string
 }
 
+interface Grade {
+  subject_id: string
+  grade: number
+  subject_name?: string
+}
+
+// Grades Display Component
+function GradesDisplay({ applicationId }: { applicationId: string }) {
+  const [grades, setGrades] = useState<Grade[]>([])
+  const [loading, setLoading] = useState(true)
+  
+  useEffect(() => {
+    const fetchGrades = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('application_grades')
+          .select(`
+            subject_id,
+            grade,
+            grade12_subjects!inner(name)
+          `)
+          .eq('application_id', applicationId)
+        
+        if (error) throw error
+        
+        const formattedGrades = data?.map(g => ({
+          subject_id: g.subject_id,
+          grade: g.grade,
+          subject_name: (g as any).grade12_subjects?.name || 'Unknown Subject'
+        })) || []
+        
+        setGrades(formattedGrades)
+      } catch (error) {
+        console.error('Error fetching grades:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchGrades()
+  }, [applicationId])
+  
+  if (loading) {
+    return <div className="text-xs text-gray-500">Loading grades...</div>
+  }
+  
+  if (grades.length === 0) {
+    return <div className="text-xs text-gray-500">No grades recorded</div>
+  }
+  
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      {grades.map((grade, index) => (
+        <div key={index} className="flex justify-between items-center text-xs bg-gray-50 p-2 rounded">
+          <span className="font-medium">{grade.subject_name}</span>
+          <span className={`px-2 py-1 rounded text-xs font-bold ${
+            grade.grade <= 3 ? 'bg-green-100 text-green-800' :
+            grade.grade <= 6 ? 'bg-yellow-100 text-yellow-800' :
+            'bg-red-100 text-red-800'
+          }`}>
+            Grade {grade.grade}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 const PAGE_SIZE = 15
 
 export default function AdminApplications() {
@@ -188,18 +256,48 @@ export default function AdminApplications() {
   })
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)
 
-  // Fetch application documents
+  // Fetch application documents from main table
   const fetchDocuments = async (applicationId: string) => {
     try {
       setDocumentsLoading(true)
       const { data, error } = await supabase
-        .from('application_documents')
-        .select('*')
-        .eq('application_id', applicationId)
-        .order('created_at', { ascending: false })
+        .from('applications_new')
+        .select('result_slip_url, extra_kyc_url, pop_url')
+        .eq('id', applicationId)
+        .single()
       
       if (error) throw error
-      setDocuments(data || [])
+      
+      const docs = []
+      if (data.result_slip_url) {
+        docs.push({
+          id: 'result_slip',
+          document_type: 'Result Slip',
+          document_name: 'Grade 12 Result Slip',
+          file_url: data.result_slip_url,
+          verification_status: 'pending'
+        })
+      }
+      if (data.extra_kyc_url) {
+        docs.push({
+          id: 'extra_kyc',
+          document_type: 'KYC Document',
+          document_name: 'Additional KYC Document',
+          file_url: data.extra_kyc_url,
+          verification_status: 'pending'
+        })
+      }
+      if (data.pop_url) {
+        docs.push({
+          id: 'pop',
+          document_type: 'Proof of Payment',
+          document_name: 'Payment Receipt',
+          file_url: data.pop_url,
+          verification_status: 'pending'
+        })
+      }
+      
+      setDocuments(docs)
     } catch (error: any) {
       console.error('Error fetching documents:', error)
     } finally {
@@ -1541,6 +1639,12 @@ export default function AdminApplications() {
                         <p><strong>Next of Kin:</strong> {selectedApplication.next_of_kin_name || 'Not provided'}</p>
                       </div>
                     </div>
+                  </div>
+                  
+                  {/* Grades Section */}
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <h4 className="text-sm font-medium text-secondary mb-3">Grade 12 Subjects & Grades</h4>
+                    <GradesDisplay applicationId={selectedApplication.id} />
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-200">
