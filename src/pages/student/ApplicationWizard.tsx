@@ -18,6 +18,8 @@ import { AIAssistant } from '@/components/application/AIAssistant'
 import { draftManager } from '@/lib/draftManager'
 import { sanitizeForLog } from '@/lib/security'
 import { safeJsonParse } from '@/lib/utils'
+import { useProfileAutoPopulation } from '@/hooks/useProfileAutoPopulation'
+import { ProfileCompletionBadge } from '@/components/ui/ProfileAutoPopulationIndicator'
 
 const wizardSchema = z.object({
   full_name: z.string().min(2, 'Full name is required'),
@@ -112,47 +114,8 @@ export default function ApplicationWizard() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [currentStep, success])
 
-  // Auto-populate form with user data
-  useEffect(() => {
-    if (user && profile) {
-      // Set email from user
-      setValue('email', user.email || '')
-      
-      // Auto-populate from profile first (most reliable)
-      if (profile.full_name) setValue('full_name', profile.full_name)
-      if (profile.phone) setValue('phone', profile.phone)
-      if (profile.date_of_birth) setValue('date_of_birth', profile.date_of_birth)
-      if (profile.sex) setValue('sex', profile.sex)
-      if (profile.city) setValue('residence_town', profile.city)
-      if (profile.next_of_kin_name) setValue('next_of_kin_name', profile.next_of_kin_name)
-      if (profile.next_of_kin_phone) setValue('next_of_kin_phone', profile.next_of_kin_phone)
-      
-      // Fallback to user metadata if profile fields are empty
-      const metadata = user.user_metadata
-      if (metadata) {
-        if (!profile.full_name && metadata.full_name) setValue('full_name', metadata.full_name)
-        if (!profile.sex && metadata.sex) setValue('sex', metadata.sex)
-        
-        // Parse signup_data for additional fields
-        if (metadata.signup_data) {
-          try {
-            const signupData = typeof metadata.signup_data === 'string' 
-              ? JSON.parse(metadata.signup_data) 
-              : metadata.signup_data
-            
-            if (!profile.phone && signupData.phone) setValue('phone', signupData.phone)
-            if (!profile.date_of_birth && signupData.date_of_birth) setValue('date_of_birth', signupData.date_of_birth)
-            if (!profile.sex && signupData.sex) setValue('sex', signupData.sex)
-            if (!profile.city && signupData.city) setValue('residence_town', signupData.city)
-            if (!profile.next_of_kin_name && signupData.next_of_kin_name) setValue('next_of_kin_name', signupData.next_of_kin_name)
-            if (!profile.next_of_kin_phone && signupData.next_of_kin_phone) setValue('next_of_kin_phone', signupData.next_of_kin_phone)
-          } catch (e) {
-            console.log('Could not parse signup data:', e)
-          }
-        }
-      }
-    }
-  }, [user, profile, setValue])
+  // Use the profile auto-population hook
+  const { metadata, completionPercentage, hasAutoPopulatedData } = useProfileAutoPopulation(setValue)
 
   // Load saved application draft and restore state
   useEffect(() => {
@@ -880,9 +843,30 @@ export default function ApplicationWizard() {
                 transition={{ duration: 0.3 }}
                 className="bg-white rounded-lg shadow-lg p-6 border border-gray-100"
               >
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Step 1: Basic KYC Information
-                </h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Step 1: Basic KYC Information
+                  </h2>
+                  {hasAutoPopulatedData && (
+                    <ProfileCompletionBadge completionPercentage={completionPercentage} />
+                  )}
+                </div>
+                
+                {hasAutoPopulatedData && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg"
+                  >
+                    <div className="flex items-center space-x-2 text-sm text-green-800">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="font-medium">Profile data automatically populated</span>
+                    </div>
+                    <p className="text-xs text-green-700 mt-1">
+                      Some fields have been pre-filled from your profile. Please review and update as needed.
+                    </p>
+                  </motion.div>
+                )}
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="lg:col-span-2">
@@ -891,6 +875,7 @@ export default function ApplicationWizard() {
                       label="Full Name"
                       error={errors.full_name?.message}
                       required
+                      placeholder={profile?.full_name || metadata?.full_name || 'Enter your full name'}
                     />
                   </div>
                   

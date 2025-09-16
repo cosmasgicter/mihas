@@ -12,6 +12,8 @@ import { applicationSessionManager } from '@/lib/applicationSession'
 import { draftManager } from '@/lib/draftManager'
 import { useDraftManager } from '@/hooks/useDraftManager'
 import { sanitizeForLog, safeJsonParse } from '@/lib/sanitize'
+import { getUserMetadata, getBestValue, calculateProfileCompletion } from '@/hooks/useProfileAutoPopulation'
+import { ProfileCompletionBadge } from '@/components/ui/ProfileAutoPopulationIndicator'
 import { 
   User, 
   FileText, 
@@ -39,7 +41,7 @@ export default function StudentDashboard() {
     if (user) {
       loadDashboardData()
     }
-  }, [user])
+  }, [user, profile])
 
   // Listen for storage changes to update draft status
   useEffect(() => {
@@ -442,26 +444,44 @@ export default function StudentDashboard() {
               transition={{ delay: 0.4 }}
               className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6"
             >
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                👤 Profile Summary
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-900 flex items-center">
+                  👤 Profile Summary
+                </h3>
+                <ProfileCompletionBadge 
+                  completionPercentage={calculateProfileCompletion(profile, getUserMetadata(user))} 
+                />
+              </div>
               <div className="space-y-4 text-sm">
-                <div className="p-3 bg-gray-50 rounded-xl">
-                  <span className="text-gray-600 text-xs uppercase tracking-wide">Full Name</span>
-                  <p className="font-semibold text-gray-900">{profile?.full_name || 'Not provided'}</p>
-                </div>
-                <div className="p-3 bg-gray-50 rounded-xl">
-                  <span className="text-gray-600 text-xs uppercase tracking-wide">Email</span>
-                  <p className="font-semibold text-gray-900 truncate">{user?.email || 'Not provided'}</p>
-                </div>
-                <div className="p-3 bg-gray-50 rounded-xl">
-                  <span className="text-gray-600 text-xs uppercase tracking-wide">Phone</span>
-                  <p className="font-semibold text-gray-900">{profile?.phone || 'Not provided'}</p>
-                </div>
-                <div className="p-3 bg-gray-50 rounded-xl">
-                  <span className="text-gray-600 text-xs uppercase tracking-wide">City</span>
-                  <p className="font-semibold text-gray-900">{profile?.city || 'Not provided'}</p>
-                </div>
+                {(() => {
+                  const metadata = getUserMetadata(user)
+                  return (
+                    <>
+                      <div className="p-3 bg-gray-50 rounded-xl">
+                        <span className="text-gray-600 text-xs uppercase tracking-wide">Full Name</span>
+                        <p className="font-semibold text-gray-900">
+                          {getBestValue(profile?.full_name, metadata.full_name, user?.email?.split('@')[0])}
+                        </p>
+                      </div>
+                      <div className="p-3 bg-gray-50 rounded-xl">
+                        <span className="text-gray-600 text-xs uppercase tracking-wide">Email</span>
+                        <p className="font-semibold text-gray-900 truncate">{user?.email || 'Not provided'}</p>
+                      </div>
+                      <div className="p-3 bg-gray-50 rounded-xl">
+                        <span className="text-gray-600 text-xs uppercase tracking-wide">Phone</span>
+                        <p className="font-semibold text-gray-900">
+                          {getBestValue(profile?.phone, metadata.phone)}
+                        </p>
+                      </div>
+                      <div className="p-3 bg-gray-50 rounded-xl">
+                        <span className="text-gray-600 text-xs uppercase tracking-wide">City</span>
+                        <p className="font-semibold text-gray-900">
+                          {getBestValue(profile?.city || profile?.address, metadata.city)}
+                        </p>
+                      </div>
+                    </>
+                  )
+                })()}
               </div>
               <Link to="/settings">
                 <Button variant="outline" size="sm" className="w-full mt-4 border-2 hover:border-primary hover:bg-primary hover:text-white font-semibold">

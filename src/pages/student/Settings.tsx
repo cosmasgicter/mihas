@@ -11,6 +11,7 @@ import { AuthenticatedNavigation } from '@/components/ui/AuthenticatedNavigation
 import { ActiveSessions } from '@/components/ui/ActiveSessions'
 import { motion } from 'framer-motion'
 import { ArrowLeft, User, Mail, Phone, MapPin, Save, Shield } from 'lucide-react'
+import { useProfileAutoPopulation, getBestValue } from '@/hooks/useProfileAutoPopulation'
 
 const optionalString = () => z.string().optional().or(z.literal(''))
 
@@ -29,7 +30,8 @@ const profileSchema = z.object({
 type ProfileForm = z.infer<typeof profileSchema>
 
 export default function StudentSettings() {
-  const { profile, updateProfile } = useAuth()
+  const { profile, updateProfile, user } = useAuth()
+  const { metadata } = useProfileAutoPopulation()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -41,15 +43,15 @@ export default function StudentSettings() {
   } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      full_name: profile?.full_name || '',
-      phone: profile?.phone || '',
-      date_of_birth: profile?.date_of_birth || '',
-      sex: (profile?.sex as 'Male' | 'Female') || undefined,
-      nationality: profile?.nationality || '',
-      address: profile?.address || '',
-      city: profile?.city || '',
-      next_of_kin_name: profile?.next_of_kin_name || '',
-      next_of_kin_phone: profile?.next_of_kin_phone || ''
+      full_name: getBestValue(profile?.full_name, metadata?.full_name, user?.email?.split('@')[0] || ''),
+      phone: getBestValue(profile?.phone, metadata?.phone, ''),
+      date_of_birth: getBestValue(profile?.date_of_birth, metadata?.date_of_birth, ''),
+      sex: (getBestValue(profile?.sex, metadata?.sex, '') as 'Male' | 'Female') || undefined,
+      nationality: getBestValue(profile?.nationality, metadata?.nationality, ''),
+      address: getBestValue(profile?.address, metadata?.address, ''),
+      city: getBestValue(profile?.city, metadata?.city, ''),
+      next_of_kin_name: getBestValue(profile?.next_of_kin_name, metadata?.next_of_kin_name, ''),
+      next_of_kin_phone: getBestValue(profile?.next_of_kin_phone, metadata?.next_of_kin_phone, '')
     }
   })
 
