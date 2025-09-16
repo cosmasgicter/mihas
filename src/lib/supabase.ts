@@ -8,7 +8,21 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  }
+})
+
+// Ensure JWT token is always included in requests
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session?.access_token) {
+    // Token is automatically handled by Supabase client
+    console.log('Auth state changed:', event, 'User:', session.user?.id)
+  }
+})
 
 // Database type definitions
 export interface UserProfile {

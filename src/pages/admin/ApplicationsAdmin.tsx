@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useBulkOperations } from '@/hooks/useBulkOperations'
 import { exportToCSV, exportToExcel } from '@/lib/exportUtils'
+import { sanitizeHtml } from '@/lib/sanitizer'
 import { Eye, Download, Filter, Search, Mail, CheckSquare, Square } from 'lucide-react'
 
 interface ApplicationSummary {
@@ -391,8 +392,8 @@ export default function ApplicationsAdmin() {
                         {app.total_subjects} subjects
                       </div>
                       {app.grades_summary && (
-                        <div className="text-xs text-gray-500 max-w-xs truncate" title={app.grades_summary}>
-                          {app.grades_summary}
+                        <div className="text-xs text-gray-500 max-w-xs truncate" title={sanitizeHtml(app.grades_summary)}>
+                          {sanitizeHtml(app.grades_summary)}
                         </div>
                       )}
                     </td>

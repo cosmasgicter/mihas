@@ -52,9 +52,20 @@ export interface AutomatedReport {
 }
 
 export class AnalyticsService {
+  // Ensure user is authenticated before making requests
+  static async ensureAuthenticated() {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token) {
+      throw new Error('User not authenticated - JWT token missing')
+    }
+    return session
+  }
+
   // Event Tracking
   static async trackEvent(event: AnalyticsEvent) {
     try {
+      await this.ensureAuthenticated()
+      
       const { error } = await supabase
         .from('user_engagement_metrics')
         .insert({
@@ -337,6 +348,8 @@ export class AnalyticsService {
   }
 
   static async getUserEngagementMetrics(startDate: string, endDate: string) {
+    await this.ensureAuthenticated()
+    
     const { data, error } = await supabase
       .from('user_engagement_metrics')
       .select('*')

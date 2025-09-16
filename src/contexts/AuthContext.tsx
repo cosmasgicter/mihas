@@ -1,9 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase, UserProfile } from '@/lib/supabase'
-import { sanitizeForLog } from '@/lib/security'
-import { sanitizeForDisplay } from '@/lib/sanitize'
-// import { enhancedSessionManager, setupEnhancedSessionTimeout } from '@/lib/enhancedSession'
+import { sanitizeForLog, sanitizeHtml } from '@/lib/sanitizer'
 
 interface UserRole {
   id: string
@@ -24,6 +22,7 @@ interface AuthContextType {
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>
   isAdmin: () => boolean
+  validateAdminAccess: () => Promise<boolean>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -34,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<UserRole | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Load user on mount
+  // Load user on mount with enhanced security validation
   useEffect(() => {
     let mounted = true
     let hasLoaded = false
@@ -50,22 +49,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     async function loadUser() {
       try {
-        // Skip enhanced session check for now to avoid device_sessions errors
-
-        const { data: { user } } = await supabase.auth.getUser()
+        // Use enhanced security validation
+        const authResult = await authSecurity.validateAuth()
         
         if (!mounted) return
         
-        setUser(user)
-        
-        if (user) {
+        if (authResult.isValid && authResult.user) {
+          setUser(authResult.user)
+          
           await Promise.all([
-            loadUserProfile(user.id),
-            loadUserRole(user.id)
+            loadUserProfile(authResult.user.id),
+            loadUserRole(authResult.user.id)
           ])
+        } else {
+          setUser(null)
+          setProfile(null)
+          setUserRole(null)
+          
+          // Log failed authentication
+          if (authResult.error) {
+            await authSecurity.logAuthEvent('auth_validation_failed', false, authResult.error)
+          }
         }
       } catch (error) {
-        console.error('Error loading user:', error)
+        console.error('Error loading user:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
         if (mounted) {
           setUser(null)
           setProfile(null)
@@ -82,25 +89,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     loadUser()
 
-    // Set up auth listener with enhanced session handling
+    // Set up auth listener with enhanced security validation
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return
         
-        // Skip enhanced session handling for now
-        
-        setUser(session?.user || null)
+        // Log authentication events
+        await authSecurity.logAuthEvent(event, !!session, undefined, session?.user?.id)
         
         if (session?.user) {
-          try {
-            await Promise.all([
-              loadUserProfile(session.user.id),
-              loadUserRole(session.user.id)
-            ])
-          } catch (error) {
-            console.error('Error loading profile after auth change:', error)
+          // Validate the session with enhanced security
+          const authResult = await authSecurity.validateAuth()
+          
+          if (authResult.isValid) {
+            setUser(session.user)
+            try {
+              await Promise.all([
+                loadUserProfile(session.user.id),
+                loadUserRole(session.user.id)
+              ])
+            } catch (error) {
+              console.error('Error loading profile after auth change:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
+            }
+          } else {
+            // Invalid session, clear everything
+            setUser(null)
+            setProfile(null)
+            setUserRole(null)
+            await authSecurity.secureSignOut()
           }
         } else {
+          setUser(null)
           setProfile(null)
           setUserRole(null)
         }
@@ -139,7 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (data) {
         const sanitizedProfile = Object.entries(data).reduce((acc, [key, value]) => {
-          acc[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value
+          acc[key] = typeof value === 'string' ? sanitizeHtml(value) : value
           return acc
         }, {} as UserProfile)
         setProfile(sanitizedProfile)
@@ -174,8 +193,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from('user_profiles')
         .insert({
           user_id: userId,
-          full_name: sanitizeForDisplay(fullName),
-          phone: signupData.phone ? sanitizeForDisplay(signupData.phone) : null,
+          full_name: sanitizeHtml(fullName),
+          phone: signupData.phone ? sanitizeHtml(signupData.phone) : null,
           role: 'student',
           email: user.user.email
         })
@@ -184,7 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (!insertError && newProfile) {
         const sanitizedProfile = Object.entries(newProfile).reduce((acc, [key, value]) => {
-          acc[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value
+          acc[key] = typeof value === 'string' ? sanitizeHtml(value) : value
           return acc
         }, {} as UserProfile)
         setProfile(sanitizedProfile)
@@ -199,12 +218,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signIn(email: string, password: string) {
-    return await supabase.auth.signInWithPassword({ email, password })
+    try {
+      const result = await supabase.auth.signInWithPassword({ email, password })
+      
+      if (result.data.user) {
+        await authSecurity.logAuthEvent('sign_in', true, undefined, result.data.user.id)
+      } else if (result.error) {
+        await authSecurity.logAuthEvent('sign_in_failed', false, result.error.message)
+      }
+      
+      return result
+    } catch (error) {
+      await authSecurity.logAuthEvent('sign_in_error', false, error instanceof Error ? error.message : 'Unknown error')
+      throw error
+    }
   }
 
   async function signUp(email: string, password: string, userData: any) {
     const sanitizedUserData = Object.entries(userData).reduce((acc, [key, value]) => {
-      acc[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value
+      acc[key] = typeof value === 'string' ? sanitizeHtml(value) : value
       return acc
     }, {} as any)
 
@@ -213,7 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password,
       options: {
         data: {
-          full_name: sanitizeForDisplay(sanitizedUserData.full_name || email.split('@')[0]),
+          full_name: sanitizeHtml(sanitizedUserData.full_name || email.split('@')[0]),
           sex: sanitizedUserData.sex, // Store sex from signup
           signup_data: JSON.stringify(sanitizedUserData)
         }
@@ -228,7 +260,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() {
-    await supabase.auth.signOut()
+    await authSecurity.secureSignOut()
   }
 
   async function loadUserRole(userId: string) {
@@ -267,6 +299,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return false
   }
 
+  // Enhanced admin validation with security check
+  async function validateAdminAccess(): Promise<boolean> {
+    const authResult = await authSecurity.validateAdminAccess()
+    return authResult.isValid
+  }
+
   async function updateProfile(updates: Partial<UserProfile>) {
     if (!user) {
       throw new Error('User not authenticated')
@@ -290,7 +328,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (value === null || value === undefined) {
         acc[key] = value
       } else if (typeof value === 'string') {
-        acc[key] = sanitizeForDisplay(value.trim())
+        acc[key] = sanitizeHtml(value.trim())
       } else {
         acc[key] = value
       }
@@ -311,7 +349,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (data) {
       const sanitizedProfile = Object.entries(data).reduce((acc, [key, value]) => {
-        acc[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value
+        acc[key] = typeof value === 'string' ? sanitizeHtml(value) : value
         return acc
       }, {} as UserProfile)
       setProfile(sanitizedProfile)
@@ -328,7 +366,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signUp,
       signOut,
       updateProfile,
-      isAdmin
+      isAdmin,
+      validateAdminAccess
     }}>
       {children}
     </AuthContext.Provider>
