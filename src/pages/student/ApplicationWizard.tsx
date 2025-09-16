@@ -391,76 +391,40 @@ export default function ApplicationWizard() {
 
 
 
-  const uploadFileWithProgress = async (file: File, path: string): Promise<string> => {
+  const uploadFileWithProgress = async (file: File, fileType: string): Promise<string> => {
     if (!user?.id || !applicationId) {
       throw new Error('User or application ID not available')
     }
 
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      throw new Error('File size must be less than 10MB')
+    // Verify user is still authenticated
+    const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
+    if (authError || !currentUser) {
+      throw new Error('Please sign in again to upload files')
     }
 
-    // Validate file type
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
-    if (!allowedTypes.includes(file.type)) {
-      throw new Error('Only PDF, JPG, JPEG, and PNG files are allowed')
-    }
-    
-    // Ensure we have a valid file type for upload
-    let uploadFile = file
-    if (file.type === 'image/jpg') {
-      // Convert jpg to jpeg for consistency
-      uploadFile = new File([file], file.name, { type: 'image/jpeg' })
-    }
-
-    const fileName = `${user.id}/${applicationId}/${path}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
-    
-    setUploadProgress(prev => ({ ...prev, [path]: 0 }))
+    setUploadProgress(prev => ({ ...prev, [fileType]: 0 }))
     
     const progressInterval = setInterval(() => {
       setUploadProgress(prev => {
-        const current = prev[path] || 0
+        const current = prev[fileType] || 0
         if (current < 90) {
-          return { ...prev, [path]: current + 10 }
+          return { ...prev, [fileType]: current + 10 }
         }
         return prev
       })
     }, 200)
     
     try {
-      // Try multiple buckets in order of preference
-      const buckets = ['app_docs', 'documents', 'application-documents']
-      let uploadError
-      let usedBucket = ''
+      const { uploadApplicationFile } = await import('@/lib/storage')
+      const result = await uploadApplicationFile(file, user.id, applicationId, fileType)
       
-      for (const bucket of buckets) {
-        const { error } = await supabase.storage
-          .from(bucket)
-          .upload(fileName, uploadFile, {
-            cacheControl: '3600',
-            upsert: true
-          })
-        
-        if (!error) {
-          usedBucket = bucket
-          break
-        }
-        uploadError = error
+      if (!result.success) {
+        throw new Error(result.error || 'Upload failed')
       }
 
-      if (!usedBucket) {
-        console.error('Upload error:', uploadError)
-        throw new Error(`Upload failed: ${uploadError?.message || 'No available buckets'}`)
-      }
-
-      setUploadProgress(prev => ({ ...prev, [path]: 100 }))
+      setUploadProgress(prev => ({ ...prev, [fileType]: 100 }))
       
-      const { data: { publicUrl } } = supabase.storage
-        .from(usedBucket)
-        .getPublicUrl(fileName)
-
-      return publicUrl
+      return result.url!
     } catch (error) {
       console.error('File upload error:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
       throw error
@@ -469,7 +433,7 @@ export default function ApplicationWizard() {
       setTimeout(() => {
         setUploadProgress(prev => {
           const newProgress = { ...prev }
-          delete newProgress[path]
+          delete newProgress[fileType]
           return newProgress
         })
       }, 2000)
@@ -564,13 +528,11 @@ export default function ApplicationWizard() {
         setUploading(true)
         setError('')
         
-        setUploadProgress({ result_slip: 0 })
         const resultSlipUrl = await uploadFileWithProgress(resultSlipFile, 'result_slip')
         setUploadedFiles(prev => ({ ...prev, result_slip: true }))
         
         let extraKycUrl = null
         if (extraKycFile) {
-          setUploadProgress(prev => ({ ...prev, extra_kyc: 0 }))
           extraKycUrl = await uploadFileWithProgress(extraKycFile, 'extra_kyc')
           setUploadedFiles(prev => ({ ...prev, extra_kyc: true }))
         }
@@ -1262,7 +1224,25 @@ export default function ApplicationWizard() {
                         <input
                           type="file"
                           accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={(e) => setResultSlipFile(e.target.files?.[0] || null)}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null
+                            if (file) {
+                              // Validate file immediately
+                              if (file.size > 10 * 1024 * 1024) {
+                                setError('File size must be less than 10MB')
+                                e.target.value = ''
+                                return
+                              }
+                              const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
+                              if (!allowedTypes.includes(file.type)) {
+                                setError('Only PDF, JPG, JPEG, and PNG files are allowed')
+                                e.target.value = ''
+                                return
+                              }
+                              setError('') // Clear any previous errors
+                            }
+                            setResultSlipFile(file)
+                          }}
                           className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                         />
 
@@ -1308,7 +1288,25 @@ export default function ApplicationWizard() {
                         <input
                           type="file"
                           accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={(e) => setExtraKycFile(e.target.files?.[0] || null)}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null
+                            if (file) {
+                              // Validate file immediately
+                              if (file.size > 10 * 1024 * 1024) {
+                                setError('File size must be less than 10MB')
+                                e.target.value = ''
+                                return
+                              }
+                              const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
+                              if (!allowedTypes.includes(file.type)) {
+                                setError('Only PDF, JPG, JPEG, and PNG files are allowed')
+                                e.target.value = ''
+                                return
+                              }
+                              setError('') // Clear any previous errors
+                            }
+                            setExtraKycFile(file)
+                          }}
                           className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                         />
                         {extraKycFile && (

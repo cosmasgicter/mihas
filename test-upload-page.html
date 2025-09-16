@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-area:hover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+        .upload-area.uploading {
+            border-color: #6c757d;
+            background-color: #f8f9fa;
+            cursor: not-allowed;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #007bff;
+            transition: width 0.3s;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .file-list {
+            margin-top: 20px;
+        }
+        .file-item {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>File Upload Test</h1>
+    <p>Test the file upload functionality for the MIHAS/KATC application system.</p>
+    
+    <div id="uploadArea" class="upload-area">
+        <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png" style="display: none;">
+        <div id="uploadText">
+            <h3>📁 Click to upload file</h3>
+            <p>PDF, JPG, JPEG, PNG up to 10MB</p>
+        </div>
+    </div>
+    
+    <div id="progressContainer" style="display: none;">
+        <div class="progress-bar">
+            <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+        </div>
+        <p id="progressText">Uploading... 0%</p>
+    </div>
+    
+    <div id="errorContainer"></div>
+    <div id="successContainer"></div>
+    
+    <div id="fileList" class="file-list"></div>
+    
+    <script>
+        // Initialize Supabase
+        const supabaseUrl = 'https://mylgegkqoddcrxtwcclb.supabase.co'
+        const supabaseKey = 'sbp_a5d15dd3cf175a5b7fd47009861eca8794ead455'
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
+        
+        let uploadedFiles = []
+        
+        // DOM elements
+        const uploadArea = document.getElementById('uploadArea')
+        const fileInput = document.getElementById('fileInput')
+        const progressContainer = document.getElementById('progressContainer')
+        const progressFill = document.getElementById('progressFill')
+        const progressText = document.getElementById('progressText')
+        const errorContainer = document.getElementById('errorContainer')
+        const successContainer = document.getElementById('successContainer')
+        const fileList = document.getElementById('fileList')
+        const uploadText = document.getElementById('uploadText')
+        
+        // Event listeners
+        uploadArea.addEventListener('click', () => {
+            if (!uploadArea.classList.contains('uploading')) {
+                fileInput.click()
+            }
+        })
+        
+        fileInput.addEventListener('change', handleFileUpload)
+        
+        function showError(message) {
+            errorContainer.innerHTML = `<div class="error">❌ ${message}</div>`
+            successContainer.innerHTML = ''
+        }
+        
+        function showSuccess(message) {
+            successContainer.innerHTML = `<div class="success">✅ ${message}</div>`
+            errorContainer.innerHTML = ''
+        }
+        
+        function clearMessages() {
+            errorContainer.innerHTML = ''
+            successContainer.innerHTML = ''
+        }
+        
+        function validateFile(file) {
+            // Check file size (10MB limit)
+            if (file.size > 10 * 1024 * 1024) {
+                return { valid: false, error: 'File size must be less than 10MB' }
+            }
+            
+            // Check file type
+            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
+            if (!allowedTypes.includes(file.type)) {
+                return { valid: false, error: 'Only PDF, JPG, JPEG, and PNG files are allowed' }
+            }
+            
+            return { valid: true }
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes'
+            const k = 1024
+            const sizes = ['Bytes', 'KB', 'MB', 'GB']
+            const i = Math.floor(Math.log(bytes) / Math.log(k))
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+        }
+        
+        function updateProgress(percent) {
+            progressFill.style.width = percent + '%'
+            progressText.textContent = `Uploading... ${percent}%`
+        }
+        
+        function addFileToList(file) {
+            const fileItem = document.createElement('div')
+            fileItem.className = 'file-item'
+            fileItem.innerHTML = `
+                <div>
+                    <strong>${file.name}</strong><br>
+                    <small>${formatFileSize(file.size)} • Uploaded successfully</small>
+                </div>
+                <button onclick="removeFile('${file.id}')">Remove</button>
+            `
+            fileList.appendChild(fileItem)
+        }
+        
+        function removeFile(fileId) {
+            uploadedFiles = uploadedFiles.filter(f => f.id !== fileId)
+            updateFileList()
+        }
+        
+        function updateFileList() {
+            fileList.innerHTML = ''
+            uploadedFiles.forEach(addFileToList)
+        }
+        
+        async function handleFileUpload(event) {
+            const file = event.target.files[0]
+            if (!file) return
+            
+            clearMessages()
+            
+            // Validate file
+            const validation = validateFile(file)
+            if (!validation.valid) {
+                showError(validation.error)
+                fileInput.value = ''
+                return
+            }
+            
+            // Start upload
+            uploadArea.classList.add('uploading')
+            uploadText.innerHTML = '<h3>📤 Uploading...</h3><p>Please wait...</p>'
+            progressContainer.style.display = 'block'
+            
+            // Simulate progress
+            let progress = 0
+            const progressInterval = setInterval(() => {
+                if (progress < 90) {
+                    progress += 10
+                    updateProgress(progress)
+                }
+            }, 200)
+            
+            try {
+                // Generate filename
+                const timestamp = Date.now()
+                const fileName = `test-uploads/${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+                
+                // Try uploading to different buckets
+                const buckets = ['app_docs', 'documents', 'application-documents']
+                let uploadSuccess = false
+                let uploadError = null
+                let usedBucket = ''
+                let uploadData = null
+                
+                for (const bucket of buckets) {
+                    try {
+                        const { data, error } = await supabase.storage
+                            .from(bucket)
+                            .upload(fileName, file, {
+                                contentType: file.type,
+                                upsert: true
+                            })
+                        
+                        if (!error) {
+                            uploadSuccess = true
+                            usedBucket = bucket
+                            uploadData = data
+                            break
+                        }
+                        uploadError = error
+                    } catch (err) {
+                        uploadError = err
+                    }
+                }
+                
+                if (!uploadSuccess) {
+                    throw new Error(`Upload failed: ${uploadError?.message || 'No available buckets'}`)
+                }
+                
+                // Complete progress
+                clearInterval(progressInterval)
+                updateProgress(100)
+                
+                // Get public URL
+                const { data: urlData } = supabase.storage
+                    .from(usedBucket)
+                    .getPublicUrl(uploadData.path)
+                
+                // Add to uploaded files
+                const uploadedFile = {
+                    id: timestamp.toString(),
+                    name: file.name,
+                    size: file.size,
+                    url: urlData.publicUrl,
+                    bucket: usedBucket,
+                    path: uploadData.path
+                }
+                
+                uploadedFiles.push(uploadedFile)
+                addFileToList(uploadedFile)
+                
+                showSuccess(`File uploaded successfully to ${usedBucket} bucket!`)
+                
+            } catch (error) {
+                clearInterval(progressInterval)
+                showError(error.message)
+                console.error('Upload error:', error)
+            } finally {
+                // Reset UI
+                uploadArea.classList.remove('uploading')
+                uploadText.innerHTML = '<h3>📁 Click to upload file</h3><p>PDF, JPG, JPEG, PNG up to 10MB</p>'
+                progressContainer.style.display = 'none'
+                updateProgress(0)
+                fileInput.value = ''
+            }
+        }
+        
+        // Test connection on load
+        window.addEventListener('load', async () => {
+            try {
+                const { data: buckets, error } = await supabase.storage.listBuckets()
+                if (error) {
+                    showError(`Connection test failed: ${error.message}`)
+                } else {
+                    showSuccess(`Connected successfully! Available buckets: ${buckets.map(b => b.name).join(', ')}`)
+                }
+            } catch (error) {
+                showError(`Connection test failed: ${error.message}`)
+            }
+        })
+    </script>
+</body>
+</html>

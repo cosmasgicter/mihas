@@ -53,6 +53,93 @@ export const STORAGE_CONFIGS = {
   }
 } as const
 
+// Simple upload function for application wizard
+export async function uploadApplicationFile(
+  file: File,
+  userId: string,
+  applicationId: string,
+  fileType: string
+): Promise<UploadResult> {
+  try {
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      return {
+        success: false,
+        error: 'File size must be less than 10MB'
+      }
+    }
+
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
+    if (!allowedTypes.includes(file.type)) {
+      return {
+        success: false,
+        error: 'Only PDF, JPG, JPEG, and PNG files are allowed'
+      }
+    }
+
+    // Check authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return {
+        success: false,
+        error: 'Please sign in again to upload files'
+      }
+    }
+
+    // Generate filename
+    const timestamp = Date.now()
+    const fileName = `${userId}/${applicationId}/${fileType}/${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+
+    // Try uploading to available buckets
+    const buckets = ['app_docs', 'documents', 'application-documents']
+    let uploadError
+    let usedBucket = ''
+    let uploadData
+
+    for (const bucket of buckets) {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .upload(fileName, file, {
+          contentType: file.type,
+          upsert: true
+        })
+
+      if (!error) {
+        usedBucket = bucket
+        uploadData = data
+        break
+      }
+      uploadError = error
+    }
+
+    if (!usedBucket) {
+      console.error('Upload failed:', uploadError)
+      return {
+        success: false,
+        error: `Upload failed: ${uploadError?.message || 'No available buckets'}`
+      }
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from(usedBucket)
+      .getPublicUrl(uploadData.path)
+
+    return {
+      success: true,
+      path: uploadData.path,
+      url: urlData.publicUrl
+    }
+  } catch (error) {
+    console.error('Upload error:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Upload failed'
+    }
+  }
+}
+
 export function validateFile(file: File, config: StorageConfig): { valid: boolean; error?: string } {
   if (file.size > config.maxFileSize) {
     return {
@@ -65,6 +152,26 @@ export function validateFile(file: File, config: StorageConfig): { valid: boolea
     return {
       valid: false,
       error: `File type ${file.type} is not allowed. Allowed types: ${config.allowedTypes.join(', ')}`
+    }
+  }
+
+  return { valid: true }
+}
+
+// Simple file validation for application uploads
+export function validateApplicationFile(file: File): { valid: boolean; error?: string } {
+  if (file.size > 10 * 1024 * 1024) {
+    return {
+      valid: false,
+      error: 'File size must be less than 10MB'
+    }
+  }
+
+  const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
+  if (!allowedTypes.includes(file.type)) {
+    return {
+      valid: false,
+      error: 'Only PDF, JPG, JPEG, and PNG files are allowed'
     }
   }
 
@@ -102,30 +209,44 @@ export async function uploadFile(
     const randomString = Math.random().toString(36).substring(2)
     const fileName = path || `${currentUserId}/${timestamp}-${randomString}.${fileExtension}`
 
-    // Upload file
-    const { data, error } = await supabase.storage
-      .from(config.bucket)
-      .upload(fileName, file, {
-        contentType: file.type,
-        upsert: false
-      })
+    // Try multiple buckets in order of preference
+    const buckets = ['app_docs', 'documents', 'application-documents']
+    let uploadError
+    let usedBucket = ''
+    let uploadData
 
-    if (error) {
-      console.error('Storage upload error:', sanitizeForLog(error.message || 'Unknown error'))
+    for (const bucket of buckets) {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .upload(fileName, file, {
+          contentType: file.type,
+          upsert: true
+        })
+
+      if (!error) {
+        usedBucket = bucket
+        uploadData = data
+        break
+      }
+      uploadError = error
+    }
+
+    if (!usedBucket) {
+      console.error('Storage upload error:', sanitizeForLog(uploadError?.message || 'No available buckets'))
       return {
         success: false,
-        error: error.message
+        error: uploadError?.message || 'Upload failed - no available storage buckets'
       }
     }
 
     // Get public URL
     const { data: urlData } = supabase.storage
-      .from(config.bucket)
-      .getPublicUrl(data.path)
+      .from(usedBucket)
+      .getPublicUrl(uploadData.path)
 
     return {
       success: true,
-      path: data.path,
+      path: uploadData.path,
       url: urlData.publicUrl
     }
   } catch (error) {
@@ -249,7 +370,7 @@ export async function ensureBucketExists(bucketName: string): Promise<{ success:
     if (!bucketExists) {
       // Create bucket if it doesn't exist
       const { error: createError } = await supabase.storage.createBucket(bucketName, {
-        public: false,
+        public: true,
         allowedMimeTypes: [...STORAGE_CONFIGS.appDocs.allowedTypes],
         fileSizeLimit: STORAGE_CONFIGS.appDocs.maxFileSize
       })

@@ -1,12 +1,15 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Upload, X, FileText, CheckCircle, AlertCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { uploadApplicationFile, validateApplicationFile } from '@/lib/storage'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface UploadedFile {
   id: string
   name: string
   size: number
+  url?: string
 }
 
 interface SimpleFileUploadProps {
@@ -17,6 +20,9 @@ interface SimpleFileUploadProps {
   onRemoveFile: (fileId: string) => void
   formatFileSize: (bytes: number) => string
   error?: string
+  applicationId?: string
+  fileType?: string
+  onUploadComplete?: (file: UploadedFile) => void
 }
 
 export function SimpleFileUpload({ 
@@ -26,8 +32,56 @@ export function SimpleFileUpload({
   onFileUpload, 
   onRemoveFile, 
   formatFileSize,
-  error
+  error,
+  applicationId,
+  fileType = 'document',
+  onUploadComplete
 }: SimpleFileUploadProps) {
+  const { user } = useAuth()
+  const [localError, setLocalError] = useState<string>('')
+  const [isUploading, setIsUploading] = useState(false)
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !user || !applicationId) return
+
+    // Validate file
+    const validation = validateApplicationFile(file)
+    if (!validation.valid) {
+      setLocalError(validation.error || 'Invalid file')
+      event.target.value = ''
+      return
+    }
+
+    setLocalError('')
+    setIsUploading(true)
+
+    try {
+      const result = await uploadApplicationFile(file, user.id, applicationId, fileType)
+      
+      if (result.success && result.url) {
+        const uploadedFile: UploadedFile = {
+          id: Date.now().toString(),
+          name: file.name,
+          size: file.size,
+          url: result.url
+        }
+        
+        if (onUploadComplete) {
+          onUploadComplete(uploadedFile)
+        }
+      } else {
+        setLocalError(result.error || 'Upload failed')
+      }
+    } catch (error) {
+      setLocalError(error instanceof Error ? error.message : 'Upload failed')
+    } finally {
+      setIsUploading(false)
+      event.target.value = ''
+    }
+  }
+
+  const displayError = error || localError
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex items-center justify-between mb-4">
@@ -46,38 +100,37 @@ export function SimpleFileUpload({
         <label className="block">
           <input
             type="file"
-            multiple
-            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-            onChange={onFileUpload}
+            accept=".pdf,.jpg,.jpeg,.png"
+            onChange={handleFileUpload}
             className="hidden"
-            disabled={uploadingFiles.length > 0}
+            disabled={isUploading || uploadingFiles.length > 0}
           />
           <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 ${
-            uploadingFiles.length > 0 
+            isUploading || uploadingFiles.length > 0 
               ? 'border-gray-200 bg-gray-50 cursor-not-allowed' 
               : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50 cursor-pointer'
           }`}>
             <Upload className={`h-8 w-8 mx-auto mb-2 ${
-              uploadingFiles.length > 0 ? 'text-gray-400' : 'text-gray-600'
+              isUploading || uploadingFiles.length > 0 ? 'text-gray-400' : 'text-gray-600'
             }`} />
             <p className={`text-sm ${
-              uploadingFiles.length > 0 ? 'text-gray-400' : 'text-gray-600'
+              isUploading || uploadingFiles.length > 0 ? 'text-gray-400' : 'text-gray-600'
             }`}>
-              {uploadingFiles.length > 0 ? 'Uploading...' : 'Click to upload files or drag and drop'}
+              {isUploading || uploadingFiles.length > 0 ? 'Uploading...' : 'Click to upload file'}
             </p>
             <p className={`text-xs ${
-              uploadingFiles.length > 0 ? 'text-gray-400' : 'text-gray-500'
+              isUploading || uploadingFiles.length > 0 ? 'text-gray-400' : 'text-gray-500'
             }`}>
-              PDF, DOC, DOCX, JPG, JPEG, PNG up to 10MB each
+              PDF, JPG, JPEG, PNG up to 10MB
             </p>
           </div>
         </label>
         
-        {error && (
+        {displayError && (
           <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
             <div className="flex items-center text-sm text-red-700">
               <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
-              <span>{error}</span>
+              <span>{displayError}</span>
             </div>
           </div>
         )}
