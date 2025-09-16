@@ -40,35 +40,11 @@ export function useApplicationSubmit(user: any, uploadedFiles: UploadedFile[]) {
         throw new Error('User not authenticated. Please sign in and try again.')
       }
 
-      // Verify current session with retry logic
-      let currentUser = null
-      let authError = null
-      
-      for (let attempt = 0; attempt < 3; attempt++) {
-        const { data: { user: sessionUser }, error: sessionError } = await supabase.auth.getUser()
-        
-        if (!sessionError && sessionUser) {
-          currentUser = sessionUser
-          break
-        }
-        
-        authError = sessionError
-        
-        if (attempt < 2) {
-          // Try to refresh the session
-          await supabase.auth.refreshSession()
-          await new Promise(resolve => setTimeout(resolve, 1000))
-        }
-      }
+      // Simple session check without retry loop
+      const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
       
       if (authError || !currentUser) {
         throw new Error('Authentication session expired. Please sign in again.')
-      }
-      
-      // Double-check that we have a valid session
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        throw new Error('No active session found. Please sign in again.')
       }
 
       const applicationNumber = `MIHAS${Date.now().toString().slice(-6)}`
@@ -123,45 +99,15 @@ export function useApplicationSubmit(user: any, uploadedFiles: UploadedFile[]) {
         user_id: applicationData.user_id ? 'present' : 'missing' 
       })
 
-      let application = null
-      let applicationError = null
-      
-      // Try direct insert first
-      const { data: directApplication, error: directError } = await supabase
+      // Direct insert only - no fallback loop
+      const { data: application, error: insertError } = await supabase
         .from('applications_new')
         .insert(applicationData)
         .select()
         .single()
       
-      if (directError) {
-        console.warn('Direct insert failed, trying secure function:', directError.message)
-        
-        // Fallback to secure function if direct insert fails
-        const { data: secureResult, error: secureError } = await supabase
-          .rpc('submit_application_secure', {
-            application_data: applicationData
-          })
-        
-        if (secureError || !secureResult?.[0]?.success) {
-          const errorMsg = secureError?.message || secureResult?.[0]?.error_message || 'Unknown error'
-          console.error('Secure submission also failed:', errorMsg)
-          throw new Error(errorMsg)
-        }
-        
-        // Get the created application
-        const { data: createdApp } = await supabase
-          .from('applications_new')
-          .select()
-          .eq('id', secureResult[0].application_id)
-          .single()
-        
-        application = createdApp
-      } else {
-        application = directApplication
-      }
-      
-      if (!application) {
-        throw new Error('Failed to create application record')
+      if (insertError || !application) {
+        throw new Error(insertError?.message || 'Failed to create application record')
       }
 
       console.log('Application submitted successfully:', { id: application.id, tracking_code: application.public_tracking_code })

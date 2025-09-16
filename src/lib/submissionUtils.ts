@@ -23,54 +23,40 @@ export const submitWithRetry = async (
   submitFunction: () => Promise<SubmissionResult>,
   onStatusUpdate?: (status: SubmissionStatus) => void
 ): Promise<SubmissionResult> => {
-  let lastError: string = ''
-  
-  for (let attempt = 1; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
-    try {
+  try {
+    onStatusUpdate?.({
+      status: 'processing',
+      message: 'Submitting application...',
+      timestamp: new Date().toISOString(),
+      step: 'submission'
+    })
+
+    const result = await submitFunction()
+    
+    if (result.success) {
       onStatusUpdate?.({
-        status: attempt === 1 ? 'processing' : 'retry',
-        message: attempt === 1 ? 'Submitting application...' : `Retry attempt ${attempt}/${RETRY_CONFIG.maxRetries}`,
-        timestamp: new Date().toISOString(),
-        step: 'submission'
+        status: 'completed',
+        message: 'Application submitted successfully',
+        timestamp: new Date().toISOString()
       })
-
-      const result = await submitFunction()
-      
-      if (result.success) {
-        onStatusUpdate?.({
-          status: 'completed',
-          message: 'Application submitted successfully',
-          timestamp: new Date().toISOString()
-        })
-        return result
-      }
-      
-      lastError = result.error || 'Unknown error'
-      
-      if (attempt < RETRY_CONFIG.maxRetries) {
-        const delay = RETRY_CONFIG.retryDelay * Math.pow(RETRY_CONFIG.backoffMultiplier, attempt - 1)
-        await new Promise(resolve => setTimeout(resolve, delay))
-      }
-    } catch (error: any) {
-      lastError = error.message || 'Network error'
-      
-      if (attempt < RETRY_CONFIG.maxRetries) {
-        const delay = RETRY_CONFIG.retryDelay * Math.pow(RETRY_CONFIG.backoffMultiplier, attempt - 1)
-        await new Promise(resolve => setTimeout(resolve, delay))
-      }
+      return result
     }
-  }
+    
+    throw new Error(result.error || 'Submission failed')
+  } catch (error: any) {
+    const errorMessage = error.message || 'Network error'
+    
+    onStatusUpdate?.({
+      status: 'failed',
+      message: errorMessage,
+      timestamp: new Date().toISOString()
+    })
 
-  onStatusUpdate?.({
-    status: 'failed',
-    message: `Failed after ${RETRY_CONFIG.maxRetries} attempts: ${lastError}`,
-    timestamp: new Date().toISOString()
-  })
-
-  return {
-    success: false,
-    error: lastError,
-    retryCount: RETRY_CONFIG.maxRetries
+    return {
+      success: false,
+      error: errorMessage,
+      retryCount: 0
+    }
   }
 }
 
