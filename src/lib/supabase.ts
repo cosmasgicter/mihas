@@ -12,17 +12,60 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    flowType: 'pkce',
+    storage: {
+      getItem: (key: string) => {
+        if (typeof window !== 'undefined') {
+          return window.localStorage.getItem(key)
+        }
+        return null
+      },
+      setItem: (key: string, value: string) => {
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(key, value)
+        }
+      },
+      removeItem: (key: string) => {
+        if (typeof window !== 'undefined') {
+          window.localStorage.removeItem(key)
+        }
+      }
+    }
   }
 })
 
-// Ensure JWT token is always included in requests
-supabase.auth.onAuthStateChange((event, session) => {
-  if (session?.access_token) {
-    // Token is automatically handled by Supabase client
-    console.log('Auth state changed:', event, 'User:', session.user?.id)
+// Enhanced session management
+supabase.auth.onAuthStateChange(async (event, session) => {
+  console.log('Auth event:', event)
+  
+  if (event === 'TOKEN_REFRESHED') {
+    console.log('Token refreshed successfully')
+  }
+  
+  if (event === 'SIGNED_OUT') {
+    console.log('User signed out')
+    // Clear any cached data
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('supabase.auth.token')
+    }
+  }
+  
+  if (event === 'SIGNED_IN' && session) {
+    console.log('User signed in:', session.user?.id)
   }
 })
+
+// Refresh session periodically to prevent timeouts
+if (typeof window !== 'undefined') {
+  setInterval(async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      // Session exists, refresh will happen automatically
+      console.log('Session check: Active')
+    }
+  }, 5 * 60 * 1000) // Check every 5 minutes
+}
 
 // Database type definitions
 export interface UserProfile {

@@ -3,6 +3,7 @@ import { User } from '@supabase/supabase-js'
 import { supabase, UserProfile } from '@/lib/supabase'
 import { sanitizeForLog } from '@/lib/security'
 import { sanitizeForDisplay } from '@/lib/sanitize'
+import { sessionManager } from '@/lib/sessionManager'
 
 interface UserRole {
   id: string
@@ -50,6 +51,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     async function loadUser() {
       try {
+        // Initialize session manager
+        await sessionManager.initializeSession()
+        
         const { data: { user } } = await supabase.auth.getUser()
         
         if (!mounted) return
@@ -85,9 +89,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (event, session) => {
         if (!mounted) return
         
-        setUser(session?.user || null)
+        console.log('AuthContext: Auth state change:', event)
         
+        // Don't reset user on token refresh
+        if (event === 'TOKEN_REFRESHED' && session?.user) {
+          console.log('Token refreshed, maintaining session')
+          return
+        }
+        
+        // Handle sign out
+        if (event === 'SIGNED_OUT' || !session) {
+          console.log('User signed out or session expired')
+          setUser(null)
+          setProfile(null)
+          setUserRole(null)
+          if (mounted && !hasLoaded) {
+            setLoading(false)
+            hasLoaded = true
+          }
+          return
+        }
+        
+        // Handle sign in or session recovery
         if (session?.user) {
+          setUser(session.user)
           try {
             await Promise.all([
               loadUserProfile(session.user.id),
@@ -96,10 +121,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } catch (error) {
             console.error('Error loading profile after auth change:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
           }
-        } else {
-          setUser(null)
-          setProfile(null)
-          setUserRole(null)
         }
         
         if (mounted && !hasLoaded) {
@@ -116,6 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false
       clearTimeout(loadingTimeout)
       subscription.unsubscribe()
+      sessionManager.cleanup()
       cleanupTimeout()
     }
   }, [])
