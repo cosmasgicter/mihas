@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabase'
 import { ApplicationFormData, UploadedFile } from '@/forms/applicationSchema'
 
 export function useApplicationSubmit(user: any, uploadedFiles: UploadedFile[]) {
+  // Add authentication state tracking
+  const [authenticationChecked, setAuthenticationChecked] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -33,15 +35,40 @@ export function useApplicationSubmit(user: any, uploadedFiles: UploadedFile[]) {
       setLoading(true)
       setError('')
 
-      // Validate user authentication
+      // Enhanced authentication validation
       if (!user?.id) {
         throw new Error('User not authenticated. Please sign in and try again.')
       }
 
-      // Verify current session
-      const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
+      // Verify current session with retry logic
+      let currentUser = null
+      let authError = null
+      
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data: { user: sessionUser }, error: sessionError } = await supabase.auth.getUser()
+        
+        if (!sessionError && sessionUser) {
+          currentUser = sessionUser
+          break
+        }
+        
+        authError = sessionError
+        
+        if (attempt < 2) {
+          // Try to refresh the session
+          await supabase.auth.refreshSession()
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+      }
+      
       if (authError || !currentUser) {
         throw new Error('Authentication session expired. Please sign in again.')
+      }
+      
+      // Double-check that we have a valid session
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        throw new Error('No active session found. Please sign in again.')
       }
 
       const applicationNumber = `MIHAS${Date.now().toString().slice(-6)}`
@@ -96,15 +123,45 @@ export function useApplicationSubmit(user: any, uploadedFiles: UploadedFile[]) {
         user_id: applicationData.user_id ? 'present' : 'missing' 
       })
 
-      const { data: application, error: applicationError } = await supabase
+      let application = null
+      let applicationError = null
+      
+      // Try direct insert first
+      const { data: directApplication, error: directError } = await supabase
         .from('applications_new')
         .insert(applicationData)
         .select()
         .single()
-
-      if (applicationError) {
-        console.error('Application submission error:', applicationError)
-        throw applicationError
+      
+      if (directError) {
+        console.warn('Direct insert failed, trying secure function:', directError.message)
+        
+        // Fallback to secure function if direct insert fails
+        const { data: secureResult, error: secureError } = await supabase
+          .rpc('submit_application_secure', {
+            application_data: applicationData
+          })
+        
+        if (secureError || !secureResult?.[0]?.success) {
+          const errorMsg = secureError?.message || secureResult?.[0]?.error_message || 'Unknown error'
+          console.error('Secure submission also failed:', errorMsg)
+          throw new Error(errorMsg)
+        }
+        
+        // Get the created application
+        const { data: createdApp } = await supabase
+          .from('applications_new')
+          .select()
+          .eq('id', secureResult[0].application_id)
+          .single()
+        
+        application = createdApp
+      } else {
+        application = directApplication
+      }
+      
+      if (!application) {
+        throw new Error('Failed to create application record')
       }
 
       console.log('Application submitted successfully:', { id: application.id, tracking_code: application.public_tracking_code })
@@ -115,17 +172,21 @@ export function useApplicationSubmit(user: any, uploadedFiles: UploadedFile[]) {
 
       setSuccess(true)
     } catch (error) {
-      console.error('Error submitting application')
+      console.error('Error submitting application:', error)
       
       let errorMessage = 'Failed to submit application'
       
       if (error instanceof Error) {
-        if (error.message?.includes('auth')) {
+        if (error.message?.includes('auth') || error.message?.includes('JWT') || error.message?.includes('session')) {
           errorMessage = 'Authentication error. Please sign in again and try submitting.'
-        } else if (error.message?.includes('network')) {
+        } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
           errorMessage = 'Network error. Please check your connection and try again.'
-        } else if (error.message?.includes('validation')) {
+        } else if (error.message?.includes('validation') || error.message?.includes('required')) {
           errorMessage = 'Please check that all required fields are filled correctly.'
+        } else if (error.message?.includes('403') || error.message?.includes('permission')) {
+          errorMessage = 'Permission denied. Please ensure you are signed in and try again.'
+        } else if (error.message?.includes('RLS') || error.message?.includes('policy')) {
+          errorMessage = 'Access denied. Please sign in with the correct account and try again.'
         } else {
           errorMessage = error.message
         }
