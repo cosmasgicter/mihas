@@ -1,3 +1,5 @@
+import DOMPurify from 'dompurify';
+
 // Security utilities for input sanitization and validation
 
 export function generateSecureId(): string {
@@ -26,7 +28,7 @@ export function sanitizeHtml(input: string): string {
     return ''
   }
   
-  return input.replace(/<[^>]*>/g, '')
+  return DOMPurify.sanitize(input);
 }
 
 /**

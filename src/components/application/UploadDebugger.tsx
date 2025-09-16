@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/Button'
 import { Upload, CheckCircle, AlertCircle, X } from 'lucide-react'
 import { uploadApplicationFile } from '@/lib/storage'
 import { useAuth } from '@/contexts/AuthContext'
+import { sanitizeForLog } from '@/lib/security'
 
 export function UploadDebugger() {
   const { user } = useAuth()
@@ -15,8 +16,9 @@ export function UploadDebugger() {
 
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString()
-    setLogs(prev => [...prev, `[${timestamp}] ${message}`])
-    console.log(`[Upload Debug] ${message}`)
+    const sanitizedMessage = sanitizeForLog(message)
+    setLogs(prev => [...prev, `[${timestamp}] ${sanitizedMessage}`])
+    console.log(`[Upload Debug] ${sanitizedMessage}`)
   }
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {

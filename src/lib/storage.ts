@@ -104,7 +104,7 @@ export async function uploadApplicationFile(
     let uploadData: any = null
 
     for (const bucket of buckets) {
-      console.log(`Attempting upload to bucket: ${bucket}`)
+      console.log(`Attempting upload to bucket: ${sanitizeForLog(bucket)}`)
       
       const { data, error } = await supabase.storage
         .from(bucket)

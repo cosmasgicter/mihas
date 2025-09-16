@@ -63,7 +63,7 @@ export class SecurityValidator {
     
     const limit = maxLength || SECURITY_CONFIG.validation.maxInputLength
     if (input.length > limit) {
-      console.warn(`Input exceeds maximum length: ${input.length} > ${limit}`)
+      console.warn(`Input exceeds maximum length: ${sanitizeForLog(String(input.length))} > ${limit}`)
       return false
     }
     
