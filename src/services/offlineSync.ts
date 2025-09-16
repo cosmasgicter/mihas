@@ -119,7 +119,7 @@ class OfflineSyncService {
 
       case 'form_submission': {
         const { error: submissionError } = await supabase
-          .from('applications')
+          .from('applications_new')
           .insert({
             ...item.data,
             user_id: item.userId,

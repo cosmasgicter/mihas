@@ -97,7 +97,7 @@ export function useApplicationSubmit(user: any, uploadedFiles: UploadedFile[]) {
       })
 
       const { data: application, error: applicationError } = await supabase
-        .from('applications')
+        .from('applications_new')
         .insert(applicationData)
         .select()
         .single()

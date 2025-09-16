@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test CSP and OCR Fixes</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://challenges.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://storage.googleapis.com https://*.supabase.co; connect-src 'self' data: blob: https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com https://openrouter.ai https://tessdata.projectnaptha.com https://huggingface.co https://cdn.jsdelivr.net; frame-src https://challenges.cloudflare.com; media-src 'self' data: blob:; worker-src 'self' blob: https://unpkg.com; object-src 'none'; base-uri 'self'; form-action 'self';" />
+</head>
+<body>
+    <h1>CSP and OCR Test</h1>
+    <input type="file" id="fileInput" accept="image/*,.pdf" />
+    <div id="result"></div>
+    
+    <script src="https://unpkg.com/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+    <script>
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Processing...';
+            
+            try {
+                const { data: { text } } = await Tesseract.recognize(file, 'eng', {
+                    logger: m => console.log(m),
+                    workerPath: 'https://unpkg.com/tesseract.js@5.1.1/dist/worker.min.js',
+                    langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+                    corePath: 'https://unpkg.com/tesseract.js-core@5.1.1/tesseract-core-simd.wasm.js'
+                });
+                
+                resultDiv.innerHTML = `<h3>OCR Result:</h3><pre>${text}</pre>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<h3>Error:</h3><pre>${error.message}</pre>`;
+            }
+        });
+    </script>
+</body>
+</html>

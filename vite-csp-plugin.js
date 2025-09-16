@@ -14,13 +14,12 @@ export function cspPlugin() {
         // Add CSP meta tag with nonce
         const cspDirectives = {
           'default-src': "'self'",
-          'script-src': `'self' 'nonce-${nonce}' https://challenges.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net`,
+          'script-src': `'self' 'nonce-${nonce}' 'unsafe-eval' https://challenges.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net`,
           'style-src': "'self' 'unsafe-inline' https://fonts.googleapis.com",
           'font-src': "'self' https://fonts.gstatic.com",
           'img-src': "'self' data: blob: https://storage.googleapis.com https://*.supabase.co",
-          'connect-src': "'self' https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com https://openrouter.ai https://tessdata.projectnaptha.com https://huggingface.co https://cdn.jsdelivr.net",
+          'connect-src': "'self' data: blob: https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com https://openrouter.ai https://tessdata.projectnaptha.com https://huggingface.co https://cdn.jsdelivr.net",
           'frame-src': 'https://challenges.cloudflare.com',
-          'frame-ancestors': "'none'",
           'media-src': "'self' data: blob:",
           'worker-src': "'self' blob: https://unpkg.com",
           'object-src': "'none'",
