@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase, UserProfile } from '@/lib/supabase'
-import { sanitizeForLog, sanitizeHtml } from '@/lib/sanitizer'
-import { authSecurity } from '@/lib/authSecurity'
+import { sanitizeForLog } from '@/lib/security'
+import { sanitizeForDisplay } from '@/lib/sanitize'
 
 interface UserRole {
   id: string
@@ -50,39 +50,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     async function loadUser() {
       try {
-        // Check if authSecurity is available
-        if (!authSecurity) {
-          console.error('authSecurity is not available')
-          if (mounted) {
-            setUser(null)
-            setProfile(null)
-            setUserRole(null)
-            setLoading(false)
-          }
-          return
-        }
-        
-        // Use enhanced security validation
-        const authResult = await authSecurity.validateAuth()
+        const { data: { user } } = await supabase.auth.getUser()
         
         if (!mounted) return
         
-        if (authResult.isValid && authResult.user) {
-          setUser(authResult.user)
-          
+        setUser(user)
+        
+        if (user) {
           await Promise.all([
-            loadUserProfile(authResult.user.id),
-            loadUserRole(authResult.user.id)
+            loadUserProfile(user.id),
+            loadUserRole(user.id)
           ])
-        } else {
-          setUser(null)
-          setProfile(null)
-          setUserRole(null)
-          
-          // Log failed authentication
-          if (authSecurity && authResult.error) {
-            await authSecurity.logAuthEvent('auth_validation_failed', false, authResult.error)
-          }
         }
       } catch (error) {
         console.error('Error loading user:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
@@ -107,44 +85,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (event, session) => {
         if (!mounted) return
         
-        // Log authentication events
-        if (authSecurity) {
-          await authSecurity.logAuthEvent(event, !!session, undefined, session?.user?.id)
-        }
+        setUser(session?.user || null)
         
         if (session?.user) {
-          // Validate the session with enhanced security if available
-          if (authSecurity) {
-            const authResult = await authSecurity.validateAuth()
-            
-            if (authResult.isValid) {
-              setUser(session.user)
-              try {
-                await Promise.all([
-                  loadUserProfile(session.user.id),
-                  loadUserRole(session.user.id)
-                ])
-              } catch (error) {
-                console.error('Error loading profile after auth change:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
-              }
-            } else {
-              // Invalid session, clear everything
-              setUser(null)
-              setProfile(null)
-              setUserRole(null)
-              await authSecurity.secureSignOut()
-            }
-          } else {
-            // Fallback to basic auth without enhanced security
-            setUser(session.user)
-            try {
-              await Promise.all([
-                loadUserProfile(session.user.id),
-                loadUserRole(session.user.id)
-              ])
-            } catch (error) {
-              console.error('Error loading profile after auth change:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
-            }
+          try {
+            await Promise.all([
+              loadUserProfile(session.user.id),
+              loadUserRole(session.user.id)
+            ])
+          } catch (error) {
+            console.error('Error loading profile after auth change:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
           }
         } else {
           setUser(null)
@@ -186,7 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (data) {
         const sanitizedProfile = Object.entries(data).reduce((acc, [key, value]) => {
-          acc[key] = typeof value === 'string' ? sanitizeHtml(value) : value
+          acc[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value
           return acc
         }, {} as UserProfile)
         setProfile(sanitizedProfile)
@@ -221,8 +171,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from('user_profiles')
         .insert({
           user_id: userId,
-          full_name: sanitizeHtml(fullName),
-          phone: signupData.phone ? sanitizeHtml(signupData.phone) : null,
+          full_name: sanitizeForDisplay(fullName),
+          phone: signupData.phone ? sanitizeForDisplay(signupData.phone) : null,
           role: 'student',
           email: user.user.email
         })
@@ -231,7 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (!insertError && newProfile) {
         const sanitizedProfile = Object.entries(newProfile).reduce((acc, [key, value]) => {
-          acc[key] = typeof value === 'string' ? sanitizeHtml(value) : value
+          acc[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value
           return acc
         }, {} as UserProfile)
         setProfile(sanitizedProfile)
@@ -246,29 +196,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signIn(email: string, password: string) {
-    try {
-      const result = await supabase.auth.signInWithPassword({ email, password })
-      
-      if (authSecurity) {
-        if (result.data.user) {
-          await authSecurity.logAuthEvent('sign_in', true, undefined, result.data.user.id)
-        } else if (result.error) {
-          await authSecurity.logAuthEvent('sign_in_failed', false, result.error.message)
-        }
-      }
-      
-      return result
-    } catch (error) {
-      if (authSecurity) {
-        await authSecurity.logAuthEvent('sign_in_error', false, error instanceof Error ? error.message : 'Unknown error')
-      }
-      throw error
-    }
+    return await supabase.auth.signInWithPassword({ email, password })
   }
 
   async function signUp(email: string, password: string, userData: any) {
     const sanitizedUserData = Object.entries(userData).reduce((acc, [key, value]) => {
-      acc[key] = typeof value === 'string' ? sanitizeHtml(value) : value
+      acc[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value
       return acc
     }, {} as any)
 
@@ -277,7 +210,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password,
       options: {
         data: {
-          full_name: sanitizeHtml(sanitizedUserData.full_name || email.split('@')[0]),
+          full_name: sanitizeForDisplay(sanitizedUserData.full_name || email.split('@')[0]),
           sex: sanitizedUserData.sex, // Store sex from signup
           signup_data: JSON.stringify(sanitizedUserData)
         }
@@ -292,11 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() {
-    if (authSecurity) {
-      await authSecurity.secureSignOut()
-    } else {
-      await supabase.auth.signOut()
-    }
+    await supabase.auth.signOut()
   }
 
   async function loadUserRole(userId: string) {
@@ -335,14 +264,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return false
   }
 
-  // Enhanced admin validation with security check
   async function validateAdminAccess(): Promise<boolean> {
-    if (!authSecurity) {
-      console.error('authSecurity is not available for admin validation')
-      return false
-    }
-    const authResult = await authSecurity.validateAdminAccess()
-    return authResult.isValid
+    return isAdmin()
   }
 
   async function updateProfile(updates: Partial<UserProfile>) {
@@ -368,7 +291,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (value === null || value === undefined) {
         acc[key] = value
       } else if (typeof value === 'string') {
-        acc[key] = sanitizeHtml(value.trim())
+        acc[key] = sanitizeForDisplay(value.trim())
       } else {
         acc[key] = value
       }
@@ -389,7 +312,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (data) {
       const sanitizedProfile = Object.entries(data).reduce((acc, [key, value]) => {
-        acc[key] = typeof value === 'string' ? sanitizeHtml(value) : value
+        acc[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value
         return acc
       }, {} as UserProfile)
       setProfile(sanitizedProfile)
