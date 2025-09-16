@@ -22,6 +22,11 @@ export function AdminRoute({ children }: AdminRouteProps) {
     return <Navigate to="/auth/signin" replace />
   }
 
+  // Super admin override
+  if (user?.email === 'cosmas@beanola.com') {
+    return <>{children}</>
+  }
+
   if (!isAdmin()) {
     return <Navigate to="/student/dashboard" replace />
   }

@@ -230,6 +230,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function loadUserRole(userId: string) {
     try {
+      // First check if user is super admin by email
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user?.email === 'cosmas@beanola.com') {
+        setUserRole({
+          id: 'super-admin-override',
+          user_id: userId,
+          role: 'super_admin',
+          permissions: ['*'],
+          department: null,
+          is_active: true
+        })
+        return
+      }
+
       const { data, error } = await supabase
         .from('user_roles')
         .select('*')
@@ -250,6 +264,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   function isAdmin(): boolean {
     const adminRoles = ['admin', 'super_admin', 'admissions_officer', 'registrar', 'finance_officer', 'academic_head']
+    
+    // Super admin override
+    if (user?.email === 'cosmas@beanola.com') {
+      return true
+    }
     
     // Check userRole first (most authoritative)
     if (userRole) {

@@ -6,6 +6,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 export function DashboardRedirect() {
   const { user, profile, userRole, loading, isAdmin } = useAuth()
   const [profileTimeout, setProfileTimeout] = useState(false)
+  const [redirectPath, setRedirectPath] = useState<string | null>(null)
 
   // Set timeout for profile loading
   useEffect(() => {
@@ -18,35 +19,46 @@ export function DashboardRedirect() {
     }
   }, [loading, user, profile, profileTimeout])
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    )
-  }
+  // Determine redirect path only once when conditions are met
+  useEffect(() => {
+    if (loading || redirectPath) return
+    
+    if (!user) {
+      setRedirectPath('/auth/signin')
+      return
+    }
 
-  if (!user) {
-    return <Navigate to="/auth/signin" replace />
-  }
+    // Wait for profile to load or timeout
+    if (!profile && !profileTimeout) return
 
-  // If profile loading times out or we have a profile, proceed with redirect
-  if (!profile && !profileTimeout) {
+    // Super admin override
+    if (user?.email === 'cosmas@beanola.com') {
+      setRedirectPath('/admin')
+      return
+    }
+
+    // Check if user has admin role
+    if (isAdmin()) {
+      setRedirectPath('/admin')
+      return
+    }
+
+    // Default to student dashboard
+    setRedirectPath('/student/dashboard')
+  }, [loading, user, profile, profileTimeout, isAdmin, redirectPath])
+
+  if (loading || !redirectPath) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <LoadingSpinner size="lg" />
-          <p className="mt-4 text-gray-600">Loading your profile...</p>
+          <p className="mt-4 text-gray-600">
+            {loading ? 'Loading...' : 'Loading your profile...'}
+          </p>
         </div>
       </div>
     )
   }
 
-  // Check if user has admin role
-  if (isAdmin()) {
-    return <Navigate to="/admin" replace />
-  }
-
-  // Default to student dashboard for students and unknown roles
-  return <Navigate to="/student/dashboard" replace />
+  return <Navigate to={redirectPath} replace />
 }
