@@ -13,11 +13,19 @@ class OfflineStorageManager {
 
   async init(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, this.version)
-      
-      request.onerror = () => reject(request.error)
-      request.onsuccess = () => {
-        this.db = request.result
+      try {
+        const request = indexedDB.open(this.dbName, this.version)
+        
+        request.onerror = () => {
+          // Silently handle IndexedDB errors
+          resolve()
+        }
+        request.onsuccess = () => {
+          this.db = request.result
+          resolve()
+        }
+      } catch (error) {
+        // Silently handle any initialization errors
         resolve()
       }
       

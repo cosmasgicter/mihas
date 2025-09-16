@@ -20,6 +20,7 @@ export function cspPlugin() {
           'img-src': "'self' data: blob: https://storage.googleapis.com https://*.supabase.co",
           'connect-src': "'self' https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com https://openrouter.ai https://tessdata.projectnaptha.com https://huggingface.co https://cdn.jsdelivr.net",
           'frame-src': 'https://challenges.cloudflare.com',
+          'frame-ancestors': "'none'",
           'media-src': "'self' data: blob:",
           'worker-src': "'self' blob: https://unpkg.com",
           'object-src': "'none'",

@@ -142,7 +142,7 @@ class OfflineSyncService {
     try {
       await offlineStorage.init()
     } catch (error) {
-      console.error('Failed to initialize offline storage:', error)
+      // Silently handle initialization errors
     }
 
     // Listen for online events

@@ -13,8 +13,7 @@ export const applyClientSecurityHeaders = () => {
   // Add meta tags for additional security
   const metaTags = [
     { name: 'referrer', content: 'strict-origin-when-cross-origin' },
-    { 'http-equiv': 'X-Content-Type-Options', content: 'nosniff' },
-    { 'http-equiv': 'X-Frame-Options', content: 'DENY' }
+    { 'http-equiv': 'X-Content-Type-Options', content: 'nosniff' }
   ];
 
   metaTags.forEach(tag => {
