@@ -3,7 +3,7 @@ import { User } from '@supabase/supabase-js'
 import { supabase, UserProfile } from '@/lib/supabase'
 import { sanitizeForLog } from '@/lib/security'
 import { sanitizeForDisplay } from '@/lib/sanitize'
-import { sessionManager, setupSessionTimeout } from '@/lib/session'
+import { enhancedSessionManager, setupEnhancedSessionTimeout } from '@/lib/enhancedSession'
 
 interface UserRole {
   id: string
@@ -48,6 +48,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     async function loadUser() {
       try {
+        // Check session validity first
+        const isValid = await enhancedSessionManager.isSessionValid()
+        if (!isValid) {
+          if (mounted) {
+            setUser(null)
+            setProfile(null)
+            setUserRole(null)
+            setLoading(false)
+          }
+          return
+        }
+
         const { data: { user } } = await supabase.auth.getUser()
         
         if (!mounted) return
@@ -77,10 +89,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     loadUser()
 
-    // Set up auth listener
+    // Set up auth listener with enhanced session handling
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return
+        
+        // Handle auth state change with enhanced session manager
+        await enhancedSessionManager.handleAuthStateChange(event, session)
         
         setUser(session?.user || null)
         
@@ -102,8 +117,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     )
 
-    // Setup session timeout management
-    const cleanupTimeout = setupSessionTimeout()
+    // Setup enhanced session timeout management
+    const cleanupTimeout = setupEnhancedSessionTimeout()
 
     return () => {
       mounted = false
@@ -218,7 +233,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() {
-    await supabase.auth.signOut()
+    await enhancedSessionManager.clearSession()
   }
 
   async function loadUserRole(userId: string) {

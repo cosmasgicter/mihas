@@ -187,7 +187,7 @@ setSuccess('Account created successfully! Redirecting to sign in...')
               <Input
                 {...register('password')}
                 type="password"
-                label="Password"
+                label="Create Password"
                 error={errors.password?.message}
                 helperText="Must be at least 6 characters"
                 required
@@ -208,7 +208,6 @@ setSuccess('Account created successfully! Redirecting to sign in...')
                 type="tel"
                 label="Phone Number"
                 error={errors.phone?.message}
-                placeholder="+260-123-456-789"
                 required
               />
               
@@ -244,7 +243,6 @@ setSuccess('Account created successfully! Redirecting to sign in...')
                 type="text"
                 label="Nationality"
                 error={errors.nationality?.message}
-                placeholder="Zambian"
                 required
               />
             </div>
@@ -254,7 +252,6 @@ setSuccess('Account created successfully! Redirecting to sign in...')
                 {...register('address')}
                 label="Full Address"
                 error={errors.address?.message}
-                placeholder="House number, street, area"
                 rows={3}
                 required
               />
@@ -264,7 +261,6 @@ setSuccess('Account created successfully! Redirecting to sign in...')
                 type="text"
                 label="City"
                 error={errors.city?.message}
-                placeholder="Kitwe"
                 required
               />
             </div>

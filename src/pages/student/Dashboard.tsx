@@ -182,7 +182,7 @@ export default function StudentDashboard() {
       {/* Header */}
       <AuthenticatedNavigation />
 
-      <main className="container-mobile py-4 sm:py-6 lg:py-8 safe-area-bottom">
+      <main className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-4 sm:py-6 lg:py-8">
         {/* Welcome Section - Mobile First */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -311,10 +311,20 @@ export default function StudentDashboard() {
                               variant="outline" 
                               size="sm"
                               className="w-full sm:w-auto text-red-600 border-red-300 hover:bg-red-50 font-semibold"
-                              onClick={() => deleteDraft(
-                                () => loadDashboardData(),
-                                (error) => setError(error)
-                              )}
+                              onClick={async () => {
+                                try {
+                                  await supabase
+                                    .from('applications_new')
+                                    .delete()
+                                    .eq('id', application.id)
+                                    .eq('user_id', user?.id)
+                                  
+                                  // Refresh data immediately
+                                  await loadDashboardData()
+                                } catch (error) {
+                                  setError('Failed to delete draft')
+                                }
+                              }}
                             >
                               <X className="h-4 w-4 mr-1" />
                               Delete
@@ -362,14 +372,11 @@ export default function StudentDashboard() {
                               variant="outline" 
                               size="sm"
                               className="w-full sm:w-auto text-red-600 border-red-300 hover:bg-red-50 font-semibold"
-                              onClick={() => deleteDraft(
-                                () => {
-                                  setHasDraft(false)
-                                  setDraftData(null)
-                                  loadDashboardData()
-                                },
-                                (error) => setError(error)
-                              )}
+                              onClick={() => {
+                                localStorage.removeItem('applicationWizardDraft')
+                                setHasDraft(false)
+                                setDraftData(null)
+                              }}
                             >
                               <X className="h-4 w-4 mr-1" />
                               Delete
@@ -524,14 +531,11 @@ export default function StudentDashboard() {
                       variant="outline" 
                       size="sm" 
                       className="w-full justify-start text-red-600 border-red-300 hover:bg-red-50 font-semibold"
-                      onClick={() => clearAllDrafts(
-                        async () => {
-                          setHasDraft(false)
-                          setDraftData(null)
-                          await loadDashboardData()
-                        },
-                        (error) => setError(error)
-                      )}
+                      onClick={() => {
+                        localStorage.removeItem('applicationWizardDraft')
+                        setHasDraft(false)
+                        setDraftData(null)
+                      }}
                     >
                       <X className="h-4 w-4 mr-2" />
                       Clear Draft

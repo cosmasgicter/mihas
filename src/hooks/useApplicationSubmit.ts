@@ -1,122 +1,69 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { ApplicationFormData, UploadedFile } from '@/forms/applicationSchema'
 
-export function useApplicationSubmit(user: any, uploadedFiles: UploadedFile[]) {
-  // Add authentication state tracking
-  const [authenticationChecked, setAuthenticationChecked] = useState(false)
+// Simplified wizard data interface
+interface WizardFormData {
+  full_name: string
+  nrc_number?: string
+  passport_number?: string
+  date_of_birth: string
+  sex: string
+  phone: string
+  email: string
+  residence_town: string
+  next_of_kin_name?: string
+  next_of_kin_phone?: string
+  program: string
+  intake: string
+  payment_method?: string
+  payer_name?: string
+  payer_phone?: string
+  amount?: number
+  paid_at?: string
+  momo_ref?: string
+}
+
+export function useWizardSubmit() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
-  const insertDocuments = async (applicationId: string, userId: string) => {
-    const documentInserts = uploadedFiles.map(file => ({
-      application_id: applicationId,
-      document_type: 'supporting_document',
-      document_name: file.name,
-      file_name: file.name,
-      file_path: file.url || '',
-      file_size: file.size,
-      mime_type: file.type,
-      uploader_id: userId
-    }))
-
-    const { error: documentsError } = await supabase
-      .from('documents')
-      .insert(documentInserts)
-
-    if (documentsError) {
-      console.error('Error saving document records:', documentsError)
-    }
-  }
-
-  const submitApplication = async (data: ApplicationFormData) => {
+  const submitApplication = async (data: WizardFormData, applicationId: string, popUrl: string) => {
     try {
       setLoading(true)
       setError('')
 
-      // Enhanced authentication validation
-      if (!user?.id) {
-        throw new Error('User not authenticated. Please sign in and try again.')
-      }
-
-      // Simple session check without retry loop
-      const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
+      // Get current user
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
       
-      if (authError || !currentUser) {
+      if (authError || !user) {
         throw new Error('Authentication session expired. Please sign in again.')
       }
 
-      const applicationNumber = `MIHAS${Date.now().toString().slice(-6)}`
-      const trackingCode = `MIHAS${crypto.randomUUID().slice(0, 6).toUpperCase()}`
-      
-      const applicationData = {
-        application_number: applicationNumber,
-        public_tracking_code: trackingCode,
-        user_id: currentUser.id,
-        program_id: data.program_id,
-        intake_id: data.intake_id,
-        nrc_number: data.nrc_number || null,
-        passport_number: data.passport_number || null,
-        date_of_birth: data.date_of_birth,
-        sex: data.sex,
-        marital_status: data.marital_status,
-        nationality: data.nationality,
-        province: data.province,
-        district: data.district,
-        postal_address: data.postal_address || null,
-        physical_address: data.physical_address,
-        next_of_kin_name: data.next_of_kin_name || null,
-        next_of_kin_phone: data.next_of_kin_phone || null,
-        next_of_kin_relationship: data.next_of_kin_relationship || null,
-        medical_conditions: data.medical_conditions || null,
-        disabilities: data.disabilities || null,
-        criminal_record: data.criminal_record || false,
-        criminal_record_details: data.criminal_record_details || null,
-        professional_registration_number: data.professional_registration_number || null,
-        professional_body: data.professional_body || null,
-        employment_status: data.employment_status,
-        employer_name: data.employer_name || null,
-        employer_address: data.employer_address || null,
-        years_of_experience: data.years_of_experience || 0,
-        previous_education: data.previous_education,
-        grades_or_gpa: data.grades_or_gpa,
-        motivation_letter: data.motivation_letter,
-        career_goals: data.career_goals,
-        english_proficiency: data.english_proficiency,
-        computer_skills: data.computer_skills,
-        references: data.references,
-        financial_sponsor: data.financial_sponsor,
-        sponsor_relationship: data.sponsor_relationship || null,
-        additional_info: data.additional_info || null,
-        status: 'submitted',
-        submitted_at: new Date().toISOString()
-      }
-
-      console.log('Submitting application:', { 
-        application_number: applicationData.application_number,
-        tracking_code: applicationData.public_tracking_code,
-        user_id: applicationData.user_id ? 'present' : 'missing' 
-      })
-
-      // Direct insert only - no fallback loop
-      const { data: application, error: insertError } = await supabase
+      // Update the existing application with final submission data
+      const { error: updateError } = await supabase
         .from('applications_new')
-        .insert(applicationData)
-        .select()
-        .single()
+        .update({
+          payment_method: data.payment_method || 'MTN Money',
+          payer_name: data.payer_name || null,
+          payer_phone: data.payer_phone || null,
+          amount: data.amount || 150,
+          paid_at: data.paid_at ? new Date(data.paid_at).toISOString() : null,
+          momo_ref: data.momo_ref || null,
+          pop_url: popUrl,
+          status: 'submitted',
+          submitted_at: new Date().toISOString()
+        })
+        .eq('id', applicationId)
+        .eq('user_id', user.id) // Ensure user can only update their own application
       
-      if (insertError || !application) {
-        throw new Error(insertError?.message || 'Failed to create application record')
+      if (updateError) {
+        throw new Error(updateError.message)
       }
 
-      console.log('Application submitted successfully:', { id: application.id, tracking_code: application.public_tracking_code })
-
-      if (uploadedFiles.length > 0) {
-        await insertDocuments(application.id, currentUser.id)
-      }
-
+      console.log('Application submitted successfully:', { applicationId })
       setSuccess(true)
+      
     } catch (error) {
       console.error('Error submitting application:', error)
       
@@ -127,8 +74,6 @@ export function useApplicationSubmit(user: any, uploadedFiles: UploadedFile[]) {
           errorMessage = 'Authentication error. Please sign in again and try submitting.'
         } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
           errorMessage = 'Network error. Please check your connection and try again.'
-        } else if (error.message?.includes('validation') || error.message?.includes('required')) {
-          errorMessage = 'Please check that all required fields are filled correctly.'
         } else if (error.message?.includes('403') || error.message?.includes('permission')) {
           errorMessage = 'Permission denied. Please ensure you are signed in and try again.'
         } else if (error.message?.includes('RLS') || error.message?.includes('policy')) {

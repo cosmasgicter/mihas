@@ -20,7 +20,9 @@
     "type-check": "tsc --noEmit",
     "storage:setup": "node setup-storage.js",
     "storage:test": "node testing/test-storage.js",
-    "security-audit": "node security-audit.js"
+    "security-audit": "node security-audit.js",
+    "session:setup": "node setup-session-management.js",
+    "session:test": "node test-session-management.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

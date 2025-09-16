@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { AuthenticatedNavigation } from '@/components/ui/AuthenticatedNavigation'
+import { ActiveSessions } from '@/components/ui/ActiveSessions'
 import { motion } from 'framer-motion'
-import { ArrowLeft, User, Mail, Phone, MapPin, Save } from 'lucide-react'
+import { ArrowLeft, User, Mail, Phone, MapPin, Save, Shield } from 'lucide-react'
 
 const optionalString = () => z.string().optional().or(z.literal(''))
 
@@ -292,11 +293,30 @@ export default function StudentSettings() {
             </div>
           </motion.div>
 
-          {/* Action Buttons */}
+          {/* Security & Sessions */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
+            className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6"
+          >
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Shield className="h-5 w-5 text-purple-600" />
+              </div>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">
+                🔐 Security & Active Sessions
+              </h2>
+            </div>
+            
+            <ActiveSessions />
+          </motion.div>
+
+          {/* Action Buttons */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
             className="flex flex-col sm:flex-row sm:justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-6"
           >
             <Link to="/student/dashboard" className="w-full sm:w-auto">

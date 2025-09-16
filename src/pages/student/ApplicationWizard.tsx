@@ -10,10 +10,8 @@ import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { checkEligibility, getRecommendedSubjects } from '@/lib/eligibility'
 import { applicationSessionManager } from '@/lib/applicationSession'
-import { documentAI } from '@/lib/documentAI'
-import { predictiveAnalytics } from '@/lib/predictiveAnalytics'
-import { multiChannelNotifications } from '@/lib/multiChannelNotifications'
-import { ArrowLeft, CheckCircle, ArrowRight, X, Sparkles, FileText, CreditCard, Send, XCircle, AlertTriangle, TrendingUp } from 'lucide-react'
+
+import { ArrowLeft, CheckCircle, ArrowRight, X, FileText, CreditCard, Send, XCircle, AlertTriangle, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AIAssistant } from '@/components/application/AIAssistant'
@@ -84,10 +82,7 @@ export default function ApplicationWizard() {
   const [draftSaved, setDraftSaved] = useState(false)
   const [sessionWarning, setSessionWarning] = useState<any>(null)
   const [restoringDraft, setRestoringDraft] = useState(false)
-  const [documentAnalysis, setDocumentAnalysis] = useState<any>(null)
-  const [predictionResult, setPredictionResult] = useState<any>(null)
-  const [smartSuggestions, setSmartSuggestions] = useState<string[]>([])
-  const [processingDocument, setProcessingDocument] = useState(false)
+
   const [confirmSubmission, setConfirmSubmission] = useState(false)
   
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<WizardFormData>({
@@ -394,52 +389,7 @@ export default function ApplicationWizard() {
     setSelectedGrades(updated)
   }
 
-  const analyzeUploadedDocument = async (file: File) => {
-    if (file && (file.type.includes('image') || file.type === 'application/pdf') && !processingDocument) {
-      setProcessingDocument(true)
-      try {
-        const analysisPromise = documentAI.analyzeDocument(file)
-        const analysis = await Promise.race([
-          analysisPromise, 
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Processing timeout')), 8000))
-        ])
-        
-        setDocumentAnalysis(analysis)
-        
-        // Auto-fill form if data extracted
-        if (analysis && typeof analysis === 'object' && 'autoFillData' in analysis) {
-          const autoFillData = analysis.autoFillData as Record<string, any>
-          if (autoFillData) {
-            Object.entries(autoFillData).forEach(([key, value]) => {
-              if (value && key !== 'grades') {
-                setValue(key as keyof WizardFormData, value as any)
-              }
-            })
-            
-            if (autoFillData.grades) {
-              setSelectedGrades(autoFillData.grades)
-            }
-          }
-        }
-        
-        if (analysis && typeof analysis === 'object' && 'suggestions' in analysis) {
-          const suggestions = analysis.suggestions as string[]
-          setSmartSuggestions(suggestions || [])
-        }
-      } catch (error) {
-        console.error('Document analysis failed:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
-        setDocumentAnalysis({
-          quality: 'good',
-          completeness: 75,
-          suggestions: ['Document uploaded successfully'],
-          autoFillData: {},
-          processingTime: 1000
-        })
-      } finally {
-        setProcessingDocument(false)
-      }
-    }
-  }
+
 
   const uploadFileWithProgress = async (file: File, path: string): Promise<string> => {
     if (!user?.id || !applicationId) {
@@ -550,7 +500,7 @@ export default function ApplicationWizard() {
         
         // Generate application number and tracking code
         const applicationNumber = `APP${Date.now().toString().slice(-8)}`
-        const trackingCode = `TRK${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+        const trackingCode = `TRK${Math.random().toString(36).substring(2, 8).toUpperCase()}`
         
         // Determine institution based on program
         const institution = ['Clinical Medicine', 'Environmental Health'].includes(formData.program) ? 'KATC' : 'MIHAS'
@@ -608,17 +558,7 @@ export default function ApplicationWizard() {
         return
       }
       
-      // Generate prediction for user guidance
-      try {
-        const formData = watch()
-        const prediction = await predictiveAnalytics.predictAdmissionSuccess({
-          ...formData,
-          grades: selectedGrades
-        })
-        setPredictionResult(prediction)
-      } catch (error) {
-        console.error('Prediction failed:', error)
-      }
+
       
       try {
         setUploading(true)
@@ -700,10 +640,17 @@ export default function ApplicationWizard() {
       setLoading(true)
       setError('')
       
+      // Verify user authentication
+      const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
+      if (authError || !currentUser) {
+        throw new Error('Please sign in again to submit your application')
+      }
+      
       const popUrl = await uploadFileWithProgress(popFile, 'proof_of_payment')
       setUploadedFiles(prev => ({ ...prev, proof_of_payment: true }))
       
-      const { error: updateError } = await supabase
+      // Update application with payment info and submit
+      const { data: updatedApp, error: updateError } = await supabase
         .from('applications_new')
         .update({
           payment_method: data.payment_method || 'MTN Money',
@@ -717,8 +664,20 @@ export default function ApplicationWizard() {
           submitted_at: new Date().toISOString()
         })
         .eq('id', applicationId)
+        .eq('user_id', currentUser.id)
+        .select()
+        .single()
       
-      if (updateError) throw updateError
+      if (updateError) {
+        console.error('Update error:', updateError)
+        throw new Error(updateError.message || 'Failed to submit application')
+      }
+      
+      if (!updatedApp) {
+        throw new Error('Application not found or access denied')
+      }
+      
+      console.log('Application submitted successfully:', updatedApp.id)
       
       // Clear saved draft on successful submission
       try {
@@ -730,10 +689,23 @@ export default function ApplicationWizard() {
       } catch (cleanupError) {
         console.warn('Draft cleanup failed:', cleanupError)
       }
+      
       setSuccess(true)
     } catch (err: any) {
       console.error('Submission error:', sanitizeForLog(err instanceof Error ? err.message : 'Unknown error'))
-      setError(err instanceof Error ? err.message : 'Failed to submit application')
+      let errorMessage = 'Failed to submit application'
+      
+      if (err instanceof Error) {
+        if (err.message?.includes('auth') || err.message?.includes('JWT')) {
+          errorMessage = 'Authentication error. Please sign in again and try submitting.'
+        } else if (err.message?.includes('RLS') || err.message?.includes('policy')) {
+          errorMessage = 'Access denied. Please ensure you are signed in with the correct account.'
+        } else {
+          errorMessage = err.message
+        }
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -1116,65 +1088,7 @@ export default function ApplicationWizard() {
                       </Button>
                     </div>
                     
-                    {/* Document Analysis Results */}
-                    {documentAnalysis && (
-                      <motion.div 
-                        className="mb-4 p-4 rounded-lg border bg-blue-50 border-blue-200"
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                      >
-                        <div className="flex items-center mb-2">
-                          <Sparkles className="h-5 w-5 mr-2 text-blue-600" />
-                          <span className="font-medium text-blue-800">
-                            📄 Document Analysis
-                          </span>
-                        </div>
-                        <div className="text-sm text-blue-700 space-y-1">
-                          <p><strong>Quality:</strong> {documentAnalysis.quality}</p>
-                          <p><strong>Completeness:</strong> {documentAnalysis.completeness}%</p>
-                          {documentAnalysis.suggestions.length > 0 && (
-                            <div>
-                              <p className="font-medium">Suggestions:</p>
-                              <ul className="list-disc list-inside ml-2">
-                                {documentAnalysis.suggestions.map((suggestion: string, idx: number) => (
-                                  <li key={idx}>{suggestion}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
 
-                    {/* Prediction Results */}
-                    {predictionResult && (
-                      <motion.div 
-                        className="mb-4 p-4 rounded-lg border bg-purple-50 border-purple-200"
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                      >
-                        <div className="flex items-center mb-2">
-                          <TrendingUp className="h-5 w-5 mr-2 text-purple-600" />
-                          <span className="font-medium text-purple-800">
-                            📊 Admission Prediction
-                          </span>
-                        </div>
-                        <div className="text-sm text-purple-700 space-y-1">
-                          <p><strong>Success Probability:</strong> {Math.round(predictionResult.admissionProbability * 100)}%</p>
-                          <p><strong>Est. Processing Time:</strong> {predictionResult.processingTimeEstimate} days</p>
-                          {predictionResult.recommendations.length > 0 && (
-                            <div>
-                              <p className="font-medium">Recommendations:</p>
-                              <ul className="list-disc list-inside ml-2">
-                                {predictionResult.recommendations.map((rec: string, idx: number) => (
-                                  <li key={idx}>{rec}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
 
                     {/* Eligibility Status */}
                     {eligibilityCheck && selectedGrades.length >= 5 && (
@@ -1348,24 +1262,10 @@ export default function ApplicationWizard() {
                         <input
                           type="file"
                           accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0] || null
-                            setResultSlipFile(file)
-                            if (file) analyzeUploadedDocument(file)
-                          }}
+                          onChange={(e) => setResultSlipFile(e.target.files?.[0] || null)}
                           className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                         />
-                        {processingDocument && (
-                          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                            <div className="flex items-center text-sm text-blue-700 mb-2">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                              <span className="font-medium">🔍 Analyzing Document...</span>
-                            </div>
-                            <p className="text-xs text-blue-600">
-                              Extracting grades and personal information to auto-fill your form
-                            </p>
-                          </div>
-                        )}
+
                         {resultSlipFile && (
                           <div className="mt-2 flex items-center text-sm text-green-600">
                             <CheckCircle className="h-4 w-4 mr-1" />
