@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false)
         hasLoaded = true
       }
-    }, 5000) // 5 second timeout
+    }, 10000) // 10 second timeout
     
     async function loadUser() {
       try {
@@ -91,9 +91,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         console.log('AuthContext: Auth state change:', event)
         
-        // Don't reset user on token refresh
-        if (event === 'TOKEN_REFRESHED' && session?.user) {
-          console.log('Token refreshed, maintaining session')
+        // Don't reset user on token refresh or signed in events
+        if ((event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') && session?.user) {
+          console.log('Token refreshed or signed in, maintaining session')
+          setUser(session.user)
           return
         }
         
@@ -130,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     )
 
-    // Skip enhanced session timeout for now
+    // Disable session timeout to prevent auto-logout
     const cleanupTimeout = () => {}
 
     return () => {
