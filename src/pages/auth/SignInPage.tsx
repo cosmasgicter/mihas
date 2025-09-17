@@ -31,16 +31,19 @@ export default function SignInPage() {
   })
 
   const onSubmit = async (data: SignInForm) => {
+    console.log('Login attempt:', data.email)
     setLoading(true)
     setError('')
 
     try {
-      const { error: signInError } = await signIn(data.email, data.password)
+      const result = await signIn(data.email, data.password)
+      console.log('Sign in result:', result)
       
-      if (signInError) {
-        throw signInError
+      if (result?.error) {
+        throw new Error(result.error)
       }
 
+      console.log('Login successful, navigating to dashboard')
       navigate('/dashboard')
     } catch (error: unknown) {
       console.error('Sign in error:', error)
