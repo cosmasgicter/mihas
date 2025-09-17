@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { supabase, ApplicationWithDetails, Program, Intake } from '@/lib/supabase'
+import type { ApplicationWithDetails } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { formatDate, getStatusColor } from '@/lib/utils'
 import { motion } from 'framer-motion'
+import { applicationService } from '@/services/apiClient'
 import { 
   ArrowLeft, 
   FileText, 
@@ -39,21 +40,13 @@ export default function ApplicationStatus() {
     try {
       setLoading(true)
       
-      // Load application with program and intake details
-      const { data: applicationData, error: applicationError } = await supabase
-        .from('applications_new')
-        .select(`
-          *
-        `)
-        .eq('id', id)
-        .eq('user_id', user?.id) // Ensure user can only see their own applications
-        .single()
+      const response = await applicationService.getById(id as string)
 
-      if (applicationError) {
+      if (!response.application) {
         throw new Error('Application not found or access denied')
       }
 
-      setApplication(applicationData)
+      setApplication(response.application as ApplicationWithDetails)
 
 
     } catch (error: any) {
