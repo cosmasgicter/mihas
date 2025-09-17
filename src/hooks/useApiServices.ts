@@ -1,19 +1,23 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { authService, applicationService, documentService, analyticsService } from '@/services/apiClient'
+import { useAuth } from '@/contexts/AuthContext'
+import { applicationService, documentService, analyticsService } from '@/services/apiClient'
 
 // Auth hooks
 export const useLogin = () => {
+  const { signIn } = useAuth()
+
   return useMutation({
-    mutationFn: authService.login,
-    onSuccess: (data) => {
-      localStorage.setItem('supabase.auth.token', data.session.access_token)
-    }
+    mutationFn: ({ email, password }: { email: string; password: string }) =>
+      signIn(email, password)
   })
 }
 
 export const useRegister = () => {
+  const { signUp } = useAuth()
+
   return useMutation({
-    mutationFn: authService.register
+    mutationFn: ({ email, password, userData }: { email: string; password: string; userData: any }) =>
+      signUp(email, password, userData)
   })
 }
 

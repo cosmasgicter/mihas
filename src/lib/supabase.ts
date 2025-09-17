@@ -46,10 +46,6 @@ supabase.auth.onAuthStateChange(async (event, session) => {
   
   if (event === 'SIGNED_OUT') {
     console.log('User signed out')
-    // Clear any cached data
-    if (typeof window !== 'undefined') {
-      window.localStorage.removeItem('supabase.auth.token')
-    }
   }
   
   if (event === 'SIGNED_IN' && session) {
