@@ -1,9 +1,4 @@
 {
   "buildCommand": "npm install && npm run build",
-  "installCommand": "npm install --registry=https://registry.npmjs.org/",
-  "functions": {
-    "api/**/*.js": {
-      "runtime": "nodejs18.x"
-    }
-  }
+  "installCommand": "npm install --registry=https://registry.npmjs.org/"
 }
