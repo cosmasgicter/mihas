@@ -1,5 +1,4 @@
-import { supabaseAdminClient } from '../_utils/supabaseClient'
-import { getAuthenticatedUser } from '../_utils/auth'
+import { supabaseAdminClient, getUserFromRequest } from '../_lib/supabaseClient'
 
 const HISTORY_TABLE = 'application_status_history'
 const DOCUMENTS_TABLE = 'application_documents'
@@ -13,7 +12,7 @@ function parseIncludeParam(includeParam) {
 }
 
 export default async function handler(req, res) {
-  const authContext = await getAuthenticatedUser(req)
+  const authContext = await getUserFromRequest(req)
   if (authContext.error) {
     return res.status(401).json({ error: authContext.error })
   }

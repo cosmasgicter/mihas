@@ -1,19 +1,18 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_ANON_KEY
-)
+import { supabaseAnonClient } from '../_lib/supabaseClient'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  if (!supabaseAnonClient) {
+    return res.status(500).json({ error: 'Supabase anon key is not configured' })
+  }
+
   try {
     const { email, password } = req.body
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabaseAnonClient.auth.signInWithPassword({
       email,
       password
     })

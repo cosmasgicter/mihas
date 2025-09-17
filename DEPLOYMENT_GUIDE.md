@@ -32,6 +32,7 @@ npx vercel --prod --yes
 ```
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 VITE_TURNSTILE_SITE_KEY=your_turnstile_key
 ```
 

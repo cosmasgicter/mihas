@@ -1,28 +1,28 @@
-import { createClient } from '@supabase/supabase-js'
-import dotenv from 'dotenv'
-dotenv.config()
+import 'dotenv/config'
 
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_ANON_KEY
-)
+if (!process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('Required: VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables')
+  process.exit(1)
+}
+
+const { supabaseAdminClient } = await import('./api/_lib/supabaseClient.js')
 
 async function setupMicroservices() {
   console.log('🚀 Setting up microservices infrastructure...')
 
   try {
     // Test database connection
-    const { data, error } = await supabase.from('applications').select('count').limit(1)
+    const { data, error } = await supabaseAdminClient.from('applications').select('count').limit(1)
     if (error) throw error
     
     console.log('✅ Database connection verified')
 
     // Test storage buckets
-    const { data: buckets } = await supabase.storage.listBuckets()
+    const { data: buckets } = await supabaseAdminClient.storage.listBuckets()
     console.log('✅ Storage buckets:', buckets?.map(b => b.name).join(', '))
 
     // Test notifications table
-    const { data: notifications, error: notifError } = await supabase
+    const { data: notifications, error: notifError } = await supabaseAdminClient
       .from('notifications')
       .select('count')
       .limit(1)

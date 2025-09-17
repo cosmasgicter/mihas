@@ -1,32 +1,42 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_ANON_KEY
-)
+import { supabaseAdminClient, getUserFromRequest } from '../_lib/supabaseClient'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const authHeader = req.headers.authorization
-  if (!authHeader) {
-    return res.status(401).json({ error: 'No authorization header' })
-  }
-
-  const token = authHeader.replace('Bearer ', '')
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-  
-  if (authError || !user) {
-    return res.status(401).json({ error: 'Invalid token' })
+  const authContext = await getUserFromRequest(req)
+  if (authContext.error) {
+    return res.status(401).json({ error: authContext.error })
   }
 
   try {
-    const { fileName, fileData, documentType, applicationId } = req.body
+    const { fileName, fileData, documentType, applicationId } = req.body || {}
 
-    const filePath = `${user.id}/${applicationId}/${fileName}`
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    if (!fileName || !fileData || !documentType || !applicationId) {
+      return res.status(400).json({ error: 'Missing required document fields' })
+    }
+
+    const { data: application, error: applicationError } = await supabaseAdminClient
+      .from('applications_new')
+      .select('id, user_id')
+      .eq('id', applicationId)
+      .maybeSingle()
+
+    if (applicationError) {
+      return res.status(400).json({ error: applicationError.message })
+    }
+
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' })
+    }
+
+    if (!authContext.isAdmin && application.user_id !== authContext.user.id) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
+
+    const filePath = `${application.user_id}/${applicationId}/${fileName}`
+    const { data: uploadData, error: uploadError } = await supabaseAdminClient.storage
       .from('documents')
       .upload(filePath, fileData)
 
@@ -34,7 +44,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: uploadError.message })
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdminClient
       .from('application_documents')
       .insert({
         application_id: applicationId,
