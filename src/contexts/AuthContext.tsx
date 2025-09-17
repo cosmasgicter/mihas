@@ -36,49 +36,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<UserRole | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Load user on mount with enhanced security validation
+  // Load user on mount - optimized for speed
   useEffect(() => {
     let mounted = true
-    let hasLoaded = false
-    
-    // Set a reasonable loading timeout
-    const loadingTimeout = setTimeout(() => {
-      if (mounted && !hasLoaded) {
-        console.warn('Auth loading timeout reached, forcing loading to false')
-        setLoading(false)
-        hasLoaded = true
-      }
-    }, 5000) // 5 second timeout
     
     async function loadUser() {
       try {
-        // Initialize session manager
-        await sessionManager.initializeSession()
-        
         const { data: { user } } = await supabase.auth.getUser()
         
         if (!mounted) return
         
         setUser(user)
+        setLoading(false)
         
+        // Load profile and role in background after initial render
         if (user) {
-          await Promise.all([
-            loadUserProfile(user.id),
-            loadUserRole(user.id)
-          ])
+          setTimeout(() => {
+            if (mounted) {
+              loadUserProfile(user.id)
+              loadUserRole(user.id)
+            }
+          }, 100)
         }
       } catch (error) {
-        console.error('Error loading user:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
+        console.error('Error loading user:', error)
         if (mounted) {
           setUser(null)
           setProfile(null)
           setUserRole(null)
-        }
-      } finally {
-        if (mounted && !hasLoaded) {
-          clearTimeout(loadingTimeout)
           setLoading(false)
-          hasLoaded = true
         }
       }
     }
@@ -137,10 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false
-      clearTimeout(loadingTimeout)
       subscription.unsubscribe()
-      sessionManager.cleanup()
-      cleanupTimeout()
     }
   }, [])
 
@@ -220,23 +203,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signIn(email: string, password: string) {
-    console.log('AuthContext signIn called with:', email)
-    
     try {
-      // Use direct Supabase auth (more reliable)
-      console.log('Attempting Supabase auth...')
       const result = await supabase.auth.signInWithPassword({ email, password })
-      console.log('Supabase auth result:', result)
       
       if (result.error) {
-        console.error('Supabase auth error:', result.error)
         return { error: result.error.message }
       }
       
-      console.log('Auth successful, user:', result.data.user?.email)
       return result.data
     } catch (error) {
-      console.error('SignIn catch error:', error)
       return { error: error instanceof Error ? error.message : 'Login failed' }
     }
   }

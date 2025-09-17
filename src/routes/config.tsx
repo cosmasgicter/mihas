@@ -1,11 +1,13 @@
 import React from 'react'
 
-// Lazy load all page components
-const LandingPage = React.lazy(() => import('@/pages/LandingPage'))
-const SignInPage = React.lazy(() => import('@/pages/auth/SignInPage'))
-const SignUpPage = React.lazy(() => import('@/pages/auth/SignUpPage'))
-const AuthCallbackPage = React.lazy(() => import('@/pages/auth/AuthCallbackPage'))
+// Import critical pages directly for faster loading
+import LandingPage from '@/pages/LandingPage'
+import SignInPage from '@/pages/auth/SignInPage'
+import SignUpPage from '@/pages/auth/SignUpPage'
+
+// Lazy load non-critical pages
 const StudentDashboard = React.lazy(() => import('@/pages/student/Dashboard'))
+const AuthCallbackPage = React.lazy(() => import('@/pages/auth/AuthCallbackPage'))
 const ApplicationWizard = React.lazy(() => import('@/pages/student/ApplicationWizard'))
 const ApplicationStatus = React.lazy(() => import('@/pages/student/ApplicationStatus'))
 const StudentSettings = React.lazy(() => import('@/pages/student/Settings'))
@@ -37,12 +39,12 @@ export interface RouteConfig {
 
 export const routes: RouteConfig[] = [
   // Public routes
-  { path: '/', element: LandingPage, guard: 'public', lazy: true },
+  { path: '/', element: LandingPage, guard: 'public' },
   { path: '/track-application', element: PublicApplicationTracker, guard: 'public', lazy: true },
-  { path: '/auth/signin', element: SignInPage, guard: 'public', lazy: true },
-  { path: '/signin', element: SignInPage, guard: 'public', lazy: true },
-  { path: '/login', element: SignInPage, guard: 'public', lazy: true },
-  { path: '/auth/signup', element: SignUpPage, guard: 'public', lazy: true },
+  { path: '/auth/signin', element: SignInPage, guard: 'public' },
+  { path: '/signin', element: SignInPage, guard: 'public' },
+  { path: '/login', element: SignInPage, guard: 'public' },
+  { path: '/auth/signup', element: SignUpPage, guard: 'public' },
   { path: '/auth/callback', element: AuthCallbackPage, guard: 'public', lazy: true },
   
   // Dashboard redirect (no lazy loading needed)

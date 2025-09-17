@@ -1,21 +1,15 @@
-import React from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
-// Security headers are handled by server configuration
 
-// Render immediately for better LCP
-createRoot(document.getElementById('root')!).render(
-  <App />
-)
+// Render immediately for better performance
+createRoot(document.getElementById('root')!).render(<App />)
 
-// Defer non-critical initialization
-setTimeout(() => {
-  import('./services/offlineSync').then(({ offlineSyncService }) => {
-    offlineSyncService.init().catch(() => {
-      // Silently handle initialization errors
-    })
-  }).catch(() => {
-    // Silently handle import errors
-  })
-}, 100)
+// Defer non-critical services
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    import('./services/offlineSync').then(({ offlineSyncService }) => {
+      offlineSyncService.init().catch(() => {})
+    }).catch(() => {})
+  }, 2000) // Increased delay to not interfere with initial load
+}

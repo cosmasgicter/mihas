@@ -13,25 +13,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true,
-    flowType: 'pkce',
-    storage: {
-      getItem: (key: string) => {
-        if (typeof window !== 'undefined') {
-          return window.localStorage.getItem(key)
-        }
-        return null
-      },
-      setItem: (key: string, value: string) => {
-        if (typeof window !== 'undefined') {
-          window.localStorage.setItem(key, value)
-        }
-      },
-      removeItem: (key: string) => {
-        if (typeof window !== 'undefined') {
-          window.localStorage.removeItem(key)
-        }
-      }
+    detectSessionInUrl: false, // Disable for faster loading
+    flowType: 'pkce'
+  },
+  global: {
+    headers: {
+      'x-client-info': 'mihas-app@1.0.0'
     }
   }
 })
@@ -53,16 +40,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
   }
 })
 
-// Refresh session periodically to prevent timeouts
-if (typeof window !== 'undefined') {
-  setInterval(async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session) {
-      // Session exists, refresh will happen automatically
-      console.log('Session check: Active')
-    }
-  }, 5 * 60 * 1000) // Check every 5 minutes
-}
+// Simplified session management - let Supabase handle it automatically
 
 // Database type definitions
 export interface UserProfile {
