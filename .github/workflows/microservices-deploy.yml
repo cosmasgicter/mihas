@@ -1,0 +1,56 @@
+name: Microservices Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      auth: ${{ steps.changes.outputs.auth }}
+      applications: ${{ steps.changes.outputs.applications }}
+      documents: ${{ steps.changes.outputs.documents }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            auth:
+              - 'api/auth/**'
+            applications:
+              - 'api/applications/**'
+            documents:
+              - 'api/documents/**'
+            frontend:
+              - 'src/**'
+
+  test-services:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    if: needs.detect-changes.outputs.auth == 'true' || needs.detect-changes.outputs.applications == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - run: npm ci
+      - run: npm run type-check
+      - run: npm test
+
+  deploy:
+    needs: [test-services]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'

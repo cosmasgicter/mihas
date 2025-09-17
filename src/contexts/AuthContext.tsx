@@ -220,7 +220,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signIn(email: string, password: string) {
-    return await supabase.auth.signInWithPassword({ email, password })
+    try {
+      // Use new auth service API
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Login failed')
+      }
+      
+      return await response.json()
+    } catch (error) {
+      // Fallback to direct Supabase
+      return await supabase.auth.signInWithPassword({ email, password })
+    }
   }
 
   async function signUp(email: string, password: string, userData: any) {

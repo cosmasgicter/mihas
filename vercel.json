@@ -1,33 +1,48 @@
 {
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        },
-        {
-          "key": "Permissions-Policy",
-          "value": "camera=(), microphone=(), geolocation=()"
-        }
-      ]
+  "functions": {
+    "api/**/*.ts": {
+      "maxDuration": 30
     }
-  ],
+  },
   "rewrites": [
     {
-      "source": "/((?!api/).*)",
-      "destination": "/index.html"
+      "source": "/api/auth/:path*",
+      "destination": "/api/auth/:path*"
+    },
+    {
+      "source": "/api/applications/:path*", 
+      "destination": "/api/applications/:path*"
+    },
+    {
+      "source": "/api/documents/:path*",
+      "destination": "/api/documents/:path*"
+    },
+    {
+      "source": "/api/notifications/:path*",
+      "destination": "/api/notifications/:path*"
+    },
+    {
+      "source": "/api/analytics/:path*",
+      "destination": "/api/analytics/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
+        }
+      ]
     }
   ]
 }

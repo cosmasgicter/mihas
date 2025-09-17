@@ -11,3 +11,29 @@ export function sanitizeForDisplay(input: string | null | undefined): string {
     }
   });
 }
+
+export const sanitizeText = sanitizeForDisplay;
+
+export function sanitizeForLog(input: any): string {
+  if (input === null || input === undefined) return 'null';
+  if (typeof input === 'string') return input.replace(/[\r\n\t]/g, ' ').substring(0, 200);
+  if (input instanceof Error) return input.message.replace(/[\r\n\t]/g, ' ').substring(0, 200);
+  return String(input).replace(/[\r\n\t]/g, ' ').substring(0, 200);
+}
+
+export function safeJsonParse<T>(json: string, fallback: T): T {
+  try {
+    return JSON.parse(json);
+  } catch {
+    return fallback;
+  }
+}
+
+export function generateSecureId(): string {
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+
+export function sanitizeEmail(email: string | null | undefined): string {
+  if (!email) return '';
+  return email.toLowerCase().trim().replace(/[^a-z0-9@._-]/g, '');
+}
