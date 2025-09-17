@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [userRole, setUserRole] = useState<UserRole | null>(null)
   const [loading, setLoading] = useState(true)
+  const [hasLoaded, setHasLoaded] = useState(false)
 
   // Load user on mount - optimized for speed
   useEffect(() => {
@@ -93,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUserRole(null)
           if (mounted && !hasLoaded) {
             setLoading(false)
-            hasLoaded = true
+            setHasLoaded(true)
           }
           return
         }
@@ -113,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (mounted && !hasLoaded) {
           setLoading(false)
-          hasLoaded = true
+          setHasLoaded(true)
         }
       }
     )
@@ -204,14 +205,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signIn(email: string, password: string) {
     try {
+      console.log('Attempting sign in for:', sanitizeForLog(email))
       const result = await supabase.auth.signInWithPassword({ email, password })
       
       if (result.error) {
+        console.error('Sign in error:', sanitizeForLog(result.error.message))
         return { error: result.error.message }
       }
       
+      console.log('Sign in successful')
       return result.data
     } catch (error) {
+      console.error('Sign in exception:', error)
       return { error: error instanceof Error ? error.message : 'Login failed' }
     }
   }
