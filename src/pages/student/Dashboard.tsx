@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { supabase, Application, Program, Intake } from '@/lib/supabase'
+import type { Application, Program, Intake } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { AuthenticatedNavigation } from '@/components/ui/AuthenticatedNavigation'
@@ -14,6 +14,7 @@ import { useDraftManager } from '@/hooks/useDraftManager'
 import { sanitizeForLog, safeJsonParse, sanitizeForDisplay } from '@/lib/sanitize'
 import { getUserMetadata, getBestValue, calculateProfileCompletion } from '@/hooks/useProfileAutoPopulation'
 import { ProfileCompletionBadge } from '@/components/ui/ProfileAutoPopulationIndicator'
+import { applicationService, catalogService } from '@/services/apiClient'
 import { 
   User, 
   FileText, 
@@ -94,36 +95,40 @@ export default function StudentDashboard() {
         setHasDraft(false)
       }
       
-      // Also check for database draft
-      const { data: dbDraft } = await supabase
-        .rpc('get_application_draft', { p_user_id: profile?.user_id || user?.id })
-      
-      if (dbDraft && dbDraft.length > 0) {
+      // Load latest draft from API
+      const draftResponse = await applicationService.list({
+        page: 0,
+        pageSize: 1,
+        status: 'draft',
+        sortBy: 'date',
+        sortOrder: 'desc',
+        mine: true
+      })
+
+      if (draftResponse.applications && draftResponse.applications.length > 0) {
         setHasDraft(true)
-        setDraftData(dbDraft[0])
+        setDraftData(draftResponse.applications[0])
       }
-      
-      // Load user's applications using profile user_id
-      const { data: applicationsData, error: applicationsError } = await supabase
-        .from('applications_new')
-        .select('*')
-        .eq('user_id', profile?.user_id || user?.id)
-        .order('created_at', { ascending: false })
 
-      if (applicationsError) throw applicationsError
-      setApplications(applicationsData || [])
+      // Load user's applications
+      const applicationsResponse = await applicationService.list({
+        page: 0,
+        pageSize: 50,
+        sortBy: 'date',
+        sortOrder: 'desc',
+        mine: true
+      })
 
-      // Load programs and intakes for reference
+      setApplications((applicationsResponse.applications || []) as Application[])
+
+      // Load programs and intakes
       const [programsResponse, intakesResponse] = await Promise.all([
-        supabase.from('programs').select('*').eq('is_active', true),
-        supabase.from('intakes').select('*').eq('is_active', true).order('application_deadline')
+        catalogService.getPrograms(),
+        catalogService.getIntakes()
       ])
 
-      if (programsResponse.error) throw programsResponse.error
-      if (intakesResponse.error) throw intakesResponse.error
-
-      setPrograms(programsResponse.data || [])
-      setIntakes(intakesResponse.data || [])
+      setPrograms((programsResponse.programs || []) as Program[])
+      setIntakes((intakesResponse.intakes || []) as Intake[])
     } catch (error) {
       console.error('Error loading dashboard data:', sanitizeForLog(error))
       setError(error instanceof Error ? sanitizeForLog(error.message) : 'Failed to load dashboard data')
@@ -319,12 +324,8 @@ export default function StudentDashboard() {
                               className="w-full sm:w-auto text-red-600 border-red-300 hover:bg-red-50 font-semibold"
                               onClick={async () => {
                                 try {
-                                  await supabase
-                                    .from('applications_new')
-                                    .delete()
-                                    .eq('id', application.id)
-                                    .eq('user_id', user?.id)
-                                  
+                                  await applicationService.delete(application.id)
+
                                   // Refresh data immediately
                                   await loadDashboardData()
                                 } catch (error) {

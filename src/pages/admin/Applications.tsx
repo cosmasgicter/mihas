@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { supabase, Application, Program, Intake } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { AnimatedCard } from '@/components/ui/AnimatedCard'
 import { formatDate, getStatusColor } from '@/lib/utils'
-import { sanitizeForLog } from '@/lib/sanitize'
 import { useQueryClient } from '@tanstack/react-query'
 import { useApplicationsData } from '@/hooks/useApplicationsData'
 import { useBulkOperations } from '@/hooks/useBulkOperations'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ApplicationsTable } from '@/components/admin/ApplicationsTable'
+import { applicationService } from '@/services/apiClient'
 import { 
   ArrowLeft, 
   FileText, 
@@ -135,27 +134,18 @@ interface Grade {
 function GradesDisplay({ applicationId }: { applicationId: string }) {
   const [grades, setGrades] = useState<Grade[]>([])
   const [loading, setLoading] = useState(true)
-  
+
   useEffect(() => {
     const fetchGrades = async () => {
       try {
-        const { data, error } = await supabase
-          .from('application_grades')
-          .select(`
-            subject_id,
-            grade,
-            grade12_subjects!inner(name)
-          `)
-          .eq('application_id', applicationId)
-        
-        if (error) throw error
-        
-        const formattedGrades = data?.map(g => ({
+        const response = await applicationService.getById(applicationId, { include: ['grades'] })
+
+        const formattedGrades = response.grades?.map(g => ({
           subject_id: g.subject_id,
           grade: g.grade,
-          subject_name: (g as any).grade12_subjects?.name || 'Unknown Subject'
+          subject_name: g.subject_name || 'Unknown Subject'
         })) || []
-        
+
         setGrades(formattedGrades)
       } catch (error) {
         console.error('Error fetching grades:', error)
@@ -260,44 +250,8 @@ export default function AdminApplications() {
   const fetchDocuments = async (applicationId: string) => {
     try {
       setDocumentsLoading(true)
-      const { data, error } = await supabase
-        .from('applications_new')
-        .select('result_slip_url, extra_kyc_url, pop_url')
-        .eq('id', applicationId)
-        .single()
-      
-      if (error) throw error
-      
-      const docs = []
-      if (data.result_slip_url) {
-        docs.push({
-          id: 'result_slip',
-          document_type: 'Result Slip',
-          document_name: 'Grade 12 Result Slip',
-          file_url: data.result_slip_url,
-          verification_status: 'pending'
-        })
-      }
-      if (data.extra_kyc_url) {
-        docs.push({
-          id: 'extra_kyc',
-          document_type: 'KYC Document',
-          document_name: 'Additional KYC Document',
-          file_url: data.extra_kyc_url,
-          verification_status: 'pending'
-        })
-      }
-      if (data.pop_url) {
-        docs.push({
-          id: 'pop',
-          document_type: 'Proof of Payment',
-          document_name: 'Payment Receipt',
-          file_url: data.pop_url,
-          verification_status: 'pending'
-        })
-      }
-      
-      setDocuments(docs)
+      const response = await applicationService.getById(applicationId, { include: ['documents'] })
+      setDocuments(response.documents || [])
     } catch (error: any) {
       console.error('Error fetching documents:', error)
     } finally {
@@ -309,17 +263,9 @@ export default function AdminApplications() {
   const fetchStatusHistory = async (applicationId: string) => {
     try {
       setHistoryLoading(true)
-      const { data, error } = await supabase
-        .from('application_status_history')
-        .select(`
-          *,
-          changed_by_profile:changed_by(email)
-        `)
-        .eq('application_id', applicationId)
-        .order('created_at', { ascending: false })
-      
-      if (error) throw error
-      setStatusHistory(data || [])
+      const response = await applicationService.getById(applicationId, { include: ['statusHistory'] })
+      const history = response.statusHistory || []
+      setStatusHistory(history.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
     } catch (error: any) {
       console.error('Error fetching status history:', error)
     } finally {
@@ -331,18 +277,15 @@ export default function AdminApplications() {
   const verifyDocument = async (documentId: string, status: 'verified' | 'rejected', notes: string) => {
     try {
       setVerificationLoading(true)
-      const { error } = await supabase
-        .from('application_documents')
-        .update({
-          verification_status: status,
-          verified_by: user?.id,
-          verified_at: new Date().toISOString(),
-          verification_notes: notes
-        })
-        .eq('id', documentId)
+      if (!selectedApplication) throw new Error('No application selected')
 
-      if (error) throw error
-      
+      await applicationService.verifyDocument(selectedApplication.id, {
+        documentId,
+        documentType: documents.find(doc => doc.id === documentId)?.document_type,
+        status,
+        notes
+      })
+
       // Refresh documents
       if (selectedApplication) {
         await fetchDocuments(selectedApplication.id)
@@ -365,29 +308,10 @@ export default function AdminApplications() {
       setNotificationLoading(true)
       
       // Insert notification
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: selectedApplication.user_id,
-          title: `Application Update - ${selectedApplication.application_number}`,
-          message: notificationText,
-          type: 'application_update'
-        })
-
-      if (notificationError) throw notificationError
-
-      // Update application with admin feedback
-      const { error: updateError } = await supabase
-        .from('applications_new')
-        .update({
-          admin_feedback: notificationText,
-          admin_feedback_date: new Date().toISOString(),
-          admin_feedback_by: user?.id,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedApplication.id)
-
-      if (updateError) throw updateError
+      await applicationService.sendNotification(selectedApplication.id, {
+        title: `Application Update - ${selectedApplication.application_number}`,
+        message: notificationText
+      })
 
       queryClient.invalidateQueries({ queryKey: ['applications'] })
       setShowNotificationModal(false)
@@ -404,43 +328,26 @@ export default function AdminApplications() {
   const exportApplications = async (format: 'csv' | 'excel') => {
     try {
       setExportLoading(true)
-      
-      // Fetch all applications with current filters
-      let query = supabase
-        .from('applications_new')
-        .select('*')
-        .order('created_at', { ascending: false })
 
-      // Apply same filters as current view
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter)
-      }
-      if (programFilter !== 'all') {
-        query = query.eq('program', programFilter)
-      }
-      if (institutionFilter !== 'all') {
-        query = query.eq('institution', institutionFilter)
-      }
-      if (paymentStatusFilter !== 'all') {
-        query = query.eq('payment_status', paymentStatusFilter)
-      }
-      if (dateRange.start) {
-        query = query.gte('created_at', dateRange.start)
-      }
-      if (dateRange.end) {
-        query = query.lte('created_at', dateRange.end + 'T23:59:59')
-      }
-      if (searchTerm) {
-        const sanitizedSearch = searchTerm.replace(/[%_\\]/g, '\\$&').replace(/'/g, "''")
-        query = query.or(`full_name.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%,application_number.ilike.%${sanitizedSearch}%`)
-      }
+      const response = await applicationService.list({
+        page: 0,
+        pageSize: 'all',
+        status: statusFilter,
+        search: searchTerm,
+        sortBy,
+        sortOrder,
+        program: programFilter,
+        institution: institutionFilter,
+        paymentStatus: paymentStatusFilter,
+        startDate: dateRange.start,
+        endDate: dateRange.end
+      })
 
-      const { data, error } = await query
-      if (error) throw error
+      const data = response.applications || []
 
       // Create CSV content
       const headers = [
-        'Application Number', 'Full Name', 'Email', 'Phone', 'Program', 'Intake', 
+        'Application Number', 'Full Name', 'Email', 'Phone', 'Program', 'Intake',
         'Institution', 'Status', 'Payment Status', 'Submitted At', 'Created At'
       ]
       
@@ -488,20 +395,12 @@ export default function AdminApplications() {
     
     try {
       setUpdating(applicationId)
-      
-      const { error } = await supabase
-        .from('applications_new')
-        .update({
-          status: 'deleted',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', applicationId)
 
-      if (error) throw error
+      await applicationService.delete(applicationId)
 
       queryClient.invalidateQueries({ queryKey: ['applications'] })
       queryClient.invalidateQueries({ queryKey: ['application-stats'] })
-      
+
     } catch (error: any) {
       console.error('Error deleting application:', error)
     } finally {
@@ -512,45 +411,16 @@ export default function AdminApplications() {
   const updateApplicationStatus = async (applicationId: string, newStatus: string, feedback?: string) => {
     try {
       setUpdating(applicationId)
-      
-      const updateData: any = {
-        status: newStatus,
-        updated_at: new Date().toISOString(),
-        ...(newStatus === 'under_review' && { review_started_at: new Date().toISOString() }),
-        ...((['approved', 'rejected'].includes(newStatus)) && { decision_date: new Date().toISOString() })
-      }
-      
-      if (feedback) {
-        updateData.admin_feedback = feedback
-        updateData.admin_feedback_date = new Date().toISOString()
-        updateData.admin_feedback_by = user?.id
-      }
 
-      const { error } = await supabase
-        .from('applications_new')
-        .update(updateData)
-        .eq('id', applicationId)
+      await applicationService.updateStatus(applicationId, newStatus, feedback)
 
-      if (error) throw error
-
-      // Invalidate and refetch applications
       queryClient.invalidateQueries({ queryKey: ['applications'] })
+      queryClient.invalidateQueries({ queryKey: ['application-stats'] })
 
-      // Create status history record
-      const { error: historyError } = await supabase
-        .from('application_status_history')
-        .insert({
-          application_id: applicationId,
-          status: newStatus,
-          changed_by: user?.id,
-          notes: feedback || null
-        })
-      
-      if (historyError) {
-        console.error('Error creating status history:', sanitizeForLog(historyError.message || 'unknown error'))
-        // Continue execution as this is not critical for the main operation
+      if (selectedApplication?.id === applicationId) {
+        const response = await applicationService.getById(applicationId)
+        setSelectedApplication(prev => (prev ? { ...prev, ...response.application } : prev))
       }
-      
     } catch (error: any) {
       console.error('Error updating application status:', error)
     } finally {
@@ -560,29 +430,23 @@ export default function AdminApplications() {
 
   const submitFeedback = async () => {
     if (!selectedApplication || !feedbackText.trim()) return
-    
+
     try {
       setFeedbackLoading(true)
-      
-      const { error } = await supabase
-        .from('applications_new')
-        .update({
-          admin_feedback: feedbackText,
-          admin_feedback_date: new Date().toISOString(),
-          admin_feedback_by: user?.id,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedApplication.id)
 
-      if (error) throw error
+      await applicationService.update(selectedApplication.id, {
+        admin_feedback: feedbackText,
+        admin_feedback_date: new Date().toISOString(),
+        admin_feedback_by: user?.id,
+        updated_at: new Date().toISOString()
+      })
 
-      // Invalidate and refetch applications
       queryClient.invalidateQueries({ queryKey: ['applications'] })
       queryClient.invalidateQueries({ queryKey: ['application-stats'] })
 
       setShowFeedbackModal(false)
       setFeedbackText('')
-      
+
     } catch (error: any) {
       console.error('Error submitting feedback:', error)
     } finally {
@@ -1886,7 +1750,7 @@ export default function AdminApplications() {
                             <Eye className="h-4 w-4 mr-1" />
                             View
                           </Button>
-                          {doc.verification_status === 'pending' && (
+                          {doc.verification_status === 'pending' && !['result_slip', 'extra_kyc', 'proof_of_payment'].includes(doc.id) && (
                             <Button
                               variant="outline"
                               size="sm"

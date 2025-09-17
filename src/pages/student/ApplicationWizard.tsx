@@ -20,6 +20,7 @@ import { sanitizeForLog } from '@/lib/security'
 import { safeJsonParse } from '@/lib/utils'
 import { useProfileAutoPopulation, getBestValue, getUserMetadata } from '@/hooks/useProfileAutoPopulation'
 import { ProfileCompletionBadge } from '@/components/ui/ProfileAutoPopulationIndicator'
+import { applicationService, catalogService } from '@/services/apiClient'
 
 const wizardSchema = z.object({
   full_name: z.string().min(2, 'Full name is required'),
@@ -169,17 +170,18 @@ export default function ApplicationWizard() {
         }
         
         // If no localStorage draft, check for existing draft application in database
-        const { data: draftApps } = await supabase
-          .from('applications_new')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('status', 'draft')
-          .order('created_at', { ascending: false })
-          .limit(1)
-        
-        if (draftApps && draftApps.length > 0) {
-          const app = draftApps[0]
-          
+        const draftResponse = await applicationService.list({
+          page: 0,
+          pageSize: 1,
+          status: 'draft',
+          sortBy: 'date',
+          sortOrder: 'desc',
+          mine: true
+        })
+
+        if (draftResponse.applications && draftResponse.applications.length > 0) {
+          const app = draftResponse.applications[0]
+
           // Populate form with existing data
           setValue('full_name', app.full_name || '')
           setValue('nrc_number', app.nrc_number || '')
@@ -202,14 +204,14 @@ export default function ApplicationWizard() {
             step = 2 // Has basic info, move to education
             
             // Load grades if they exist
-            const { data: grades } = await supabase
-              .from('application_grades')
-              .select('subject_id, grade')
-              .eq('application_id', app.id)
-            
-            if (grades && grades.length > 0) {
-              setSelectedGrades(grades)
-              
+            const gradeResponse = await applicationService.getById(app.id, { include: ['grades'] })
+
+            if (gradeResponse.grades && gradeResponse.grades.length > 0) {
+              setSelectedGrades(gradeResponse.grades.map(grade => ({
+                subject_id: grade.subject_id,
+                grade: grade.grade
+              })))
+
               if (app.result_slip_url) {
                 step = 3 // Has education data, move to payment
                 
@@ -309,14 +311,8 @@ export default function ApplicationWizard() {
 
   const loadSubjects = async () => {
     try {
-      const { data, error } = await supabase
-        .from('grade12_subjects')
-        .select('*')
-        .eq('is_active', true)
-        .order('name')
-      
-      if (error) throw error
-      setSubjects(data || [])
+      const response = await catalogService.getSubjects()
+      setSubjects(response.subjects || [])
     } catch (err) {
       console.error('Error loading subjects:', { error: sanitizeForLog(err instanceof Error ? err.message : 'Unknown error') })
     }
@@ -458,32 +454,25 @@ export default function ApplicationWizard() {
         const applicationNumber = generateApplicationNumber({ institution: institution as 'KATC' | 'MIHAS' })
         const trackingCode = `TRK${Math.random().toString(36).substring(2, 8).toUpperCase()}`
         
-        const { data: app, error } = await supabase
-          .from('applications_new')
-          .insert({
-            application_number: applicationNumber,
-            public_tracking_code: trackingCode,
-            user_id: user?.id,
-            full_name: formData.full_name,
-            nrc_number: formData.nrc_number || null,
-            passport_number: formData.passport_number || null,
-            date_of_birth: formData.date_of_birth,
-            sex: formData.sex,
-            phone: formData.phone,
-            email: formData.email,
-            residence_town: formData.residence_town,
-            next_of_kin_name: formData.next_of_kin_name || null,
-            next_of_kin_phone: formData.next_of_kin_phone || null,
-            program: formData.program,
-            intake: formData.intake,
-            institution: institution,
-            status: 'draft'
-          })
-          .select()
-          .single()
+        const app = await applicationService.create({
+          application_number: applicationNumber,
+          public_tracking_code: trackingCode,
+          full_name: formData.full_name,
+          nrc_number: formData.nrc_number || null,
+          passport_number: formData.passport_number || null,
+          date_of_birth: formData.date_of_birth,
+          sex: formData.sex,
+          phone: formData.phone,
+          email: formData.email,
+          residence_town: formData.residence_town,
+          next_of_kin_name: formData.next_of_kin_name || null,
+          next_of_kin_phone: formData.next_of_kin_phone || null,
+          program: formData.program,
+          intake: formData.intake,
+          institution: institution,
+          status: 'draft'
+        })
 
-        if (error) throw error
-        
         setApplicationId(app.id)
         setCurrentStep(2)
       } catch (err: any) {
@@ -526,29 +515,12 @@ export default function ApplicationWizard() {
           setUploadedFiles(prev => ({ ...prev, extra_kyc: true }))
         }
         
-        // Save grades with duplicate prevention
-        for (const grade of selectedGrades) {
-          if (grade.subject_id) {
-            const { error: gradeError } = await supabase
-              .from('application_grades')
-              .insert({
-                application_id: applicationId,
-                subject_id: grade.subject_id,
-                grade: grade.grade
-              })
-            if (gradeError && !gradeError.message.includes('duplicate')) {
-              throw gradeError
-            }
-          }
-        }
-        
-        await supabase
-          .from('applications_new')
-          .update({
-            result_slip_url: resultSlipUrl,
-            extra_kyc_url: extraKycUrl
-          })
-          .eq('id', applicationId)
+        await applicationService.syncGrades(applicationId, selectedGrades)
+
+        await applicationService.update(applicationId, {
+          result_slip_url: resultSlipUrl,
+          extra_kyc_url: extraKycUrl
+        })
         
         setCurrentStep(3)
       } catch (err: any) {
@@ -603,29 +575,18 @@ export default function ApplicationWizard() {
       setUploadedFiles(prev => ({ ...prev, proof_of_payment: true }))
       
       // Update application with payment info and submit
-      const { data: updatedApp, error: updateError } = await supabase
-        .from('applications_new')
-        .update({
-          payment_method: data.payment_method || 'MTN Money',
-          payer_name: data.payer_name || null,
-          payer_phone: data.payer_phone || null,
-          amount: data.amount || 150,
-          paid_at: data.paid_at ? new Date(data.paid_at).toISOString() : null,
-          momo_ref: data.momo_ref || null,
-          pop_url: popUrl,
-          status: 'submitted',
-          submitted_at: new Date().toISOString()
-        })
-        .eq('id', applicationId)
-        .eq('user_id', currentUser.id)
-        .select()
-        .single()
-      
-      if (updateError) {
-        console.error('Update error:', updateError)
-        throw new Error(updateError.message || 'Failed to submit application')
-      }
-      
+      const updatedApp = await applicationService.update(applicationId, {
+        payment_method: data.payment_method || 'MTN Money',
+        payer_name: data.payer_name || null,
+        payer_phone: data.payer_phone || null,
+        amount: data.amount || 150,
+        paid_at: data.paid_at ? new Date(data.paid_at).toISOString() : null,
+        momo_ref: data.momo_ref || null,
+        pop_url: popUrl,
+        status: 'submitted',
+        submitted_at: new Date().toISOString()
+      })
+
       if (!updatedApp) {
         throw new Error('Application not found or access denied')
       }

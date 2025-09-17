@@ -46,6 +46,30 @@ class ApiClient {
 
 export const apiClient = new ApiClient()
 
+function buildQueryString(params: Record<string, any> = {}) {
+  const query = new URLSearchParams()
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') {
+      return
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach(item => {
+        if (item !== undefined && item !== null && item !== '') {
+          query.append(key, String(item))
+        }
+      })
+      return
+    }
+
+    query.append(key, String(value))
+  })
+
+  const queryString = query.toString()
+  return queryString ? `?${queryString}` : ''
+}
+
 // Auth Service
 export const authService = {
   login: (credentials: { email: string; password: string }) =>
@@ -63,25 +87,57 @@ export const authService = {
 
 // Application Service
 export const applicationService = {
-  getAll: () => apiClient.request('/api/applications'),
-  
-  getById: (id: string) => apiClient.request(`/api/applications/${id}`),
-  
+  list: (params?: Record<string, any>) =>
+    apiClient.request(`/api/applications${buildQueryString(params)}`),
+
+  getById: (id: string, options?: { include?: string[] }) =>
+    apiClient.request(`/api/applications/${id}${buildQueryString({ include: options?.include })}`),
+
   create: (data: any) =>
     apiClient.request('/api/applications', {
       method: 'POST',
       body: JSON.stringify(data)
     }),
-  
+
   update: (id: string, data: any) =>
     apiClient.request(`/api/applications/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data)
     }),
-  
+
   delete: (id: string) =>
     apiClient.request(`/api/applications/${id}`, {
       method: 'DELETE'
+    }),
+
+  updateStatus: (id: string, status: string, notes?: string) =>
+    apiClient.request(`/api/applications/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'update_status', status, notes })
+    }),
+
+  updatePaymentStatus: (id: string, paymentStatus: string) =>
+    apiClient.request(`/api/applications/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'update_payment_status', paymentStatus })
+    }),
+
+  verifyDocument: (id: string, payload: { documentId?: string; documentType?: string; status: string; notes?: string }) =>
+    apiClient.request(`/api/applications/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'verify_document', ...payload })
+    }),
+
+  syncGrades: (id: string, grades: Array<{ subject_id: string; grade: number }>) =>
+    apiClient.request(`/api/applications/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'sync_grades', grades })
+    }),
+
+  sendNotification: (id: string, notification: { title: string; message: string }) =>
+    apiClient.request(`/api/applications/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'send_notification', ...notification })
     })
 }
 
@@ -106,4 +162,10 @@ export const notificationService = {
 // Analytics Service
 export const analyticsService = {
   getMetrics: () => apiClient.request('/api/analytics/metrics')
+}
+
+export const catalogService = {
+  getPrograms: () => apiClient.request('/api/catalog/programs'),
+  getIntakes: () => apiClient.request('/api/catalog/intakes'),
+  getSubjects: () => apiClient.request('/api/catalog/grade12-subjects')
 }
