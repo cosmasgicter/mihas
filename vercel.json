@@ -1,66 +1,9 @@
 {
-  "buildCommand": "pnpm build",
-  "installCommand": "pnpm install",
-  "rewrites": [
-    {
-      "source": "/api/auth/:path*",
-      "destination": "/api/auth/:path*"
-    },
-    {
-      "source": "/api/applications/:path*", 
-      "destination": "/api/applications/:path*"
-    },
-    {
-      "source": "/api/documents/:path*",
-      "destination": "/api/documents/:path*"
-    },
-    {
-      "source": "/api/notifications/:path*",
-      "destination": "/api/notifications/:path*"
-    },
-    {
-      "source": "/api/analytics/:path*",
-      "destination": "/api/analytics/:path*"
-    },
-    {
-      "source": "/((?!api).*)",
-      "destination": "/index.html"
+  "buildCommand": "npm install && npm run build",
+  "installCommand": "npm install --registry=https://registry.npmjs.org/",
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs18.x"
     }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Content-Security-Policy",
-          "value": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https: http: *; img-src *; connect-src *; style-src 'self' 'unsafe-inline' https: http: *; font-src 'self' https: http: data: *; script-src 'self' 'unsafe-inline' 'unsafe-eval' https: http: *;"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        }
-      ]
-    },
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, PUT, DELETE, OPTIONS"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization"
-        }
-      ]
-    }
-  ]
+  }
 }
