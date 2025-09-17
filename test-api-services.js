@@ -38,11 +38,11 @@ async function runTests() {
 
   // Test Programs API
   console.log('📚 Testing Programs API:')
-  await testEndpoint('/api/catalog/programs', 'GET')
+  await testEndpoint('/api/catalog?resource=programs', 'GET')
   
   // Test Intakes API
   console.log('\n📅 Testing Intakes API:')
-  await testEndpoint('/api/catalog/intakes', 'GET')
+  await testEndpoint('/api/catalog?resource=intakes', 'GET')
   
   // Test Admin Dashboard API
   console.log('\n📊 Testing Admin Dashboard API:')

@@ -109,7 +109,17 @@ function buildQueryString(params: Record<string, any> = {}) {
 // Auth Service
 export const authService = {
   register: (data: { email: string; password: string; fullName: string }) =>
-    apiClient.request('/api/auth/register', {
+    apiClient.request('/api/auth?action=register', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+  login: (data: { email: string; password: string }) =>
+    apiClient.request('/api/auth?action=login', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+  signin: (data: { email: string; password: string }) =>
+    apiClient.request('/api/auth?action=signin', {
       method: 'POST',
       body: JSON.stringify(data)
     })
@@ -187,7 +197,12 @@ export const documentService = {
 // Notification Service
 export const notificationService = {
   send: (data: { userId: string; type: string; title: string; message: string; data?: any }) =>
-    apiClient.request('/api/notifications/send', {
+    apiClient.request('/api/notifications?action=send', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+  applicationSubmitted: (data: { applicationId: string; userId: string }) =>
+    apiClient.request('/api/notifications?action=application-submitted', {
       method: 'POST',
       body: JSON.stringify(data)
     })
@@ -199,26 +214,26 @@ export const analyticsService = {
 }
 
 export const catalogService = {
-  getPrograms: () => apiClient.request('/api/catalog/programs'),
-  getIntakes: () => apiClient.request('/api/catalog/intakes'),
-  getSubjects: () => apiClient.request('/api/catalog/grade12-subjects')
+  getPrograms: () => apiClient.request('/api/catalog?resource=programs'),
+  getIntakes: () => apiClient.request('/api/catalog?resource=intakes'),
+  getSubjects: () => apiClient.request('/api/catalog?resource=subjects')
 }
 
 // Program Service
 export const programService = {
-  list: () => apiClient.request('/api/catalog/programs'),
+  list: () => apiClient.request('/api/catalog?resource=programs'),
   create: (data: { name: string; description?: string; duration_years: number; institution_id: string }) =>
-    apiClient.request('/api/catalog/programs', {
+    apiClient.request('/api/catalog?resource=programs', {
       method: 'POST',
       body: JSON.stringify(data)
     }),
   update: (data: { id: string; name: string; description?: string; duration_years: number; institution_id: string }) =>
-    apiClient.request('/api/catalog/programs', {
+    apiClient.request('/api/catalog?resource=programs', {
       method: 'PUT',
       body: JSON.stringify(data)
     }),
   delete: (id: string) =>
-    apiClient.request('/api/catalog/programs', {
+    apiClient.request('/api/catalog?resource=programs', {
       method: 'DELETE',
       body: JSON.stringify({ id })
     })
@@ -226,19 +241,19 @@ export const programService = {
 
 // Intake Service
 export const intakeService = {
-  list: () => apiClient.request('/api/catalog/intakes'),
+  list: () => apiClient.request('/api/catalog?resource=intakes'),
   create: (data: { name: string; year: number; start_date: string; end_date: string; application_deadline: string; total_capacity: number; available_spots?: number }) =>
-    apiClient.request('/api/catalog/intakes', {
+    apiClient.request('/api/catalog?resource=intakes', {
       method: 'POST',
       body: JSON.stringify(data)
     }),
   update: (data: { id: string; name: string; year: number; start_date: string; end_date: string; application_deadline: string; total_capacity: number; available_spots?: number }) =>
-    apiClient.request('/api/catalog/intakes', {
+    apiClient.request('/api/catalog?resource=intakes', {
       method: 'PUT',
       body: JSON.stringify(data)
     }),
   delete: (id: string) =>
-    apiClient.request('/api/catalog/intakes', {
+    apiClient.request('/api/catalog?resource=intakes', {
       method: 'DELETE',
       body: JSON.stringify({ id })
     })

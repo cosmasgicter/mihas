@@ -1,11 +1,17 @@
-import { apiConfig } from '../lib/apiConfig'
+import { supabase } from '../lib/supabase'
 
 export class MCPService {
-  private static async makeRequest(endpoint: string, options: RequestInit = {}) {
-    const response = await fetch(`${apiConfig.baseURL}/api/mcp/${endpoint}`, {
+  private static async makeRequest(action: string, options: RequestInit = {}) {
+    // Get the current session token
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token) {
+      throw new Error('Authentication required')
+    }
+
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mcp-operations?action=${action}`, {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token')}`,
+        'Authorization': `Bearer ${session.access_token}`,
         ...options.headers,
       },
       ...options,
@@ -30,6 +36,9 @@ export class MCPService {
   }
 
   static async getTableInfo(tableName: string) {
-    return this.makeRequest(`schema?table=${encodeURIComponent(tableName)}`)
+    return this.makeRequest('schema', {
+      method: 'POST',
+      body: JSON.stringify({ table: tableName }),
+    })
   }
 }

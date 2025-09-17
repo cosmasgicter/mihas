@@ -4,7 +4,7 @@ test.describe('Microservices API Tests', () => {
   const API_BASE = 'http://localhost:3000'
 
   test('Auth service - login endpoint', async ({ request }) => {
-    const response = await request.post(`${API_BASE}/api/auth/login`, {
+    const response = await request.post(`${API_BASE}/api/auth?action=login`, {
       data: {
         email: 'test@example.com',
         password: 'wrongpassword'

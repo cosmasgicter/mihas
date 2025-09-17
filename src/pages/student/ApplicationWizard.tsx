@@ -602,7 +602,7 @@ export default function ApplicationWizard() {
         const apiBase = getApiBaseUrl()
         
         const { data: session } = await supabase.auth.getSession()
-        const response = await fetch(`${apiBase}/api/notifications/application-submitted`, {
+        const response = await fetch(`${apiBase}/api/notifications?action=application-submitted`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -8,7 +8,7 @@ async function testServices() {
   // Test Auth Service
   console.log('1. Testing Auth Service...')
   try {
-    const authResponse = await fetch(`${PRODUCTION_URL}/api/auth/login`, {
+    const authResponse = await fetch(`${PRODUCTION_URL}/api/auth?action=login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: 'test@test.com', password: 'wrong' })
@@ -43,7 +43,7 @@ async function testServices() {
   // Test Notifications Service
   console.log('4. Testing Notifications Service...')
   try {
-    const notifResponse = await fetch(`${PRODUCTION_URL}/api/notifications/send`, {
+    const notifResponse = await fetch(`${PRODUCTION_URL}/api/notifications?action=send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: 'test', type: 'test', title: 'Test', message: 'Test' })
