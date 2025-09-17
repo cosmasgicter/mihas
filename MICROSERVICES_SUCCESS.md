@@ -35,4 +35,4 @@ Status: 401 (Expected - no valid credentials provided)
 
 **All microservices are live and functional!**
 
-The MIHAS application now runs on a complete microservices architecture with independent, scalable API endpoints.
+The MIHAS application now runs on a complete microservices architecture with independent, scalable API endpoints. Yes
