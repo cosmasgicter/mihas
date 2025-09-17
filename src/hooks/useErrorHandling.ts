@@ -96,7 +96,10 @@ export function useErrorHandling(): UseErrorHandlingReturn {
       
       // Show user-friendly error message if enabled
       if (showUserError) {
-        console.error(`Error in ${sanitizeForLog(operationName)}:`, sanitizeForLog(error?.message || 'Unknown error'))
+        console.error('Operation error:', { 
+          operation: sanitizeForLog(operationName), 
+          error: sanitizeForLog(error?.message || 'Unknown error') 
+        })
       }
       
       return null

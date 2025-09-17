@@ -11,7 +11,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { applicationSessionManager } from '@/lib/applicationSession'
 import { draftManager } from '@/lib/draftManager'
 import { useDraftManager } from '@/hooks/useDraftManager'
-import { sanitizeForLog, safeJsonParse } from '@/lib/sanitize'
+import { sanitizeForLog, safeJsonParse, sanitizeForDisplay } from '@/lib/sanitize'
 import { getUserMetadata, getBestValue, calculateProfileCompletion } from '@/hooks/useProfileAutoPopulation'
 import { ProfileCompletionBadge } from '@/components/ui/ProfileAutoPopulationIndicator'
 import { 
@@ -195,7 +195,7 @@ export default function StudentDashboard() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
               <div>
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">
-                  🎓 Welcome back, {profile?.full_name?.split(' ')[0] || 'Student'}!
+                  🎓 Welcome back, {sanitizeForDisplay(profile?.full_name)?.split(' ')[0] || 'Student'}!
                 </h1>
                 <p className="text-lg sm:text-xl text-white/90">
                   Track your applications and manage your profile
@@ -460,23 +460,23 @@ export default function StudentDashboard() {
                       <div className="p-3 bg-gray-50 rounded-xl">
                         <span className="text-gray-600 text-xs uppercase tracking-wide">Full Name</span>
                         <p className="font-semibold text-gray-900">
-                          {getBestValue(profile?.full_name, metadata.full_name, user?.email?.split('@')[0])}
+                          {sanitizeForDisplay(getBestValue(profile?.full_name, metadata.full_name, user?.email?.split('@')[0]))}
                         </p>
                       </div>
                       <div className="p-3 bg-gray-50 rounded-xl">
                         <span className="text-gray-600 text-xs uppercase tracking-wide">Email</span>
-                        <p className="font-semibold text-gray-900 truncate">{user?.email || 'Not provided'}</p>
+                        <p className="font-semibold text-gray-900 truncate">{sanitizeForDisplay(user?.email) || 'Not provided'}</p>
                       </div>
                       <div className="p-3 bg-gray-50 rounded-xl">
                         <span className="text-gray-600 text-xs uppercase tracking-wide">Phone</span>
                         <p className="font-semibold text-gray-900">
-                          {getBestValue(profile?.phone, metadata.phone)}
+                          {sanitizeForDisplay(getBestValue(profile?.phone, metadata.phone))}
                         </p>
                       </div>
                       <div className="p-3 bg-gray-50 rounded-xl">
                         <span className="text-gray-600 text-xs uppercase tracking-wide">City</span>
                         <p className="font-semibold text-gray-900">
-                          {getBestValue(profile?.city || profile?.address, metadata.city)}
+                          {sanitizeForDisplay(getBestValue(profile?.city || profile?.address, metadata.city))}
                         </p>
                       </div>
                     </>

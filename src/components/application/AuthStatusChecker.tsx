@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { CheckCircle, XCircle, RefreshCw, AlertTriangle } from 'lucide-react'
+import { sanitizeForLog } from '@/lib/sanitizer'
 
 interface AuthStatusCheckerProps {
   onStatusChange?: (isAuthenticated: boolean) => void
@@ -48,7 +49,7 @@ export function AuthStatusChecker({ onStatusChange }: AuthStatusCheckerProps) {
           
           canSubmitApplication = !testError
         } catch (error) {
-          console.warn('Auth test query failed:', error)
+          console.warn('Auth test query failed:', { error: sanitizeForLog(error instanceof Error ? error.message : 'Unknown error') })
         }
       }
       
@@ -63,7 +64,8 @@ export function AuthStatusChecker({ onStatusChange }: AuthStatusCheckerProps) {
       onStatusChange?.(canSubmitApplication)
       
     } catch (error) {
-      console.error('Error checking auth status:', error)
+      const sanitizedError = sanitizeForLog(error instanceof Error ? error.message : 'Unknown error')
+      console.error('Error checking auth status:', { error: sanitizedError })
       setAuthStatus({
         isAuthenticated: false,
         hasValidSession: false,

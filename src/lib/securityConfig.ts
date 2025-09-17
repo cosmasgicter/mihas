@@ -1,287 +1,246 @@
-// Comprehensive security configuration for MIHAS/KATC application system
-import { sanitizeForLog } from './security'
+/**
+ * Security configuration and Content Security Policy setup
+ * Prevents code injection vulnerabilities including Function() constructor usage
+ */
 
-export interface SecurityConfig {
-  rateLimit: {
-    maxRequests: number
-    windowMinutes: number
-    blockDurationMinutes: number
-  }
-  fileUpload: {
-    maxSizeBytes: number
-    allowedTypes: string[]
-    scanForMalware: boolean
-  }
-  session: {
-    timeoutMinutes: number
-    refreshThresholdMinutes: number
-    maxConcurrentSessions: number
-  }
-  validation: {
-    maxInputLength: number
-    allowedCharacters: RegExp
-    sanitizeHtml: boolean
-  }
-  audit: {
-    logAllActions: boolean
-    retentionDays: number
-    sensitiveFields: string[]
+import { initializeSecurityPatches } from './securityPatches'
+
+/**
+ * Content Security Policy configuration
+ */
+export const CSP_CONFIG = {
+  'default-src': ["'self'"],
+  'script-src': [
+    "'self'",
+    "'unsafe-inline'", // Required for Vite in development
+    "https://challenges.cloudflare.com", // Cloudflare Turnstile
+    "https://*.supabase.co"
+  ],
+  'style-src': [
+    "'self'",
+    "'unsafe-inline'", // Required for Tailwind CSS
+    "https://fonts.googleapis.com"
+  ],
+  'font-src': [
+    "'self'",
+    "https://fonts.gstatic.com"
+  ],
+  'img-src': [
+    "'self'",
+    "data:",
+    "blob:",
+    "https://*.supabase.co"
+  ],
+  'connect-src': [
+    "'self'",
+    "https://*.supabase.co",
+    "wss://*.supabase.co"
+  ],
+  'object-src': ["'none'"],
+  'base-uri': ["'self'"],
+  'form-action': ["'self'"],
+  'frame-ancestors': ["'none'"],
+  'upgrade-insecure-requests': []
+}
+
+/**
+ * Generate CSP header string
+ */
+export function generateCSPHeader(): string {
+  return Object.entries(CSP_CONFIG)
+    .map(([directive, sources]) => {
+      if (sources.length === 0) {
+        return directive.replace(/-/g, '-')
+      }
+      return `${directive.replace(/-/g, '-')} ${sources.join(' ')}`
+    })
+    .join('; ')
+}
+
+/**
+ * Security headers configuration
+ */
+export const SECURITY_HEADERS = {
+  'Content-Security-Policy': generateCSPHeader(),
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
+}
+
+/**
+ * Disable dangerous global functions to prevent code injection
+ */
+export function disableDangerousFunctions(): void {
+  if (typeof window !== 'undefined') {
+    // Override Function constructor to prevent code injection
+    if (window.Function) {
+      window.Function = function(...args: any[]) {
+        // SECURE: This is a security override to block Function constructor
+        console.warn('Function constructor usage blocked for security')
+        throw new Error('Function constructor is disabled for security reasons')
+      } as any
+    }
+    
+    // Override eval to prevent code injection
+    if (window.eval) {
+      window.eval = function(code: string) {
+        // SECURE: This is a security override to block eval usage
+        console.warn('eval() usage blocked for security')
+        throw new Error('eval() is disabled for security reasons')
+      }
+    }
   }
 }
 
-export const SECURITY_CONFIG: SecurityConfig = {
-  rateLimit: {
-    maxRequests: 100,
-    windowMinutes: 60,
-    blockDurationMinutes: 15
-  },
-  fileUpload: {
-    maxSizeBytes: 10 * 1024 * 1024, // 10MB
-    allowedTypes: ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
-    scanForMalware: true
-  },
-  session: {
-    timeoutMinutes: 30,
-    refreshThresholdMinutes: 5,
-    maxConcurrentSessions: 3
-  },
-  validation: {
-    maxInputLength: 5000,
-    allowedCharacters: /^[a-zA-Z0-9\s\-_.@#$%&*()+=\[\]{}|\\:";'<>?,./!~`]*$/,
-    sanitizeHtml: true
-  },
-  audit: {
-    logAllActions: true,
-    retentionDays: 90,
-    sensitiveFields: ['password', 'token', 'secret', 'key', 'nrc_number', 'passport_number']
-  }
-}
-
-export class SecurityValidator {
-  static validateInput(input: string, maxLength?: number): boolean {
-    if (!input) return true
-    
-    const limit = maxLength || SECURITY_CONFIG.validation.maxInputLength
-    if (input.length > limit) {
-      console.warn(`Input exceeds maximum length: ${sanitizeForLog(String(input.length))} > ${limit}`)
-      return false
-    }
-    
-    if (!SECURITY_CONFIG.validation.allowedCharacters.test(input)) {
-      console.warn('Input contains invalid characters')
-      return false
-    }
-    
-    return true
+/**
+ * Input sanitization utilities
+ */
+export class SecuritySanitizer {
+  /**
+   * Sanitize HTML content to prevent XSS
+   */
+  static sanitizeHTML(html: string): string {
+    const div = document.createElement('div')
+    div.textContent = html
+    return div.innerHTML
   }
   
+  /**
+   * Sanitize user input for safe display
+   */
   static sanitizeInput(input: string): string {
-    if (!input) return ''
-    
-    // Remove dangerous patterns
-    let sanitized = input
-      .replace(/<script[^>]*>.*?<\/script>/gi, '') // Remove script tags
-      .replace(/javascript:/gi, '') // Remove javascript: URLs
-      .replace(/on\w+\s*=/gi, '') // Remove event handlers
-      .replace(/[<>]/g, '') // Remove angle brackets
-      .trim()
-    
-    // Limit length
-    if (sanitized.length > SECURITY_CONFIG.validation.maxInputLength) {
-      sanitized = sanitized.substring(0, SECURITY_CONFIG.validation.maxInputLength)
-    }
-    
-    return sanitized
-  }
-  
-  static validateFileUpload(file: File): { valid: boolean; error?: string } {
-    // Check file size
-    if (file.size > SECURITY_CONFIG.fileUpload.maxSizeBytes) {
-      return {
-        valid: false,
-        error: `File size exceeds limit: ${Math.round(file.size / 1024 / 1024)}MB > ${Math.round(SECURITY_CONFIG.fileUpload.maxSizeBytes / 1024 / 1024)}MB`
-      }
-    }
-    
-    // Check file type
-    const extension = file.name.split('.').pop()?.toLowerCase()
-    if (!extension || !SECURITY_CONFIG.fileUpload.allowedTypes.includes(extension)) {
-      return {
-        valid: false,
-        error: `File type not allowed: ${extension}. Allowed types: ${SECURITY_CONFIG.fileUpload.allowedTypes.join(', ')}`
-      }
-    }
-    
-    // Check file name for dangerous patterns
-    if (file.name.includes('..') || file.name.includes('/') || file.name.includes('\\')) {
-      return {
-        valid: false,
-        error: 'Invalid file name'
-      }
-    }
-    
-    return { valid: true }
-  }
-  
-  static validateEmail(email: string): boolean {
-    if (!email) return false
-    
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return emailRegex.test(email) && 
-           email.length <= 254 && 
-           !email.includes('..') &&
-           this.validateInput(email)
-  }
-  
-  static validatePhone(phone: string): boolean {
-    if (!phone) return false
-    
-    // Zambian phone number format: +260XXXXXXXXX or 0XXXXXXXXX
-    const phoneRegex = /^(\+260|0)[0-9]{9}$/
-    return phoneRegex.test(phone.replace(/\s/g, ''))
-  }
-  
-  static validateNRC(nrc: string): boolean {
-    if (!nrc) return false
-    
-    // Zambian NRC format: XXXXXX/XX/X
-    const nrcRegex = /^[0-9]{6}\/[0-9]{2}\/[0-9]$/
-    return nrcRegex.test(nrc)
-  }
-  
-  static validateGrade(grade: number): boolean {
-    // Zambian grading system: 1-9 (1 is best, 9 is worst)
-    return Number.isInteger(grade) && grade >= 1 && grade <= 9
-  }
-}
-
-export class SecurityAuditor {
-  private static sensitiveDataRegex = new RegExp(
-    SECURITY_CONFIG.audit.sensitiveFields.join('|'), 
-    'gi'
-  )
-  
-  static sanitizeForAudit(data: any): any {
-    if (typeof data === 'string') {
-      return this.sanitizeString(data)
-    }
-    
-    if (Array.isArray(data)) {
-      return data.map(item => this.sanitizeForAudit(item))
-    }
-    
-    if (typeof data === 'object' && data !== null) {
-      const sanitized: any = {}
-      for (const [key, value] of Object.entries(data)) {
-        if (this.isSensitiveField(key)) {
-          sanitized[key] = '[REDACTED]'
-        } else {
-          sanitized[key] = this.sanitizeForAudit(value)
+    return input
+      .replace(/[<>\"'&]/g, (match) => {
+        const entities: Record<string, string> = {
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#x27;',
+          '&': '&amp;'
         }
+        return entities[match] || match
+      })
+      .trim()
+      .substring(0, 1000) // Limit length
+  }
+  
+  /**
+   * Sanitize URL to prevent javascript: and data: schemes
+   */
+  static sanitizeURL(url: string): string {
+    try {
+      const urlObj = new URL(url)
+      const allowedProtocols = ['http:', 'https:', 'mailto:']
+      
+      if (!allowedProtocols.includes(urlObj.protocol)) {
+        throw new Error('Protocol not allowed')
       }
-      return sanitized
+      
+      return urlObj.toString()
+    } catch {
+      return '#'
+    }
+  }
+  
+  /**
+   * Validate and sanitize JSON input
+   */
+  static sanitizeJSON(jsonString: string): any {
+    try {
+      // Remove potentially dangerous patterns
+      const cleaned = jsonString
+        .replace(/__proto__/g, '')
+        .replace(/constructor/g, '')
+        .replace(/prototype/g, '')
+      
+      const parsed = JSON.parse(cleaned)
+      
+      // Remove dangerous properties from parsed object
+      if (parsed && typeof parsed === 'object') {
+        this.removeDangerousProperties(parsed)
+      }
+      
+      return parsed
+    } catch (error) {
+      throw new Error('Invalid JSON input')
+    }
+  }
+  
+  /**
+   * Recursively remove dangerous properties from objects
+   */
+  private static removeDangerousProperties(obj: any): void {
+    if (!obj || typeof obj !== 'object') return
+    
+    const dangerousProps = ['__proto__', 'constructor', 'prototype']
+    
+    for (const prop of dangerousProps) {
+      delete obj[prop]
     }
     
-    return data
-  }
-  
-  private static sanitizeString(str: string): string {
-    // Redact sensitive patterns
-    return str.replace(this.sensitiveDataRegex, '[REDACTED]')
-  }
-  
-  private static isSensitiveField(fieldName: string): boolean {
-    return SECURITY_CONFIG.audit.sensitiveFields.some(
-      sensitive => fieldName.toLowerCase().includes(sensitive.toLowerCase())
-    )
-  }
-  
-  static async logSecurityEvent(
-    event: string, 
-    details: any, 
-    severity: 'low' | 'medium' | 'high' | 'critical' = 'medium'
-  ): Promise<void> {
-    try {
-      const sanitizedDetails = this.sanitizeForAudit(details)
-      const logEntry = {
-        timestamp: new Date().toISOString(),
-        event: sanitizeForLog(event),
-        severity,
-        details: sanitizedDetails,
-        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'
+    for (const value of Object.values(obj)) {
+      if (value && typeof value === 'object') {
+        this.removeDangerousProperties(value)
       }
-      
-      // Log to console (in production, this would go to a security monitoring system)
-      console.warn('SECURITY EVENT:', logEntry)
-      
-      // In production, send to security monitoring service
-      // await sendToSecurityMonitoring(logEntry)
-    } catch (error) {
-      console.error('Failed to log security event:', sanitizeForLog(String(error)))
     }
   }
 }
 
+/**
+ * Rate limiting for security
+ */
 export class RateLimiter {
-  private static requests = new Map<string, { count: number; resetTime: number }>()
+  private static attempts: Map<string, number[]> = new Map()
   
-  static checkRateLimit(identifier: string): boolean {
+  /**
+   * Check if action is rate limited
+   */
+  static isRateLimited(key: string, maxAttempts: number = 5, windowMs: number = 60000): boolean {
     const now = Date.now()
-    const windowMs = SECURITY_CONFIG.rateLimit.windowMinutes * 60 * 1000
+    const attempts = this.attempts.get(key) || []
     
-    const record = this.requests.get(identifier)
+    // Remove old attempts outside the window
+    const validAttempts = attempts.filter(time => now - time < windowMs)
     
-    if (!record || now > record.resetTime) {
-      // Reset or create new record
-      this.requests.set(identifier, {
-        count: 1,
-        resetTime: now + windowMs
-      })
+    if (validAttempts.length >= maxAttempts) {
       return true
     }
     
-    if (record.count >= SECURITY_CONFIG.rateLimit.maxRequests) {
-      SecurityAuditor.logSecurityEvent(
-        'rate_limit_exceeded',
-        { identifier, count: record.count },
-        'medium'
-      )
-      return false
-    }
+    // Add current attempt
+    validAttempts.push(now)
+    this.attempts.set(key, validAttempts)
     
-    record.count++
-    return true
+    return false
   }
   
-  static getRemainingRequests(identifier: string): number {
-    const record = this.requests.get(identifier)
-    if (!record || Date.now() > record.resetTime) {
-      return SECURITY_CONFIG.rateLimit.maxRequests
-    }
-    
-    return Math.max(0, SECURITY_CONFIG.rateLimit.maxRequests - record.count)
-  }
-  
-  static cleanup(): void {
-    const now = Date.now()
-    for (const [key, record] of this.requests.entries()) {
-      if (now > record.resetTime) {
-        this.requests.delete(key)
-      }
-    }
+  /**
+   * Clear rate limit for a key
+   */
+  static clearRateLimit(key: string): void {
+    this.attempts.delete(key)
   }
 }
 
-// Initialize cleanup interval
-if (typeof window !== 'undefined') {
-  setInterval(() => {
-    RateLimiter.cleanup()
-  }, 5 * 60 * 1000) // Cleanup every 5 minutes
-}
-
-export default {
-  SECURITY_CONFIG,
-  SecurityValidator,
-  SecurityAuditor,
-  RateLimiter
+/**
+ * Initialize security measures
+ */
+export function initializeSecurity(): void {
+  // Disable dangerous functions
+  disableDangerousFunctions()
+  
+  // Apply security patches
+  initializeSecurityPatches()
+  
+  // Set up CSP if in browser environment
+  if (typeof document !== 'undefined') {
+    const meta = document.createElement('meta')
+    meta.httpEquiv = 'Content-Security-Policy'
+    meta.content = generateCSPHeader()
+    document.head.appendChild(meta)
+  }
+  
+  console.log('Security measures initialized')
 }

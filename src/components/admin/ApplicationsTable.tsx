@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { formatDate, getStatusColor } from '@/lib/utils'
-import { sanitizeText } from '@/lib/sanitize'
+import { sanitizeForDisplay } from '@/lib/sanitize'
 
 interface ApplicationsTableProps {
   applications: any[]
@@ -114,19 +114,19 @@ export function ApplicationsTable({
               </td>
               <td className="px-6 py-4">
                 <div className="space-y-1">
-                  <div className="font-bold text-secondary">{sanitizeText(application.full_name)}</div>
-                  <div className="text-sm text-secondary/70">{sanitizeText(application.email)}</div>
-                  <div className="text-xs text-secondary/60 font-mono">#{sanitizeText(application.application_number)}</div>
+                  <div className="font-bold text-secondary">{sanitizeForDisplay(application.full_name)}</div>
+                  <div className="text-sm text-secondary/70">{sanitizeForDisplay(application.email)}</div>
+                  <div className="text-xs text-secondary/60 font-mono">#{sanitizeForDisplay(application.application_number)}</div>
                   {application.phone && (
-                    <div className="text-xs text-secondary/60">{sanitizeText(application.phone)}</div>
+                    <div className="text-xs text-secondary/60">{sanitizeForDisplay(application.phone)}</div>
                   )}
                 </div>
               </td>
               <td className="px-6 py-4">
                 <div className="space-y-1">
-                  <div className="font-medium text-secondary">{sanitizeText(application.program)}</div>
-                  <div className="text-sm text-secondary/70">{sanitizeText(application.intake)}</div>
-                  <div className="text-xs text-secondary/60">{sanitizeText(application.institution)}</div>
+                  <div className="font-medium text-secondary">{sanitizeForDisplay(application.program)}</div>
+                  <div className="text-sm text-secondary/70">{sanitizeForDisplay(application.intake)}</div>
+                  <div className="text-xs text-secondary/60">{sanitizeForDisplay(application.institution)}</div>
                 </div>
               </td>
               <td className="px-6 py-4">
@@ -136,7 +136,7 @@ export function ApplicationsTable({
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
                       getStatusColor(application.status)
                     }`}>
-                      {sanitizeText(application.status.replace('_', ' ').toUpperCase())}
+                      {sanitizeForDisplay(application.status.replace('_', ' ').toUpperCase())}
                     </span>
                   </div>
                   {application.payment_status && (
@@ -145,7 +145,7 @@ export function ApplicationsTable({
                       application.payment_status === 'rejected' ? 'bg-red-100 text-red-800' :
                       'bg-yellow-100 text-yellow-800'
                     }`}>
-                      Payment: {sanitizeText(application.payment_status)}
+                      Payment: {sanitizeForDisplay(application.payment_status)}
                     </div>
                   )}
                 </div>

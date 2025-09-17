@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { sanitizeForLog } from './security'
 
 // Supabase project configuration from environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -37,7 +38,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 // Enhanced session management
 supabase.auth.onAuthStateChange(async (event, session) => {
-  console.log('Auth event:', event)
+  console.log('Auth event:', sanitizeForLog(event))
   
   if (event === 'TOKEN_REFRESHED') {
     console.log('Token refreshed successfully')
@@ -52,7 +53,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
   }
   
   if (event === 'SIGNED_IN' && session) {
-    console.log('User signed in:', session.user?.id)
+    console.log('User signed in:', sanitizeForLog(session.user?.id || ''))
   }
 })
 

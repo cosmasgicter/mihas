@@ -3,6 +3,7 @@ import { User } from '@supabase/supabase-js'
 import { supabase, UserProfile } from '@/lib/supabase'
 import { sanitizeForLog } from '@/lib/security'
 import { sanitizeForDisplay } from '@/lib/sanitize'
+import { secureDisplay } from '@/lib/secureDisplay'
 import { sessionManager } from '@/lib/sessionManager'
 
 interface UserRole {
@@ -89,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (event, session) => {
         if (!mounted) return
         
-        console.log('AuthContext: Auth state change:', event)
+        console.log('AuthContext: Auth state change:', sanitizeForLog(event))
         
         // Don't reset user on token refresh or signed in events
         if ((event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') && session?.user) {
@@ -159,7 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (data) {
         const sanitizedProfile = Object.entries(data).reduce((acc, [key, value]) => {
-          acc[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value
+          acc[key] = typeof value === 'string' ? secureDisplay.text(value) : value
           return acc
         }, {} as UserProfile)
         setProfile(sanitizedProfile)
@@ -224,7 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signUp(email: string, password: string, userData: any) {
     const sanitizedUserData = Object.entries(userData).reduce((acc, [key, value]) => {
-      acc[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value
+      acc[key] = typeof value === 'string' ? secureDisplay.text(value) : value
       return acc
     }, {} as any)
 
@@ -333,7 +334,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (value === null || value === undefined) {
         acc[key] = value
       } else if (typeof value === 'string') {
-        acc[key] = sanitizeForDisplay(value.trim())
+        acc[key] = secureDisplay.text(value.trim())
       } else {
         acc[key] = value
       }

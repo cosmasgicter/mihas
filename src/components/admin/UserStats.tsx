@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Users, Shield, User, TrendingUp, Calendar } from 'lucide-react'
 import { useUserManagement } from '@/hooks/useUserManagement'
+import { sanitizeForDisplay } from '@/lib/sanitize'
 
 interface UserStatsProps {
   users: any[]
@@ -170,8 +171,8 @@ export function UserStats({ users, className = '' }: UserStatsProps) {
                 <div className="flex items-center space-x-3">
                   {getRoleIcon(user.role)}
                   <div>
-                    <p className="font-medium text-gray-900">{user.full_name || 'No name'}</p>
-                    <p className="text-sm text-gray-500">{user.email}</p>
+                    <p className="font-medium text-gray-900">{sanitizeForDisplay(user.full_name) || 'No name'}</p>
+                    <p className="text-sm text-gray-500">{sanitizeForDisplay(user.email)}</p>
                   </div>
                 </div>
                 <div className="text-right">

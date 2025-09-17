@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react'
+import { secureTimeout } from '@/lib/secureExecution'
 
 interface Toast {
   id: string
@@ -41,7 +42,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     
     setToasts(prev => [...prev, newToast])
     
-    setTimeout(() => {
+    secureTimeout(() => {
       removeToast(id)
     }, toast.duration || 5000)
   }, [removeToast])

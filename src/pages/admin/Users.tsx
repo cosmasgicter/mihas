@@ -14,6 +14,7 @@ import { UserExport } from '@/components/admin/UserExport'
 import { UserImport } from '@/components/admin/UserImport'
 import { ArrowLeft, Users, Shield, User, Plus, Edit, Trash2, Search, Filter, UserPlus, Settings, Eye, EyeOff, BarChart3, CheckSquare, Square, Lock, Clock, Download, Upload } from 'lucide-react'
 import { sanitizeForLog } from '@/lib/security'
+import { sanitizeForDisplay } from '@/lib/sanitize'
 
 interface CreateUserForm {
   email: string
@@ -276,7 +277,7 @@ export default function AdminUsers() {
       setUpdating(permissionsUser.user_id)
       // In a real implementation, you would save permissions to a separate table
       // For now, we'll just log them
-      console.log('Saving permissions for user:', permissionsUser.user_id, permissions)
+      console.log('Saving permissions for user:', sanitizeForLog(permissionsUser.user_id), sanitizeForLog(JSON.stringify(permissions)))
       
       // You could extend the user_profiles table or create a separate permissions table
       // const { error } = await supabase
@@ -504,11 +505,11 @@ export default function AdminUsers() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-bold text-lg text-gray-900 truncate">
-                            {user.full_name || 'No name provided'}
+                            {sanitizeForDisplay(user.full_name) || 'No name provided'}
                           </h3>
-                          <p className="text-sm text-gray-600">{user.email}</p>
+                          <p className="text-sm text-gray-600">{sanitizeForDisplay(user.email)}</p>
                           {user.phone && (
-                            <p className="text-sm text-gray-500">{user.phone}</p>
+                            <p className="text-sm text-gray-500">{sanitizeForDisplay(user.phone)}</p>
                           )}
                           <p className="text-xs text-gray-400 mt-1">
                             ID: {user.user_id.slice(0, 8)}...
@@ -622,7 +623,7 @@ export default function AdminUsers() {
                               {getRoleIcon(user.role)}
                               <div className="ml-3">
                                 <div className="text-sm font-semibold text-gray-900">
-                                  {user.full_name || 'No name provided'}
+                                  {sanitizeForDisplay(user.full_name) || 'No name provided'}
                                 </div>
                                 <div className="text-xs text-gray-500 font-mono">
                                   ID: {user.user_id.slice(0, 8)}...
@@ -631,9 +632,9 @@ export default function AdminUsers() {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900">{user.email}</div>
+                            <div className="text-sm text-gray-900">{sanitizeForDisplay(user.email)}</div>
                             {user.phone && (
-                              <div className="text-sm text-gray-500">{user.phone}</div>
+                              <div className="text-sm text-gray-500">{sanitizeForDisplay(user.phone)}</div>
                             )}
                           </td>
                           <td className="px-6 py-4">
@@ -871,7 +872,7 @@ export default function AdminUsers() {
           </DialogHeader>
           <div className="py-4">
             <p className="text-gray-600">
-              Are you sure you want to delete <strong>{selectedUser?.full_name}</strong>? 
+              Are you sure you want to delete <strong>{sanitizeForDisplay(selectedUser?.full_name)}</strong>? 
               This action cannot be undone and will remove all user data.
             </p>
             <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">

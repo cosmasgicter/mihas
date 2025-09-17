@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sanitizeForLog } from './security'
 
 export interface NotificationChannel {
   type: 'email' | 'sms' | 'whatsapp' | 'push' | 'in_app'
@@ -197,7 +198,7 @@ export class MultiChannelNotificationService {
       if (!user.user?.email) return false
 
       // In production, integrate with email service (SendGrid, AWS SES, etc.)
-      console.log('Email sent:', { to: user.user.email, subject, content })
+      console.log('Email sent:', { to: sanitizeForLog(user.user.email || ''), subject: sanitizeForLog(subject), content: sanitizeForLog(content) })
       return true
     } catch (error) {
       const sanitizedError = error instanceof Error ? error.message : 'Unknown error'
@@ -209,7 +210,7 @@ export class MultiChannelNotificationService {
   private async sendSMS(userId: string, content: string): Promise<boolean> {
     try {
       // In production, integrate with SMS service (Twilio, AWS SNS, etc.)
-      console.log('SMS sent:', { userId, content })
+      console.log('SMS sent:', { userId: sanitizeForLog(userId), content: sanitizeForLog(content) })
       return true
     } catch (error) {
       const sanitizedError = error instanceof Error ? error.message : 'Unknown error'
@@ -221,7 +222,7 @@ export class MultiChannelNotificationService {
   private async sendWhatsApp(userId: string, content: string): Promise<boolean> {
     try {
       // In production, integrate with WhatsApp Business API
-      console.log('WhatsApp sent:', { userId, content })
+      console.log('WhatsApp sent:', { userId: sanitizeForLog(userId), content: sanitizeForLog(content) })
       return true
     } catch (error) {
       const sanitizedError = error instanceof Error ? error.message : 'Unknown error'
@@ -233,7 +234,7 @@ export class MultiChannelNotificationService {
   private async sendPushNotification(userId: string, title: string, content: string): Promise<boolean> {
     try {
       // In production, integrate with push notification service
-      console.log('Push notification sent:', { userId, title, content })
+      console.log('Push notification sent:', { userId: sanitizeForLog(userId), title: sanitizeForLog(title), content: sanitizeForLog(content) })
       return true
     } catch (error) {
       const sanitizedError = error instanceof Error ? error.message : 'Unknown error'

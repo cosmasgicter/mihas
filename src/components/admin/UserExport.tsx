@@ -152,10 +152,11 @@ export function UserExport({ users, isOpen, onClose }: UserExportProps) {
       return exportOptions.fields.map(fieldId => {
         const value = (user as any)[fieldId]
         if (value === null || value === undefined) return ''
-        if (typeof value === 'string' && value.includes(',')) {
-          return `"${value}"`
+        if (typeof value === 'string') {
+          const sanitized = String(value).replace(/["\r\n]/g, '').substring(0, 1000)
+          return sanitized.includes(',') ? `"${sanitized}"` : sanitized
         }
-        return value
+        return String(value || '').substring(0, 1000)
       })
     })
 
@@ -178,7 +179,8 @@ export function UserExport({ users, isOpen, onClose }: UserExportProps) {
     const exportData = data.map(user => {
       const filtered: any = {}
       exportOptions.fields.forEach(fieldId => {
-        filtered[fieldId] = (user as any)[fieldId]
+        const value = (user as any)[fieldId]
+        filtered[fieldId] = typeof value === 'string' ? String(value).substring(0, 1000) : value
       })
       return filtered
     })
@@ -359,7 +361,7 @@ export function UserExport({ users, isOpen, onClose }: UserExportProps) {
                         : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
                     }`}
                   >
-                    {role.replace(/[^a-zA-Z0-9_]/g, '').replace(/_/g, ' ').toUpperCase()}
+                    {role.replace(/_/g, ' ').toUpperCase()}
                   </button>
                 ))}
               </div>

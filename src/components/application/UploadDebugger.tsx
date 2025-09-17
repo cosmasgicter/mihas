@@ -18,7 +18,7 @@ export function UploadDebugger() {
     const timestamp = new Date().toLocaleTimeString()
     const sanitizedMessage = sanitizeForLog(message)
     setLogs(prev => [...prev, `[${timestamp}] ${sanitizedMessage}`])
-    console.log(`[Upload Debug] ${sanitizedMessage}`)
+    console.log('[Upload Debug]', sanitizedMessage)
   }
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {

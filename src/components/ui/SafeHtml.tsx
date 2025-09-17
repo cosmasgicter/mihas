@@ -16,10 +16,9 @@ export const SafeHtml: React.FC<SafeHtmlProps> = ({
   const sanitizedHtml = sanitizeHtml(html)
   
   return (
-    <Tag 
-      className={className}
-      dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-    />
+    <Tag className={className}>
+      {sanitizedHtml}
+    </Tag>
   )
 }
 

@@ -34,13 +34,13 @@ export class EmailService {
         })
 
       if (error) {
-        console.error('Failed to queue email notification:', sanitizeForLog(error.message))
+        console.error('Failed to queue email notification:', { error: sanitizeForLog(error.message) })
         return false
       }
 
       return true
     } catch (error) {
-      console.error('Error queueing email notification:', sanitizeForLog(String(error)))
+      console.error('Error queueing email notification:', { error: sanitizeForLog(String(error)) })
       return false
     }
   }
@@ -66,7 +66,7 @@ export class EmailService {
 
     const template = EMAIL_TEMPLATES[status as keyof typeof EMAIL_TEMPLATES]
     if (!template) {
-      console.error('Invalid email template status:', sanitizeForLog(status))
+      console.error('Invalid email template status:', { status: sanitizeForLog(status) })
       return false
     }
 
@@ -77,8 +77,8 @@ export class EmailService {
     return this.queueEmailNotification({
       applicationId,
       recipientEmail: sanitizedEmail,
-      subject: template.subject(sanitizedProgram),
-      body: template.body(sanitizedUserName, sanitizedProgram, sanitizedAppNumber)
+      subject: this.sanitizeHtmlContent(template.subject(sanitizedProgram)),
+      body: this.sanitizeHtmlContent(template.body(sanitizedUserName, sanitizedProgram, sanitizedAppNumber))
     })
   }
 }

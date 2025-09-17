@@ -38,6 +38,7 @@ import { EnhancedDashboard } from '@/components/admin/EnhancedDashboard'
 import { QuickActionsPanel } from '@/components/admin/QuickActionsPanel'
 import { PredictiveDashboard } from '@/components/admin/PredictiveDashboard'
 import { workflowAutomation } from '@/lib/workflowAutomation'
+import { sanitizeForDisplay } from '@/lib/sanitize'
 
 interface DashboardStats {
   totalApplications: number
@@ -149,7 +150,7 @@ export default function AdminDashboard() {
       const activities: RecentActivity[] = (data || []).map(app => ({
         id: app.id,
         type: app.status === 'approved' ? 'approval' : app.status === 'rejected' ? 'rejection' : 'application',
-        message: `${app.full_name} - Application ${app.status}`,
+        message: `${sanitizeForDisplay(app.full_name)} - Application ${app.status}`,
         timestamp: app.updated_at || app.created_at,
         user: app.full_name
       }))
@@ -236,7 +237,7 @@ export default function AdminDashboard() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                 <div>
                   <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">
-                    👋 Welcome back, {profile?.full_name || 'Admin'}!
+                    👋 Welcome back, {sanitizeForDisplay(profile?.full_name) || 'Admin'}!
                   </h1>
                   <p className="text-lg sm:text-xl text-white/90 mb-4">
                     Here's your system overview for today

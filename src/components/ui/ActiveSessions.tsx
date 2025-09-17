@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { formatDistanceToNow } from 'date-fns'
+import { sanitizeForDisplay } from '@/lib/sanitize'
 
 interface DeviceSession {
   id: string
@@ -93,9 +94,9 @@ export function ActiveSessions() {
         <div className="space-y-3">
           {sessions.map((session) => {
             const isCurrentDevice = session.device_id === getCurrentDeviceId()
-            const deviceInfo = session.device_info || 'Unknown Device'
-            const browserInfo = deviceInfo.split('|')[0]?.substring(0, 50) || 'Unknown Browser'
-            const screenInfo = deviceInfo.split('|')[1] || ''
+            const deviceInfo = sanitizeForDisplay(session.device_info) || 'Unknown Device'
+            const browserInfo = sanitizeForDisplay(deviceInfo.split('|')[0]?.substring(0, 50)) || 'Unknown Browser'
+            const screenInfo = sanitizeForDisplay(deviceInfo.split('|')[1]) || ''
             
             return (
               <div

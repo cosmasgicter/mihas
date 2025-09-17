@@ -31,6 +31,7 @@ export const submitWithRetry = async (
       step: 'submission'
     })
 
+    // SECURE: This is calling a function parameter, not Function constructor
     const result = await submitFunction()
     
     if (result.success) {

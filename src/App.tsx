@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { AdminRoute } from '@/components/AdminRoute'
 import { ToastProvider } from '@/components/ui/Toast'
+import { initializeSecurity } from '@/lib/securityConfig'
 
 import { OfflineIndicator } from '@/components/ui/OfflineIndicator'
 import { AuthDebug } from '@/components/ui/AuthDebug'
@@ -52,6 +53,11 @@ const queryClient = new QueryClient({
 })
 
 function App() {
+  useEffect(() => {
+    // Initialize security measures on app startup
+    initializeSecurity()
+  }, [])
+  
   // useEffect(() => {
   //   const trackPageLoad = () => {
   //     monitoring.trackMetric('page_load', 1, { 

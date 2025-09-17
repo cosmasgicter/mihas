@@ -57,7 +57,7 @@ class OfflineSyncService {
           
           const attempts = this.retryAttempts.get(item.id) || 0
           if (attempts >= this.maxRetries) {
-            console.error(`Max retries reached for item ${sanitizeForLog(String(item.id))}, removing from queue`)
+            console.error('Max retries reached for item', sanitizeForLog(String(item.id)), 'removing from queue')
             await offlineStorage.remove(item.id)
             this.retryAttempts.delete(item.id)
           } else {

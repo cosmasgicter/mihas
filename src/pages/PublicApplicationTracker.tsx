@@ -8,6 +8,7 @@ import { AnimatedCard } from '@/components/ui/AnimatedCard'
 import { formatDate, getStatusColor } from '@/lib/utils'
 import { validateApplicationNumber } from '@/lib/applicationNumberGenerator'
 import { motion, AnimatePresence } from 'framer-motion'
+import { sanitizeForDisplay } from '@/lib/sanitize'
 import { 
   Search, 
   CheckCircle, 

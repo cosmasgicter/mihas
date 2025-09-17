@@ -214,7 +214,7 @@ export default function ApplicationWizard() {
           }
         }
       } catch (error) {
-        console.error('Error loading existing draft application:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
+        console.error('Error loading existing draft application:', { error: sanitizeForLog(error instanceof Error ? error.message : 'Unknown error') })
       } finally {
         setRestoringDraft(false)
       }
@@ -280,7 +280,7 @@ export default function ApplicationWizard() {
       setDraftSaved(true)
       setTimeout(() => setDraftSaved(false), 2000)
     } catch (error) {
-      console.error('Error saving draft:', sanitizeForLog(error))
+      console.error('Error saving draft:', { error: sanitizeForLog(error instanceof Error ? error.message : 'Unknown error') })
     } finally {
       setIsDraftSaving(false)
     }
@@ -301,7 +301,7 @@ export default function ApplicationWizard() {
       if (error) throw error
       setSubjects(data || [])
     } catch (err) {
-      console.error('Error loading subjects:', sanitizeForLog(err instanceof Error ? err.message : 'Unknown error'))
+      console.error('Error loading subjects:', { error: sanitizeForLog(err instanceof Error ? err.message : 'Unknown error') })
     }
   }
 
@@ -384,7 +384,7 @@ export default function ApplicationWizard() {
       
       return result.url!
     } catch (error) {
-      console.error('File upload error:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
+      console.error('File upload error:', { error: sanitizeForLog(error instanceof Error ? error.message : 'Unknown error') })
       // Reset progress on error
       setUploadProgress(prev => {
         const newProgress = { ...prev }
@@ -486,7 +486,7 @@ export default function ApplicationWizard() {
       // Check eligibility (advisory only, don't block)
       if (selectedProgram && eligibilityCheck && !eligibilityCheck.eligible) {
         // Show warning but allow to continue
-        console.log('Eligibility advisory:', eligibilityCheck.message)
+        console.log('Eligibility advisory:', { message: sanitizeForLog(eligibilityCheck.message) })
       }
       
       if (!resultSlipFile) {
@@ -613,7 +613,7 @@ export default function ApplicationWizard() {
         throw new Error('Application not found or access denied')
       }
       
-      console.log('Application submitted successfully:', updatedApp.id)
+      console.log('Application submitted successfully:', { applicationId: sanitizeForLog(updatedApp.id) })
       
       // Clear saved draft on successful submission
       try {
@@ -628,7 +628,7 @@ export default function ApplicationWizard() {
       
       setSuccess(true)
     } catch (err: any) {
-      console.error('Submission error:', sanitizeForLog(err instanceof Error ? err.message : 'Unknown error'))
+      console.error('Submission error:', { error: sanitizeForLog(err instanceof Error ? err.message : 'Unknown error') })
       let errorMessage = 'Failed to submit application'
       
       if (err instanceof Error) {
@@ -1724,7 +1724,7 @@ export default function ApplicationWizard() {
         currentStep={currentStep}
         onSuggestionApply={(suggestion) => {
           // Handle AI suggestions
-          console.log('AI Suggestion:', suggestion)
+          console.log('AI Suggestion:', { suggestion: sanitizeForLog(JSON.stringify(suggestion)) })
         }}
       />
     </div>

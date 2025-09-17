@@ -104,7 +104,7 @@ export async function uploadApplicationFile(
     let uploadData: any = null
 
     for (const bucket of buckets) {
-      console.log(`Attempting upload to bucket: ${sanitizeForLog(bucket)}`)
+      console.log('Attempting upload to bucket:', { bucket: sanitizeForLog(bucket) })
       
       const { data, error } = await supabase.storage
         .from(bucket)
@@ -246,7 +246,7 @@ export async function uploadFile(
     }
 
     if (!usedBucket) {
-      console.error('Storage upload error:', sanitizeForLog(uploadError?.message || 'No available buckets'))
+      console.error('Storage upload error:', { error: sanitizeForLog(uploadError?.message || 'No available buckets') })
       return {
         success: false,
         error: uploadError?.message || 'Upload failed - no available storage buckets'
@@ -264,7 +264,7 @@ export async function uploadFile(
       url: urlData.publicUrl
     }
   } catch (error) {
-    console.error('Upload error:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
+    console.error('Upload error:', { error: sanitizeForLog(error instanceof Error ? error.message : 'Unknown error') })
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Upload failed'
@@ -279,7 +279,7 @@ export async function deleteFile(bucket: string, path: string): Promise<{ succes
       .remove([path])
 
     if (error) {
-      console.error('Storage delete error:', sanitizeForLog(error.message || 'Unknown error'))
+      console.error('Storage delete error:', { error: sanitizeForLog(error.message || 'Unknown error') })
       return {
         success: false,
         error: error.message
@@ -288,7 +288,7 @@ export async function deleteFile(bucket: string, path: string): Promise<{ succes
 
     return { success: true }
   } catch (error) {
-    console.error('Delete error:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
+    console.error('Delete error:', { error: sanitizeForLog(error instanceof Error ? error.message : 'Unknown error') })
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Delete failed'
