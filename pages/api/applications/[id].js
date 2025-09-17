@@ -1,7 +1,11 @@
-import { NextApiRequest, NextApiResponse } from 'next'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL,
+  process.env.VITE_SUPABASE_ANON_KEY
+)
+
+export default async function handler(req, res) {
   const { id } = req.query
   const authHeader = req.headers.authorization
   
@@ -18,17 +22,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   switch (req.method) {
     case 'GET':
-      return getApplication(req, res, user, id as string)
+      return getApplication(req, res, user, id)
     case 'PUT':
-      return updateApplication(req, res, user, id as string)
+      return updateApplication(req, res, user, id)
     case 'DELETE':
-      return deleteApplication(req, res, user, id as string)
+      return deleteApplication(req, res, user, id)
     default:
       return res.status(405).json({ error: 'Method not allowed' })
   }
 }
 
-async function getApplication(req: NextApiRequest, res: NextApiResponse, user: any, id: string) {
+async function getApplication(req, res, user, id) {
   try {
     const { data, error } = await supabase
       .from('applications')
@@ -47,7 +51,7 @@ async function getApplication(req: NextApiRequest, res: NextApiResponse, user: a
   }
 }
 
-async function updateApplication(req: NextApiRequest, res: NextApiResponse, user: any, id: string) {
+async function updateApplication(req, res, user, id) {
   try {
     const { data, error } = await supabase
       .from('applications')
@@ -67,7 +71,7 @@ async function updateApplication(req: NextApiRequest, res: NextApiResponse, user
   }
 }
 
-async function deleteApplication(req: NextApiRequest, res: NextApiResponse, user: any, id: string) {
+async function deleteApplication(req, res, user, id) {
   try {
     const { error } = await supabase
       .from('applications')

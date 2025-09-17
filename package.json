@@ -24,7 +24,9 @@
     "security-audit": "node security-audit.js",
     "session:setup": "node setup-session-management.js",
     "session:test": "node test-session-management.js",
-    "microservices:setup": "node setup-microservices.js"
+    "microservices:setup": "node setup-microservices.js",
+    "test:services": "node test-production-services.js",
+    "test:services:curl": "./test-services-curl.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -53,6 +55,7 @@
     "framer-motion": "^11.5.4",
     "lucide-react": "^0.441.0",
     "next": "^15.5.3",
+    "node-fetch": "^3.3.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.0",

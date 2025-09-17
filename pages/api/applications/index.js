@@ -1,7 +1,11 @@
-import { NextApiRequest, NextApiResponse } from 'next'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL,
+  process.env.VITE_SUPABASE_ANON_KEY
+)
+
+export default async function handler(req, res) {
   const authHeader = req.headers.authorization
   if (!authHeader) {
     return res.status(401).json({ error: 'No authorization header' })
@@ -24,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-async function getApplications(req: NextApiRequest, res: NextApiResponse, user: any) {
+async function getApplications(req, res, user) {
   try {
     const { data, error } = await supabase
       .from('applications')
@@ -42,7 +46,7 @@ async function getApplications(req: NextApiRequest, res: NextApiResponse, user: 
   }
 }
 
-async function createApplication(req: NextApiRequest, res: NextApiResponse, user: any) {
+async function createApplication(req, res, user) {
   try {
     const applicationData = {
       ...req.body,

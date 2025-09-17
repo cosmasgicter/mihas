@@ -1,7 +1,11 @@
-import { NextApiRequest, NextApiResponse } from 'next'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL,
+  process.env.VITE_SUPABASE_ANON_KEY
+)
+
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
@@ -21,7 +25,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { fileName, fileData, documentType, applicationId } = req.body
 
-    // Upload file to Supabase Storage
     const filePath = `${user.id}/${applicationId}/${fileName}`
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('documents')
@@ -31,7 +34,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: uploadError.message })
     }
 
-    // Save document record
     const { data, error } = await supabase
       .from('application_documents')
       .insert({

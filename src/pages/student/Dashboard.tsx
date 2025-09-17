@@ -195,7 +195,11 @@ export default function StudentDashboard() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
               <div>
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">
-                  🎓 Welcome back, {sanitizeForDisplay(profile?.full_name)?.split(' ')[0] || 'Student'}!
+                  🎓 Welcome back, {(() => {
+                    const metadata = getUserMetadata(user)
+                    const fullName = getBestValue(profile?.full_name, metadata.full_name, user?.email?.split('@')[0] || 'Student')
+                    return sanitizeForDisplay(fullName)?.split(' ')[0] || 'Student'
+                  })()}!
                 </h1>
                 <p className="text-lg sm:text-xl text-white/90">
                   Track your applications and manage your profile
@@ -470,13 +474,13 @@ export default function StudentDashboard() {
                       <div className="p-3 bg-gray-50 rounded-xl">
                         <span className="text-gray-600 text-xs uppercase tracking-wide">Phone</span>
                         <p className="font-semibold text-gray-900">
-                          {sanitizeForDisplay(getBestValue(profile?.phone, metadata.phone))}
+                          {sanitizeForDisplay(getBestValue(profile?.phone, metadata.phone, 'Not provided'))}
                         </p>
                       </div>
                       <div className="p-3 bg-gray-50 rounded-xl">
                         <span className="text-gray-600 text-xs uppercase tracking-wide">City</span>
                         <p className="font-semibold text-gray-900">
-                          {sanitizeForDisplay(getBestValue(profile?.city || profile?.address, metadata.city))}
+                          {sanitizeForDisplay(getBestValue(profile?.city || profile?.address, metadata.city, 'Not provided'))}
                         </p>
                       </div>
                     </>

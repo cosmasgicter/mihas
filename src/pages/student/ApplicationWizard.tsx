@@ -18,7 +18,7 @@ import { AIAssistant } from '@/components/application/AIAssistant'
 import { draftManager } from '@/lib/draftManager'
 import { sanitizeForLog } from '@/lib/security'
 import { safeJsonParse } from '@/lib/utils'
-import { useProfileAutoPopulation } from '@/hooks/useProfileAutoPopulation'
+import { useProfileAutoPopulation, getBestValue, getUserMetadata } from '@/hooks/useProfileAutoPopulation'
 import { ProfileCompletionBadge } from '@/components/ui/ProfileAutoPopulationIndicator'
 
 const wizardSchema = z.object({
@@ -116,6 +116,23 @@ export default function ApplicationWizard() {
 
   // Use the profile auto-population hook
   const { metadata, completionPercentage, hasAutoPopulatedData } = useProfileAutoPopulation(setValue)
+
+  // Auto-populate form fields when user/profile data is available
+  useEffect(() => {
+    if (user && !authLoading && currentStep === 1) {
+      const userMetadata = getUserMetadata(user)
+      
+      // Auto-populate all available fields
+      setValue('email', user.email || '')
+      setValue('full_name', getBestValue(profile?.full_name, userMetadata.full_name, user.email?.split('@')[0] || ''))
+      setValue('phone', getBestValue(profile?.phone, userMetadata.phone, ''))
+      setValue('date_of_birth', getBestValue(profile?.date_of_birth, userMetadata.date_of_birth, ''))
+      setValue('sex', getBestValue(profile?.sex, userMetadata.sex, ''))
+      setValue('residence_town', getBestValue(profile?.city || profile?.address, userMetadata.city, ''))
+      setValue('next_of_kin_name', getBestValue(profile?.next_of_kin_name, userMetadata.next_of_kin_name, ''))
+      setValue('next_of_kin_phone', getBestValue(profile?.next_of_kin_phone, userMetadata.next_of_kin_phone, ''))
+    }
+  }, [user, profile, authLoading, currentStep, setValue])
 
   // Load saved application draft and restore state
   useEffect(() => {
@@ -875,7 +892,7 @@ export default function ApplicationWizard() {
                       label="Full Name"
                       error={errors.full_name?.message}
                       required
-                      placeholder={profile?.full_name || metadata?.full_name || 'Enter your full name'}
+                      placeholder="Enter your full name"
                     />
                   </div>
                   
