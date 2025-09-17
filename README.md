@@ -121,6 +121,7 @@ Create a `.env` file in the project root:
 # Supabase Configuration
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
 # Optional: Cloudflare Turnstile (for bot protection)
 VITE_TURNSTILE_SITE_KEY=your_turnstile_site_key
@@ -128,6 +129,23 @@ VITE_TURNSTILE_SITE_KEY=your_turnstile_site_key
 # Optional: Analytics
 VITE_ANALYTICS_ENABLED=true
 ```
+
+> ℹ️ The service role key is required for API routes because they run with elevated privileges on the server. Store it only in secure server-side environments (e.g., Vercel environment variables or a local `.env` file) and never expose it to the browser bundle.
+
+### Local API Development
+
+Use Vercel's development runtime to run the microservices with the same configuration as production:
+
+```bash
+# Link the project once
+npx vercel login
+npx vercel link
+
+# Start the API/microservices emulator
+npm run dev:api
+```
+
+`vercel dev` automatically loads environment variables from `.env.local`, `.env`, and the linked Vercel project so your Supabase credentials remain consistent between development and production.
 
 ## 🧪 Testing
 

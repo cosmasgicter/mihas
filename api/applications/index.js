@@ -1,5 +1,4 @@
-import { supabaseAdminClient } from '../_utils/supabaseClient'
-import { getAuthenticatedUser } from '../_utils/auth'
+import { supabaseAdminClient, getUserFromRequest } from '../_lib/supabaseClient'
 
 const DEFAULT_PAGE_SIZE = 15
 const ALLOWED_SORT_FIELDS = new Set(['date', 'name', 'status'])
@@ -21,7 +20,7 @@ function parseBoolean(value) {
 }
 
 export default async function handler(req, res) {
-  const authContext = await getAuthenticatedUser(req)
+  const authContext = await getUserFromRequest(req)
   if (authContext.error) {
     return res.status(401).json({ error: authContext.error })
   }

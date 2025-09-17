@@ -1,10 +1,10 @@
-import { supabaseAdminClient } from '../_utils/supabaseClient'
-import { getAuthenticatedUser } from '../_utils/auth'
+import { supabaseAdminClient, getUserFromRequest } from '../_lib/supabaseClient'
 
 export default async function handler(req, res) {
-  const authContext = await getAuthenticatedUser(req)
+  const authContext = await getUserFromRequest(req, { requireAdmin: true })
   if (authContext.error) {
-    return res.status(401).json({ error: authContext.error })
+    const status = authContext.error === 'Access denied' ? 403 : 401
+    return res.status(status).json({ error: authContext.error })
   }
 
   if (req.method !== 'POST') {

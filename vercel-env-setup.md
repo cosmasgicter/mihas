@@ -8,6 +8,7 @@ Add these to your Vercel project dashboard:
 ```
 VITE_SUPABASE_URL=your_production_supabase_url
 VITE_SUPABASE_ANON_KEY=your_production_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_production_service_role_key
 VITE_TURNSTILE_SITE_KEY=your_turnstile_site_key
 VITE_ANALYTICS_ENABLED=true
 NODE_ENV=production
@@ -27,6 +28,7 @@ vercel link
 # Add environment variables
 vercel env add VITE_SUPABASE_URL
 vercel env add VITE_SUPABASE_ANON_KEY
+vercel env add SUPABASE_SERVICE_ROLE_KEY
 vercel env add VITE_TURNSTILE_SITE_KEY
 
 # Deploy

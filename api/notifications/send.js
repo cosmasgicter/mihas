@@ -1,24 +1,23 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_ANON_KEY
-)
+import { supabaseAdminClient, getUserFromRequest } from '../_lib/supabaseClient'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const authHeader = req.headers.authorization
-  if (!authHeader) {
-    return res.status(401).json({ error: 'No authorization header' })
+  const authContext = await getUserFromRequest(req, { requireAdmin: true })
+  if (authContext.error) {
+    return res.status(403).json({ error: authContext.error })
   }
 
   try {
-    const { userId, type, title, message, data } = req.body
+    const { userId, type, title, message, data } = req.body || {}
 
-    const { data: notification, error } = await supabase
+    if (!userId || !title || !message) {
+      return res.status(400).json({ error: 'userId, title and message are required' })
+    }
+
+    const { data: notification, error } = await supabaseAdminClient
       .from('notifications')
       .insert({
         user_id: userId,
