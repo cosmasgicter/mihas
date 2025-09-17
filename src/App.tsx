@@ -91,6 +91,8 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/track-application" element={<PublicApplicationTracker />} />
               <Route path="/auth/signin" element={<SignInPage />} />
+              <Route path="/signin" element={<SignInPage />} />
+              <Route path="/login" element={<SignInPage />} />
               <Route path="/auth/signup" element={<SignUpPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
               
