@@ -1,15 +1,13 @@
-import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import React from 'react'
+import { motion } from 'framer-motion'
 import { 
   Activity, 
   TrendingUp, 
   Users, 
   Clock, 
   CheckCircle, 
-  XCircle, 
   FileText,
   Calendar,
-  Bell,
   Zap,
   Shield,
   Database,
@@ -18,108 +16,19 @@ import {
   ArrowDown
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { supabase } from '@/lib/supabase'
-
-interface DashboardMetrics {
-  totalApplications: number
-  todayApplications: number
-  pendingReviews: number
-  approvalRate: number
-  avgProcessingTime: number
-  systemHealth: 'excellent' | 'good' | 'warning' | 'critical'
-  activeUsers: number
-}
-
-interface RecentActivity {
-  id: string
-  type: 'application' | 'approval' | 'rejection' | 'system'
-  message: string
-  timestamp: string
-  user?: string
-}
+import { applicationsData } from '@/data/applications'
+import { analyticsData } from '@/data/analytics'
 
 export function EnhancedDashboard() {
-  const [metrics, setMetrics] = useState<DashboardMetrics>({
-    totalApplications: 0,
-    todayApplications: 0,
-    pendingReviews: 0,
-    approvalRate: 0,
-    avgProcessingTime: 0,
-    systemHealth: 'good',
-    activeUsers: 0
-  })
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
+  const { data: metrics, isLoading: metricsLoading, refetch: refetchMetrics } = applicationsData.useStats()
+  const { data: recentActivity, isLoading: activityLoading } = applicationsData.useRecentActivity()
+  const { data: systemHealth } = analyticsData.useSystemHealth()
 
-  const loadMetrics = async () => {
-    try {
-      const today = new Date().toISOString().split('T')[0]
-      
-      const [total, pending, approved, rejected, todayApps] = await Promise.all([
-        supabase.from('applications_new').select('*', { count: 'exact', head: true }),
-        supabase.from('applications_new').select('*', { count: 'exact', head: true }).eq('status', 'submitted'),
-        supabase.from('applications_new').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
-        supabase.from('applications_new').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
-        supabase.from('applications_new').select('*', { count: 'exact', head: true }).gte('created_at', today)
-      ])
-
-      const totalCount = total.count || 0
-      const approvedCount = approved.count || 0
-      const rejectedCount = rejected.count || 0
-      const approvalRate = (approvedCount + rejectedCount) > 0 ? (approvedCount / (approvedCount + rejectedCount)) * 100 : 0
-
-      setMetrics({
-        totalApplications: totalCount,
-        todayApplications: todayApps.count || 0,
-        pendingReviews: pending.count || 0,
-        approvalRate: Math.round(approvalRate),
-        avgProcessingTime: Math.floor(Math.random() * 5) + 2,
-        systemHealth: (pending.count || 0) > 50 ? 'warning' : 'good',
-        activeUsers: Math.floor(Math.random() * 20) + 5
-      })
-
-      await loadRecentActivity()
-    } catch (error) {
-      console.error('Error loading metrics:', error)
-    } finally {
-      setLoading(false)
-    }
+  const loading = metricsLoading || activityLoading
+  
+  const refreshData = () => {
+    refetchMetrics()
   }
-
-  const loadRecentActivity = async () => {
-    try {
-      const { data } = await supabase
-        .from('applications_new')
-        .select('id, full_name, status, created_at, updated_at')
-        .order('updated_at', { ascending: false })
-        .limit(5)
-      
-      const activities: RecentActivity[] = (data || []).map(app => ({
-        id: app.id,
-        type: app.status === 'approved' ? 'approval' : app.status === 'rejected' ? 'rejection' : 'application',
-        message: `${app.full_name} - Application ${app.status}`,
-        timestamp: app.updated_at || app.created_at,
-        user: app.full_name
-      }))
-      
-      setRecentActivity(activities)
-    } catch (error) {
-      console.error('Error loading recent activity:', error)
-    }
-  }
-
-  const refreshData = async () => {
-    setRefreshing(true)
-    await loadMetrics()
-    setRefreshing(false)
-  }
-
-  useEffect(() => {
-    loadMetrics()
-    const interval = setInterval(loadMetrics, 30000)
-    return () => clearInterval(interval)
-  }, [])
 
   if (loading) {
     return (
@@ -128,6 +37,8 @@ export function EnhancedDashboard() {
       </div>
     )
   }
+
+  if (!metrics) return null
 
   return (
     <div className="space-y-6">
@@ -246,7 +157,6 @@ export function EnhancedDashboard() {
               variant="ghost"
               size="sm"
               onClick={refreshData}
-              loading={refreshing}
             >
               <RefreshCw className="h-4 w-4" />
             </Button>
@@ -296,8 +206,10 @@ export function EnhancedDashboard() {
                 <Database className="h-4 w-4 text-green-600" />
                 <span className="text-sm font-medium text-gray-700">Database</span>
               </div>
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-green-500 text-white">
-                ✓ Healthy
+              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${
+                systemHealth?.database === 'healthy' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+              }`}>
+                {systemHealth?.database === 'healthy' ? '✓ Healthy' : '✗ Error'}
               </span>
             </div>
             
@@ -307,7 +219,7 @@ export function EnhancedDashboard() {
                 <span className="text-sm font-medium text-gray-700">Security</span>
               </div>
               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-green-500 text-white">
-                ✓ Secure
+                ✓ {systemHealth?.security || 'Secure'}
               </span>
             </div>
             
@@ -317,7 +229,7 @@ export function EnhancedDashboard() {
                 <span className="text-sm font-medium text-gray-700">Performance</span>
               </div>
               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-blue-500 text-white">
-                ✓ Optimal
+                ✓ {systemHealth?.performance || 'Optimal'}
               </span>
             </div>
 

@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AdminNavigation } from '@/components/ui/AdminNavigation'
 import { EnhancedDashboard } from '@/components/admin/EnhancedDashboard'
 import { QuickActionsPanel } from '@/components/admin/QuickActionsPanel'
 import { SystemMonitoring } from '@/components/admin/SystemMonitoring'
 import { useAuth } from '@/contexts/AuthContext'
-import { supabase } from '@/lib/supabase'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Button } from '@/components/ui/Button'
+import { applicationsData, catalogData, usersData } from '@/data'
 import { 
   BarChart3, 
   Activity, 
@@ -20,76 +20,32 @@ import {
   EyeOff
 } from 'lucide-react'
 
-interface DashboardStats {
-  totalApplications: number
-  pendingApplications: number
-  approvedApplications: number
-  rejectedApplications: number
-  totalPrograms: number
-  activeIntakes: number
-  totalStudents: number
-}
-
 export default function EnhancedAdminDashboard() {
   const { user, profile } = useAuth()
-  const [stats, setStats] = useState<DashboardStats>({
-    totalApplications: 0,
-    pendingApplications: 0,
-    approvedApplications: 0,
-    rejectedApplications: 0,
-    totalPrograms: 0,
-    activeIntakes: 0,
-    totalStudents: 0
-  })
-  const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'overview' | 'monitoring' | 'analytics'>('overview')
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showNotifications, setShowNotifications] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-
-  const loadDashboardStats = async () => {
-    try {
-      setLoading(true)
-      
-      const [totalApps, pendingApps, approvedApps, rejectedApps, programs, intakes, students] = await Promise.all([
-        supabase.from('applications_new').select('*', { count: 'exact', head: true }),
-        supabase.from('applications_new').select('*', { count: 'exact', head: true }).eq('status', 'submitted'),
-        supabase.from('applications_new').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
-        supabase.from('applications_new').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
-        supabase.from('programs').select('*', { count: 'exact', head: true }).eq('is_active', true),
-        supabase.from('intakes').select('*', { count: 'exact', head: true }).eq('is_active', true),
-        supabase.from('user_profiles').select('*', { count: 'exact', head: true }).eq('role', 'student')
-      ])
-
-      setStats({
-        totalApplications: totalApps.count || 0,
-        pendingApplications: pendingApps.count || 0,
-        approvedApplications: approvedApps.count || 0,
-        rejectedApplications: rejectedApps.count || 0,
-        totalPrograms: programs.count || 0,
-        activeIntakes: intakes.count || 0,
-        totalStudents: students.count || 0
-      })
-    } catch (error) {
-      console.error('Error loading dashboard stats:', error)
-    } finally {
-      setLoading(false)
-    }
+  
+  // Data hooks
+  const { data: appStats, isLoading: statsLoading, refetch: refetchStats } = applicationsData.useStats()
+  const { data: programs } = catalogData.usePrograms()
+  const { data: intakes } = catalogData.useIntakes()
+  const { data: users } = usersData.useList()
+  
+  const loading = statsLoading
+  const stats = {
+    totalApplications: appStats?.totalApplications || 0,
+    pendingApplications: appStats?.pendingReviews || 0,
+    approvedApplications: Math.floor((appStats?.approvalRate || 0) * (appStats?.totalApplications || 0) / 100),
+    rejectedApplications: (appStats?.totalApplications || 0) - Math.floor((appStats?.approvalRate || 0) * (appStats?.totalApplications || 0) / 100),
+    totalPrograms: programs?.programs?.length || 0,
+    activeIntakes: intakes?.intakes?.length || 0,
+    totalStudents: users?.users?.filter(u => u.role === 'student').length || 0
   }
 
-  const refreshDashboard = async () => {
-    setRefreshing(true)
-    await loadDashboardStats()
-    setRefreshing(false)
+  const refreshDashboard = () => {
+    refetchStats()
   }
-
-  useEffect(() => {
-    if (user && profile) {
-      loadDashboardStats()
-      const interval = setInterval(loadDashboardStats, 60000) // Refresh every minute
-      return () => clearInterval(interval)
-    }
-  }, [user, profile])
 
   if (loading) {
     return (
@@ -169,7 +125,6 @@ export default function EnhancedAdminDashboard() {
                       variant="outline"
                       size="sm"
                       onClick={refreshDashboard}
-                      loading={refreshing}
                       className="bg-white/20 border-white/30 text-white hover:bg-white/30"
                     >
                       <RefreshCw className="h-4 w-4 mr-2" />

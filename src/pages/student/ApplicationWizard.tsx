@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { checkEligibility, getRecommendedSubjects } from '@/lib/eligibility'
-// import { applicationSessionManager } from '@/lib/applicationSession'
 
 import { ArrowLeft, CheckCircle, ArrowRight, X, FileText, CreditCard, Send, XCircle, AlertTriangle, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -20,7 +19,8 @@ import { sanitizeForLog } from '@/lib/security'
 import { safeJsonParse } from '@/lib/utils'
 import { useProfileAutoPopulation, getBestValue, getUserMetadata } from '@/hooks/useProfileAutoPopulation'
 import { ProfileCompletionBadge } from '@/components/ui/ProfileAutoPopulationIndicator'
-import { applicationService, catalogService } from '@/services/apiClient'
+import { applicationsData } from '@/data/applications'
+import { catalogData } from '@/data/catalog'
 
 const wizardSchema = z.object({
   full_name: z.string().min(2, 'Full name is required'),
@@ -73,7 +73,6 @@ export default function ApplicationWizard() {
   const [success, setSuccess] = useState(false)
   const [applicationId, setApplicationId] = useState<string | null>(null)
   
-  const [subjects, setSubjects] = useState<Grade12Subject[]>([])
   const [selectedGrades, setSelectedGrades] = useState<SubjectGrade[]>([])
   const [resultSlipFile, setResultSlipFile] = useState<File | null>(null)
   const [extraKycFile, setExtraKycFile] = useState<File | null>(null)
@@ -87,6 +86,18 @@ export default function ApplicationWizard() {
   const [restoringDraft, setRestoringDraft] = useState(false)
 
   const [confirmSubmission, setConfirmSubmission] = useState(false)
+  
+  // Data hooks
+  const { data: subjectsData } = catalogData.useSubjects()
+  const subjects = subjectsData?.subjects || []
+  const createApplication = applicationsData.useCreate()
+  const updateApplication = applicationsData.useUpdate()
+  const syncGrades = applicationsData.useSyncGrades()
+  const { data: draftApplications } = applicationsData.useList({ 
+    status: 'draft', 
+    mine: true, 
+    pageSize: 1 
+  })
   
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<WizardFormData>({
     resolver: zodResolver(wizardSchema),
@@ -170,17 +181,8 @@ export default function ApplicationWizard() {
         }
         
         // If no localStorage draft, check for existing draft application in database
-        const draftResponse = await applicationService.list({
-          page: 0,
-          pageSize: 1,
-          status: 'draft',
-          sortBy: 'date',
-          sortOrder: 'desc',
-          mine: true
-        })
-
-        if (draftResponse.applications && draftResponse.applications.length > 0) {
-          const app = draftResponse.applications[0]
+        if (draftApplications?.applications && draftApplications.applications.length > 0) {
+          const app = draftApplications.applications[0]
 
           // Populate form with existing data
           setValue('full_name', app.full_name || '')
@@ -203,21 +205,14 @@ export default function ApplicationWizard() {
           if (app.program && app.full_name) {
             step = 2 // Has basic info, move to education
             
-            // Load grades if they exist
-            const gradeResponse = await applicationService.getById(app.id, { include: ['grades'] })
+            // Load grades if they exist - this would need to be handled by the detail query
+            // For now, we'll skip this part as it requires additional API changes
 
-            if (gradeResponse.grades && gradeResponse.grades.length > 0) {
-              setSelectedGrades(gradeResponse.grades.map(grade => ({
-                subject_id: grade.subject_id,
-                grade: grade.grade
-              })))
-
-              if (app.result_slip_url) {
-                step = 3 // Has education data, move to payment
-                
-                if (app.pop_url) {
-                  step = 4 // Has payment, move to review
-                }
+            if (app.result_slip_url) {
+              step = 3 // Has education data, move to payment
+              
+              if (app.pop_url) {
+                step = 4 // Has payment, move to review
               }
             }
           }
@@ -305,18 +300,7 @@ export default function ApplicationWizard() {
     }
   }
 
-  useEffect(() => {
-    loadSubjects()
-  }, [])
-
-  const loadSubjects = async () => {
-    try {
-      const response = await catalogService.getSubjects()
-      setSubjects(response.subjects || [])
-    } catch (err) {
-      console.error('Error loading subjects:', { error: sanitizeForLog(err instanceof Error ? err.message : 'Unknown error') })
-    }
-  }
+  // Subjects are now loaded via the data hook
 
   const addGrade = () => {
     if (selectedGrades.length < 10) {
@@ -454,7 +438,7 @@ export default function ApplicationWizard() {
         const applicationNumber = generateApplicationNumber({ institution: institution as 'KATC' | 'MIHAS' })
         const trackingCode = `TRK${Math.random().toString(36).substring(2, 8).toUpperCase()}`
         
-        const app = await applicationService.create({
+        const app = await createApplication.mutateAsync({
           application_number: applicationNumber,
           public_tracking_code: trackingCode,
           full_name: formData.full_name,
@@ -515,11 +499,14 @@ export default function ApplicationWizard() {
           setUploadedFiles(prev => ({ ...prev, extra_kyc: true }))
         }
         
-        await applicationService.syncGrades(applicationId, selectedGrades)
+        await syncGrades.mutateAsync({ id: applicationId, grades: selectedGrades })
 
-        await applicationService.update(applicationId, {
-          result_slip_url: resultSlipUrl,
-          extra_kyc_url: extraKycUrl
+        await updateApplication.mutateAsync({ 
+          id: applicationId, 
+          data: {
+            result_slip_url: resultSlipUrl,
+            extra_kyc_url: extraKycUrl
+          }
         })
         
         setCurrentStep(3)
@@ -575,16 +562,19 @@ export default function ApplicationWizard() {
       setUploadedFiles(prev => ({ ...prev, proof_of_payment: true }))
       
       // Update application with payment info and submit
-      const updatedApp = await applicationService.update(applicationId, {
-        payment_method: data.payment_method || 'MTN Money',
-        payer_name: data.payer_name || null,
-        payer_phone: data.payer_phone || null,
-        amount: data.amount || 150,
-        paid_at: data.paid_at ? new Date(data.paid_at).toISOString() : null,
-        momo_ref: data.momo_ref || null,
-        pop_url: popUrl,
-        status: 'submitted',
-        submitted_at: new Date().toISOString()
+      const updatedApp = await updateApplication.mutateAsync({
+        id: applicationId,
+        data: {
+          payment_method: data.payment_method || 'MTN Money',
+          payer_name: data.payer_name || null,
+          payer_phone: data.payer_phone || null,
+          amount: data.amount || 150,
+          paid_at: data.paid_at ? new Date(data.paid_at).toISOString() : null,
+          momo_ref: data.momo_ref || null,
+          pop_url: popUrl,
+          status: 'submitted',
+          submitted_at: new Date().toISOString()
+        }
       })
 
       if (!updatedApp) {

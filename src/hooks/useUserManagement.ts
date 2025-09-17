@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
-import { UserProfile } from '@/lib/supabase'
-import { userService } from '@/services/apiClient'
+import { UserProfile, supabase } from '@/lib/supabase'
+import { usersData } from '@/data/users'
 import { sanitizeForLog } from '@/lib/sanitize'
 
 interface CreateUserData {
@@ -28,12 +28,16 @@ export function useUserManagement() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const createUserMutation = usersData.useCreate()
+  const updateUserMutation = usersData.useUpdate()
+  const removeUserMutation = usersData.useRemove()
+
   const createUser = useCallback(async (userData: CreateUserData): Promise<UserProfile | null> => {
     try {
       setLoading(true)
       setError(null)
 
-      const response = await userService.create(userData)
+      const response = await createUserMutation.mutateAsync(userData)
       return response.data
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create user'
@@ -43,14 +47,14 @@ export function useUserManagement() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [createUserMutation])
 
   const updateUser = useCallback(async (userId: string, userData: UpdateUserData): Promise<boolean> => {
     try {
       setLoading(true)
       setError(null)
 
-      await userService.update(userId, userData as any)
+      await updateUserMutation.mutateAsync({ id: userId, data: userData as any })
       return true
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update user'
@@ -60,14 +64,14 @@ export function useUserManagement() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [updateUserMutation])
 
   const deleteUser = useCallback(async (userId: string): Promise<boolean> => {
     try {
       setLoading(true)
       setError(null)
 
-      await userService.remove(userId)
+      await removeUserMutation.mutateAsync(userId)
       return true
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete user'
@@ -77,7 +81,7 @@ export function useUserManagement() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [removeUserMutation])
 
   const bulkUpdateRoles = useCallback(async (
     userIds: string[], 

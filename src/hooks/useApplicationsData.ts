@@ -1,6 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
-import { sanitizeForLog } from '@/lib/sanitize'
-import { applicationService } from '@/services/apiClient'
+import { applicationsData } from '@/data/applications'
 
 const PAGE_SIZE = 15
 
@@ -42,32 +40,18 @@ export function useApplicationsData(params: ApplicationsDataParams | { currentPa
     dateRange = { start: '', end: '' }
   } = normalizedParams
 
-  const applicationsQuery = useQuery({
-    queryKey: ['applications', currentPage, statusFilter, searchTerm, sortBy, sortOrder, programFilter, institutionFilter, paymentStatusFilter, dateRange],
-    queryFn: async () => {
-      try {
-        return await applicationService.list({
-          page: currentPage,
-          pageSize: PAGE_SIZE,
-          status: statusFilter,
-          search: searchTerm,
-          sortBy,
-          sortOrder,
-          program: programFilter,
-          institution: institutionFilter,
-          paymentStatus: paymentStatusFilter,
-          startDate: dateRange.start,
-          endDate: dateRange.end,
-          includeStats: true
-        })
-      } catch (error: any) {
-        console.error('Applications fetch error:', sanitizeForLog(error?.message || error))
-        throw error
-      }
-    },
-    staleTime: 30000,
-    retry: 2,
-    retryDelay: 1000
+  const applicationsQuery = applicationsData.useList({
+    page: currentPage,
+    pageSize: PAGE_SIZE,
+    status: statusFilter === 'all' ? undefined : statusFilter,
+    search: searchTerm,
+    sortBy,
+    sortOrder,
+    program: programFilter === 'all' ? undefined : programFilter,
+    institution: institutionFilter === 'all' ? undefined : institutionFilter,
+    paymentStatus: paymentStatusFilter === 'all' ? undefined : paymentStatusFilter,
+    startDate: dateRange.start,
+    endDate: dateRange.end
   })
 
   return {
