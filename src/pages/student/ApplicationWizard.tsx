@@ -137,20 +137,39 @@ export default function ApplicationWizard() {
 
   // Auto-populate form fields when user/profile data is available
   useEffect(() => {
-    if (user && !authLoading && currentStep === 1) {
+    if (user && !authLoading) {
       const userMetadata = getUserMetadata(user)
       
-      // Auto-populate all available fields
-      setValue('email', user.email || '')
-      setValue('full_name', getBestValue(profile?.full_name, userMetadata.full_name, user.email?.split('@')[0] || ''))
-      setValue('phone', getBestValue(profile?.phone, userMetadata.phone, ''))
-      setValue('date_of_birth', getBestValue(profile?.date_of_birth, userMetadata.date_of_birth, ''))
-      setValue('sex', getBestValue(profile?.sex, userMetadata.sex, ''))
-      setValue('residence_town', getBestValue(profile?.city || profile?.address, userMetadata.city, ''))
-      setValue('next_of_kin_name', getBestValue(profile?.next_of_kin_name, userMetadata.next_of_kin_name, ''))
-      setValue('next_of_kin_phone', getBestValue(profile?.next_of_kin_phone, userMetadata.next_of_kin_phone, ''))
+      // Auto-populate all available fields with proper fallbacks
+      const email = user.email || ''
+      const fullName = getBestValue(profile?.full_name, userMetadata.full_name, email.split('@')[0] || '')
+      const phone = getBestValue(profile?.phone, userMetadata.phone, '')
+      const dateOfBirth = getBestValue(profile?.date_of_birth, userMetadata.date_of_birth, '')
+      const sex = getBestValue(profile?.sex, userMetadata.sex, '')
+      const residenceTown = getBestValue(profile?.city || profile?.address, userMetadata.city, '')
+      const nextOfKinName = getBestValue(profile?.next_of_kin_name, userMetadata.next_of_kin_name, '')
+      const nextOfKinPhone = getBestValue(profile?.next_of_kin_phone, userMetadata.next_of_kin_phone, '')
+      
+      // Set values with proper type casting
+      setValue('email', email)
+      setValue('full_name', fullName || '')
+      setValue('phone', phone || '')
+      setValue('date_of_birth', dateOfBirth || '')
+      setValue('sex', (sex as 'Male' | 'Female') || '')
+      setValue('residence_town', residenceTown || '')
+      setValue('next_of_kin_name', nextOfKinName || '')
+      setValue('next_of_kin_phone', nextOfKinPhone || '')
+      
+      console.log('Auto-populated form fields:', {
+        email,
+        fullName,
+        phone,
+        dateOfBirth,
+        sex,
+        residenceTown
+      })
     }
-  }, [user, profile, authLoading, currentStep, setValue])
+  }, [user, profile, authLoading, setValue])
 
   // Load saved application draft and restore state
   useEffect(() => {

@@ -37,6 +37,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             )}
             ref={ref}
             {...props}
+            readOnly={false}
+            disabled={props.disabled || false}
           />
           {isPassword && (
             <button

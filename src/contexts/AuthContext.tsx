@@ -103,10 +103,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session?.user) {
           setUser(session.user)
           try {
-            await Promise.all([
-              loadUserProfile(session.user.id),
-              loadUserRole(session.user.id)
-            ])
+            // Load profile and role with a small delay to ensure user is set
+            setTimeout(async () => {
+              await Promise.all([
+                loadUserProfile(session.user.id),
+                loadUserRole(session.user.id)
+              ])
+            }, 100)
           } catch (error) {
             console.error('Error loading profile after auth change:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
           }
@@ -148,7 +151,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return acc
         }, {} as UserProfile)
         setProfile(sanitizedProfile)
+        console.log('Profile loaded successfully:', { hasProfile: true, fields: Object.keys(sanitizedProfile) })
       } else {
+        console.log('No profile found, creating new profile')
         // Create profile if it doesn't exist
         await createUserProfile(userId)
       }
@@ -166,24 +171,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      const signupData = user.user.user_metadata?.signup_data ? 
-        JSON.parse(user.user.user_metadata.signup_data) : {}
+      // Extract signup data from user metadata
+      let signupData = {}
+      try {
+        signupData = user.user.user_metadata?.signup_data ? 
+          (typeof user.user.user_metadata.signup_data === 'string' ? 
+            JSON.parse(user.user.user_metadata.signup_data) : 
+            user.user.user_metadata.signup_data) : {}
+      } catch (parseError) {
+        console.warn('Error parsing signup data:', parseError)
+        signupData = {}
+      }
       
-      const fullName = user.user.user_metadata?.full_name || 
+      const metadata = user.user.user_metadata || {}
+      const fullName = metadata.full_name || 
                       signupData.full_name || 
                       user.user.email?.split('@')[0] || 
                       'Student'
       
+      const profileData = {
+        user_id: userId,
+        full_name: sanitizeForDisplay(fullName),
+        phone: sanitizeForDisplay(signupData.phone || metadata.phone || null),
+        sex: signupData.sex || metadata.sex || null,
+        date_of_birth: signupData.date_of_birth || metadata.date_of_birth || null,
+        city: signupData.city || metadata.city || null,
+        address: signupData.address || metadata.address || null,
+        nationality: signupData.nationality || metadata.nationality || null,
+        next_of_kin_name: signupData.next_of_kin_name || metadata.next_of_kin_name || null,
+        next_of_kin_phone: signupData.next_of_kin_phone || metadata.next_of_kin_phone || null,
+        role: 'student',
+        email: user.user.email
+      }
+      
+      console.log('Creating profile with data:', { hasSignupData: Object.keys(signupData).length > 0, hasMetadata: Object.keys(metadata).length > 0 })
+      
       // Try direct insert first (simpler approach)
       const { data: newProfile, error: insertError } = await supabase
         .from('user_profiles')
-        .insert({
-          user_id: userId,
-          full_name: sanitizeForDisplay(fullName),
-          phone: signupData.phone ? sanitizeForDisplay(signupData.phone) : null,
-          role: 'student',
-          email: user.user.email
-        })
+        .insert(profileData)
         .select()
         .single()
       
@@ -193,6 +219,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return acc
         }, {} as UserProfile)
         setProfile(sanitizedProfile)
+        console.log('Profile created successfully with fields:', Object.keys(sanitizedProfile))
       } else {
         console.error('Error creating profile:', insertError)
         setProfile(null)

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Access Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .log { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        .info { background: #e3f2fd; color: #1565c0; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Admin Access Debug Tool</h1>
+    
+    <div>
+        <button onclick="testLogin()">Test Admin Login</button>
+        <button onclick="testApiAccess()">Test API Access</button>
+        <button onclick="testFrontendRoute()">Test Frontend Route</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+    </div>
+    
+    <div id="logs"></div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.skypack.dev/@supabase/supabase-js@2'
+        
+        const supabaseUrl = 'https://mylgegkqoddcrxtwcclb.supabase.co'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15bGdlZ2txb2RkY3J4dHdjY2xiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc1MTIwODMsImV4cCI6MjA3MzA4ODA4M30.7f-TwYz7E6Pp07oH5Lkkfw9c8d8JkeE81EXJqpCWiLw'
+        
+        const supabase = createClient(supabaseUrl, supabaseKey)
+        let currentSession = null
+        
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs')
+            const logDiv = document.createElement('div')
+            logDiv.className = `log ${type}`
+            logDiv.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`
+            logs.appendChild(logDiv)
+            logs.scrollTop = logs.scrollHeight
+        }
+        
+        window.testLogin = async function() {
+            log('🔍 Testing admin login...', 'info')
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: 'cosmas@beanola.com',
+                    password: 'Beanola2025'
+                })
+                
+                if (error) {
+                    log(`❌ Login failed: ${error.message}`, 'error')
+                    return
+                }
+                
+                currentSession = data.session
+                log(`✅ Login successful! User: ${data.user.email}`, 'success')
+                log(`🔑 Access token: ${data.session.access_token.substring(0, 50)}...`, 'info')
+                
+                // Check user profile
+                const { data: profile, error: profileError } = await supabase
+                    .from('user_profiles')
+                    .select('*')
+                    .eq('user_id', data.user.id)
+                    .single()
+                
+                if (profileError) {
+                    log(`❌ Profile fetch failed: ${profileError.message}`, 'error')
+                } else {
+                    log(`✅ Profile found: ${profile.full_name} (${profile.role})`, 'success')
+                }
+                
+            } catch (error) {
+                log(`❌ Login error: ${error.message}`, 'error')
+            }
+        }
+        
+        window.testApiAccess = async function() {
+            if (!currentSession) {
+                log('❌ Please login first', 'error')
+                return
+            }
+            
+            log('🔍 Testing API access...', 'info')
+            
+            try {
+                const response = await fetch('/api/admin/dashboard', {
+                    headers: {
+                        'Authorization': `Bearer ${currentSession.access_token}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                
+                log(`📡 API Response: ${response.status} ${response.statusText}`, 'info')
+                
+                if (response.ok) {
+                    const data = await response.json()
+                    log('✅ API access successful!', 'success')
+                    log(`📊 Stats: ${JSON.stringify(data.stats, null, 2)}`, 'info')
+                } else {
+                    const errorText = await response.text()
+                    log(`❌ API failed: ${errorText}`, 'error')
+                }
+                
+            } catch (error) {
+                log(`❌ API error: ${error.message}`, 'error')
+            }
+        }
+        
+        window.testFrontendRoute = async function() {
+            log('🔍 Testing frontend admin route...', 'info')
+            
+            try {
+                // Try to navigate to admin route
+                window.location.href = '/admin'
+            } catch (error) {
+                log(`❌ Frontend route error: ${error.message}`, 'error')
+            }
+        }
+        
+        window.clearLogs = function() {
+            document.getElementById('logs').innerHTML = ''
+        }
+        
+        // Auto-test on load
+        log('🚀 Debug tool loaded. Click "Test Admin Login" to start.', 'info')
+    </script>
+</body>
+</html>

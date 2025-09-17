@@ -44,6 +44,7 @@ export const StepOne: React.FC<StepOneProps> = ({ register, errors, selectedProg
             label="Full Name"
             error={errors.full_name?.message}
             required
+            autoComplete="name"
           />
         </div>
         
@@ -53,6 +54,7 @@ export const StepOne: React.FC<StepOneProps> = ({ register, errors, selectedProg
             label="NRC Number"
             placeholder="123456/12/1"
             error={errors.nrc_number?.message}
+            autoComplete="off"
           />
         </div>
         
@@ -62,6 +64,7 @@ export const StepOne: React.FC<StepOneProps> = ({ register, errors, selectedProg
             label="Passport Number"
             placeholder="Enter passport number"
             error={errors.passport_number?.message}
+            autoComplete="off"
           />
         </div>
         
@@ -72,6 +75,7 @@ export const StepOne: React.FC<StepOneProps> = ({ register, errors, selectedProg
             label="Date of Birth"
             error={errors.date_of_birth?.message}
             required
+            autoComplete="bday"
           />
         </div>
         
@@ -82,6 +86,7 @@ export const StepOne: React.FC<StepOneProps> = ({ register, errors, selectedProg
           <select
             {...register('sex')}
             className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            autoComplete="sex"
           >
             <option value="">Select sex</option>
             <option value="Male">Male</option>
@@ -99,6 +104,7 @@ export const StepOne: React.FC<StepOneProps> = ({ register, errors, selectedProg
             placeholder="0977123456"
             error={errors.phone?.message}
             required
+            autoComplete="tel"
           />
         </div>
         
@@ -109,6 +115,7 @@ export const StepOne: React.FC<StepOneProps> = ({ register, errors, selectedProg
             label="Email Address"
             error={errors.email?.message}
             required
+            autoComplete="email"
           />
         </div>
         
@@ -118,6 +125,7 @@ export const StepOne: React.FC<StepOneProps> = ({ register, errors, selectedProg
             label="Residence Town"
             error={errors.residence_town?.message}
             required
+            autoComplete="address-level2"
           />
         </div>
         
@@ -126,6 +134,7 @@ export const StepOne: React.FC<StepOneProps> = ({ register, errors, selectedProg
             {...register('next_of_kin_name')}
             label="Next of Kin Name (Optional)"
             error={errors.next_of_kin_name?.message}
+            autoComplete="off"
           />
         </div>
         
@@ -134,6 +143,7 @@ export const StepOne: React.FC<StepOneProps> = ({ register, errors, selectedProg
             {...register('next_of_kin_phone')}
             label="Next of Kin Phone (Optional)"
             error={errors.next_of_kin_phone?.message}
+            autoComplete="off"
           />
         </div>
         

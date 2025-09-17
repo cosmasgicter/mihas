@@ -39,6 +39,7 @@ import { QuickActionsPanel } from '@/components/admin/QuickActionsPanel'
 import { PredictiveDashboard } from '@/components/admin/PredictiveDashboard'
 import { workflowAutomation } from '@/lib/workflowAutomation'
 import { sanitizeForDisplay } from '@/lib/sanitize'
+import OfflineAdminDashboard from '@/components/admin/OfflineAdminDashboard'
 
 interface DashboardStats {
   totalApplications: number
@@ -88,6 +89,7 @@ export default function AdminDashboard() {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
   const [refreshing, setRefreshing] = useState(false)
   const [showQuickActions, setShowQuickActions] = useState(true)
+  const [networkError, setNetworkError] = useState(false)
 
 
 
@@ -95,13 +97,21 @@ export default function AdminDashboard() {
     try {
       setLoading(true)
       setError('')
+      setNetworkError(false)
       
       const response = await adminDashboardService.getMetrics()
       setStats(response.stats)
       setRecentActivity(response.recentActivity || [])
     } catch (error: any) {
       console.error('Error loading dashboard stats:', error)
-      setError(`Failed to load dashboard data: ${error.message}`)
+      
+      // Check if it's a network error
+      if (error.message.includes('fetch failed') || error.message.includes('Network Error') || error.message.includes('Failed to fetch')) {
+        setNetworkError(true)
+        setError('Network connectivity issues detected. Showing offline mode.')
+      } else {
+        setError(`Failed to load dashboard data: ${error.message}`)
+      }
     } finally {
       setLoading(false)
     }
@@ -127,6 +137,11 @@ export default function AdminDashboard() {
         <LoadingSpinner size="lg" />
       </div>
     )
+  }
+
+  // Show offline dashboard if network error
+  if (networkError) {
+    return <OfflineAdminDashboard />
   }
 
   // Fallback if user or profile is missing
