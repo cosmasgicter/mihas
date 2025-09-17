@@ -83,7 +83,7 @@ The MIHAS/KATC Application System is a comprehensive web-based platform for mana
 - Optional: Extra KYC documents
 
 **Step 3: Payment Information**
-- Application fee: K150
+- Application fee: K153
 - Payment targets by institution:
   - KATC: MTN 0966 992 299
   - MIHAS: MTN 0961 515 151

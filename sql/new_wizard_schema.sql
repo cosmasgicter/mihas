@@ -57,7 +57,7 @@ CREATE TABLE applications_new (
   extra_kyc_url VARCHAR(500),
   
   -- Step 3: Payment
-  application_fee DECIMAL(10,2) DEFAULT 150.00,
+  application_fee DECIMAL(10,2) DEFAULT 153.00,
   payment_method VARCHAR(20),
   payer_name VARCHAR(255),
   payer_phone VARCHAR(20),

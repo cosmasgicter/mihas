@@ -153,7 +153,7 @@ The MIHAS/KATC Application System is **FULLY OPERATIONAL** and serving real user
 ## 💰 Financial Processing
 
 ### Payment Integration
-- **Application Fee**: K150 (standardized)
+- **Application Fee**: K153 (standardized)
 - **Payment Methods**: MTN, Airtel, Zamtel, Bank transfers
 - **Processing**: Real-time payment verification
 - **Security**: Secure payment proof upload and validation

@@ -78,7 +78,7 @@ ${probability >= 70 ? '🌟 Excellent chances!' : probability >= 50 ? '📈 Good
 
 **Required Documents**:
 ${applicationData?.result_slip_url ? '✅' : '❌'} Result Slip (Grade 12 certificate)
-${applicationData?.pop_url ? '✅' : '❌'} Proof of Payment (K150 receipt)
+${applicationData?.pop_url ? '✅' : '❌'} Proof of Payment (K153 receipt)
 ${applicationData?.extra_kyc_url ? '✅' : '⚪'} Extra KYC (Optional)
 
 **Upload Tips**:
@@ -133,14 +133,14 @@ ${grades.length > 0 ?
     
     return `💳 **Payment Information**:
 
-**Application Fee**: K150.00
+**Application Fee**: K153.00
 **Institution**: ${institution}
 **Payment Method**: MTN Mobile Money
 **Number**: ${paymentNumber}
 **Status**: ${applicationData?.pop_url ? '✅ Uploaded' : '❌ Pending'}
 
 **Payment Steps**:
-1. Send K150 to ${paymentNumber}
+1. Send K153 to ${paymentNumber}
 2. Save transaction receipt
 3. Upload proof in Step 3
 4. Include reference number
@@ -204,7 +204,7 @@ What specific area would you like help with?`
     const guides: Record<number, string> = {
       1: 'Fill personal information and select your program',
       2: 'Add Grade 12 subjects and upload result slip',
-      3: 'Upload proof of K150 payment',
+      3: 'Upload proof of K153 payment',
       4: 'Review all information and submit'
     }
     return guides[step] || 'Continue with your application'

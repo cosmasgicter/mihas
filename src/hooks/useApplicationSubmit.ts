@@ -47,7 +47,7 @@ export function useWizardSubmit() {
           payment_method: data.payment_method || 'MTN Money',
           payer_name: data.payer_name || null,
           payer_phone: data.payer_phone || null,
-          amount: data.amount || 150,
+          amount: data.amount || 153,
           paid_at: data.paid_at ? new Date(data.paid_at).toISOString() : null,
           momo_ref: data.momo_ref || null,
           pop_url: popUrl,

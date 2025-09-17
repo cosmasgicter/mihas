@@ -40,7 +40,7 @@ const wizardSchema = z.object({
   payment_method: z.enum(['MTN Money', 'Airtel Money', 'Zamtel Money', 'Ewallet', 'Bank To Cell']).default('MTN Money'),
   payer_name: z.string().optional(),
   payer_phone: z.string().optional(),
-  amount: z.number().min(150, 'Minimum amount is K150').optional(),
+  amount: z.number().min(153, 'Minimum amount is K153').optional(),
   paid_at: z.string().optional(),
   momo_ref: z.string().optional()
 }).refine((data) => {
@@ -72,6 +72,12 @@ export default function ApplicationWizard() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [applicationId, setApplicationId] = useState<string | null>(null)
+  const [submittedApplication, setSubmittedApplication] = useState<{
+    applicationNumber: string
+    trackingCode: string
+    program: string
+    institution: string
+  } | null>(null)
   
   const [selectedGrades, setSelectedGrades] = useState<SubjectGrade[]>([])
   const [resultSlipFile, setResultSlipFile] = useState<File | null>(null)
@@ -101,7 +107,7 @@ export default function ApplicationWizard() {
   
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<WizardFormData>({
     resolver: zodResolver(wizardSchema),
-    defaultValues: { amount: 150, payment_method: 'MTN Money' }
+    defaultValues: { amount: 153, payment_method: 'MTN Money' }
   })
 
   const selectedProgram = watch('program')
@@ -458,6 +464,13 @@ export default function ApplicationWizard() {
         })
 
         setApplicationId(app.id)
+        // Store initial application details, will be updated after submission
+        setSubmittedApplication({
+          applicationNumber,
+          trackingCode,
+          program: formData.program,
+          institution
+        })
         setCurrentStep(2)
       } catch (err: any) {
         setError(err.message)
@@ -568,7 +581,7 @@ export default function ApplicationWizard() {
           payment_method: data.payment_method || 'MTN Money',
           payer_name: data.payer_name || null,
           payer_phone: data.payer_phone || null,
-          amount: data.amount || 150,
+          amount: data.amount || 153,
           paid_at: data.paid_at ? new Date(data.paid_at).toISOString() : null,
           momo_ref: data.momo_ref || null,
           pop_url: popUrl,
@@ -582,6 +595,45 @@ export default function ApplicationWizard() {
       }
       
       console.log('Application submitted successfully:', { applicationId: sanitizeForLog(updatedApp.id) })
+      
+      // Send notifications after successful submission
+      try {
+        const { getApiBaseUrl } = await import('@/lib/apiConfig')
+        const apiBase = getApiBaseUrl()
+        
+        const { data: session } = await supabase.auth.getSession()
+        const response = await fetch(`${apiBase}/api/notifications/application-submitted`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`
+          },
+          body: JSON.stringify({
+            applicationId: updatedApp.id,
+            userId: user.id
+          })
+        })
+        
+        if (response.ok) {
+          const result = await response.json()
+          console.log('Notifications sent successfully:', { success: result.success })
+          
+          // Update submitted application details from API response
+          if (result.application) {
+            setSubmittedApplication({
+              applicationNumber: result.application.number,
+              trackingCode: result.application.trackingCode,
+              program: result.application.program,
+              institution: result.application.institution
+            })
+          }
+        } else {
+          console.warn('Failed to send notifications via API:', response.status)
+        }
+      } catch (notificationError) {
+        console.warn('Failed to send notifications:', sanitizeForLog(notificationError instanceof Error ? notificationError.message : 'Unknown error'))
+        // Don't fail the submission if notifications fail
+      }
       
       // Clear saved draft on successful submission
       try {
@@ -633,9 +685,9 @@ export default function ApplicationWizard() {
   if (success) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
-        <div className="max-w-md w-full">
+        <div className="max-w-lg w-full">
           <motion.div 
-            className="bg-white rounded-lg shadow p-8 text-center"
+            className="bg-white rounded-lg shadow-lg p-8 text-center"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5 }}
@@ -650,12 +702,48 @@ export default function ApplicationWizard() {
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
               Application Submitted Successfully!
             </h2>
+            
+            {submittedApplication && (
+              <motion.div 
+                className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <h3 className="font-semibold text-green-800 mb-3">Application Details</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-green-700">Application Number:</span>
+                    <span className="font-mono font-bold text-green-900">{submittedApplication.applicationNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-green-700">Tracking Code:</span>
+                    <span className="font-mono font-bold text-green-900">{submittedApplication.trackingCode}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-green-700">Program:</span>
+                    <span className="font-semibold text-green-900">{submittedApplication.program}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-green-700">Institution:</span>
+                    <span className="font-semibold text-green-900">{submittedApplication.institution}</span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+            
             <p className="text-gray-600 mb-6">
-              Your application has been submitted and is now under review.
+              Your application is now under review. You'll receive notifications about status updates.
             </p>
-            <Link to="/student/dashboard">
-              <Button className="w-full">Go to Dashboard</Button>
-            </Link>
+            
+            <div className="space-y-3">
+              <Link to="/student/dashboard">
+                <Button className="w-full bg-blue-600 hover:bg-blue-700">Go to Dashboard</Button>
+              </Link>
+              <Link to="/track-application">
+                <Button variant="outline" className="w-full">Track Application Status</Button>
+              </Link>
+            </div>
           </motion.div>
         </div>
       </div>
@@ -843,7 +931,6 @@ export default function ApplicationWizard() {
                       label="Full Name"
                       error={errors.full_name?.message}
                       required
-                      placeholder="Enter your full name"
                     />
                   </div>
                   
@@ -851,8 +938,8 @@ export default function ApplicationWizard() {
                     <Input
                       {...register('nrc_number')}
                       label="NRC Number"
-                      placeholder="123456/12/1"
                       error={errors.nrc_number?.message}
+                      helperText="Provide either NRC or Passport (one is sufficient)"
                     />
                   </div>
                   
@@ -860,8 +947,8 @@ export default function ApplicationWizard() {
                     <Input
                       {...register('passport_number')}
                       label="Passport Number"
-                      placeholder="Enter passport number"
                       error={errors.passport_number?.message}
+                      helperText="Provide either NRC or Passport (one is sufficient)"
                     />
                   </div>
                   
@@ -896,7 +983,6 @@ export default function ApplicationWizard() {
                     <Input
                       {...register('phone')}
                       label="Phone Number"
-                      placeholder="0977123456"
                       error={errors.phone?.message}
                       required
                     />
@@ -1123,8 +1209,9 @@ export default function ApplicationWizard() {
                                 value={grade.subject_id}
                                 onChange={(e) => updateGrade(index, 'subject_id', e.target.value)}
                                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                disabled={subjects.length === 0}
                               >
-                                <option value="">Select subject</option>
+                                <option value="">{subjects.length === 0 ? 'Loading subjects...' : 'Select subject'}</option>
                                 {subjects.map((subject) => {
                                   const isUsed = getUsedSubjects().includes(subject.id) && grade.subject_id !== subject.id
                                   return (
@@ -1352,7 +1439,7 @@ export default function ApplicationWizard() {
                     </div>
                     <div className="space-y-2 text-sm">
                       <p className="text-blue-700">
-                        <strong>Application Fee:</strong> K150.00
+                        <strong>Application Fee:</strong> K153.00
                       </p>
                       <p className="text-blue-700">
                         <strong>Payment Target:</strong> {getPaymentTarget()}
@@ -1433,8 +1520,8 @@ export default function ApplicationWizard() {
                         type="number"
                         {...register('amount', { valueAsNumber: true })}
                         label="Amount Paid"
-                        defaultValue={150}
-                        min={150}
+                        defaultValue={153}
+                        min={153}
                       />
                     </div>
                     
@@ -1548,7 +1635,31 @@ export default function ApplicationWizard() {
                       <p><strong>Name:</strong> {watch('full_name')}</p>
                       <p><strong>Program:</strong> {watch('program')}</p>
                       <p><strong>Intake:</strong> {watch('intake')}</p>
-                      <p><strong>Subjects:</strong> {selectedGrades.length} subjects selected</p>
+                      <div>
+                        <p><strong>Subjects ({selectedGrades.length}):</strong></p>
+                        <div className="ml-4 mt-1 space-y-1">
+                          {selectedGrades.map((grade, index) => {
+                            const subject = subjects.find(s => s.id === grade.subject_id)
+                            const subjectName = subject?.name || grade.subject_id || `Loading...`
+                            const gradeLabel = grade.grade === 1 ? 'A+' : 
+                                             grade.grade === 2 ? 'A' :
+                                             grade.grade === 3 ? 'B+' :
+                                             grade.grade === 4 ? 'B' :
+                                             grade.grade === 5 ? 'C+' :
+                                             grade.grade === 6 ? 'C' :
+                                             grade.grade === 7 ? 'D+' :
+                                             grade.grade === 8 ? 'D' : 'F'
+                            return (
+                              <p key={index} className="text-sm">
+                                • {subjectName}: {gradeLabel} ({grade.grade})
+                              </p>
+                            )
+                          })}
+                          {selectedGrades.length === 0 && (
+                            <p className="text-sm text-gray-500">No subjects selected</p>
+                          )}
+                        </div>
+                      </div>
                       {eligibilityCheck && (
                         <div>
                           <p><strong>Eligibility:</strong> 

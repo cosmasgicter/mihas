@@ -67,6 +67,7 @@ export function NotificationBell() {
         size="sm"
         onClick={() => setShowPanel(!showPanel)}
         className="relative hover:bg-blue-50"
+        data-testid="notification-bell"
       >
         <Bell className="h-5 w-5 text-gray-600" />
         {unreadCount > 0 && (
@@ -74,6 +75,7 @@ export function NotificationBell() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold"
+            data-testid="unread-count"
           >
             {unreadCount > 99 ? '99+' : unreadCount}
           </motion.span>
@@ -112,6 +114,7 @@ export function NotificationBell() {
                         size="sm"
                         onClick={markAllAsRead}
                         className="text-xs text-blue-600 hover:bg-blue-100"
+                        data-testid="mark-all-read"
                       >
                         Mark all read
                       </Button>
@@ -120,6 +123,7 @@ export function NotificationBell() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowPanel(false)}
+                      data-testid="close-notifications"
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -148,10 +152,11 @@ export function NotificationBell() {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md ${getBgColor(notification.type, notification.read)} ${
+                        className={`group p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md ${getBgColor(notification.type, notification.read)} ${
                           !notification.read ? 'border-l-4 shadow-sm' : ''
                         }`}
                         onClick={() => handleNotificationClick(notification)}
+                        data-testid="notification-item"
                       >
                         <div className="flex items-start space-x-3">
                           <div className="flex-shrink-0 mt-0.5">
@@ -186,7 +191,7 @@ export function NotificationBell() {
                                     console.error('Failed to delete notification')
                                   }
                                 }}
-                                className="p-1 h-auto opacity-0 group-hover:opacity-100 hover:bg-red-100 hover:text-red-600"
+                                className="p-1 h-auto opacity-0 group-hover:opacity-100 focus:opacity-100 touch:opacity-100 hover:bg-red-100 hover:text-red-600 focus:bg-red-100 focus:text-red-600"
                               >
                                 <Trash2 className="h-3 w-3" />
                               </Button>

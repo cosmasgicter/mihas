@@ -73,7 +73,7 @@ export function AIAssistant({ applicationData, currentStep, onSuggestionApply, o
       
       2: `📚 **Step 2: Education Details**\n\nTime to add your Grade 12 subjects and upload documents.\n\n**Requirements**:\n• Minimum 5 subjects (recommended: 6-8)\n• Include core subjects for your program\n• Upload clear, readable result slip\n\n**Program-specific core subjects**:\n${getCoreSubjectsForProgram(appData?.program)}\n\n**Current progress**: ${appData?.grades?.length || 0} subjects added`,
       
-      3: `💳 **Step 3: Payment Information**\n\nUpload your proof of payment for the K150 application fee.\n\n**Payment details**:\n• Amount: K150.00\n• Method: Mobile Money\n• Pay to: ${getPaymentNumber(appData?.program)}\n\n**Upload requirements**:\n• Clear screenshot or photo of transaction\n• Include transaction reference if available\n• Accepted formats: JPG, PNG, PDF`,
+      3: `💳 **Step 3: Payment Information**\n\nUpload your proof of payment for the K153 application fee.\n\n**Payment details**:\n• Amount: K153.00\n• Method: Mobile Money\n• Pay to: ${getPaymentNumber(appData?.program)}\n\n**Upload requirements**:\n• Clear screenshot or photo of transaction\n• Include transaction reference if available\n• Accepted formats: JPG, PNG, PDF`,
       
       4: `✅ **Step 4: Review & Submit**\n\nFinal check before submitting your application.\n\n**Review checklist**:\n• Personal information is correct\n• All required subjects added\n• Documents are clear and readable\n• Payment proof is uploaded\n\n**After submission**:\n• You'll receive a tracking code\n• Processing takes 3-5 business days\n• You can track status anytime`
     }
@@ -329,7 +329,7 @@ Would you like me to guide you through any of these steps?`
 
 **Document Status**:
 1. **Result Slip** ${docStatus.resultSlip} - Your Grade 12 examination results
-2. **Proof of Payment** ${docStatus.paymentProof} - K150 application fee receipt
+2. **Proof of Payment** ${docStatus.paymentProof} - K153 application fee receipt
 3. **Extra KYC** ${docStatus.extraKYC} - Additional identification documents
 
 **Upload Requirements**:
@@ -410,13 +410,13 @@ ${currentGrades.length < 5 ? 'You need to add more subjects to meet the minimum 
       
       return `💳 **Payment Information**:
 
-**Application Fee**: K150.00
+**Application Fee**: K153.00
 **Payment Method**: Mobile Money
 **Pay to**: ${paymentTarget} (${institution})
 **Status**: ${paymentStatus}
 
 **Payment Steps**:
-1. Send K150 to the number above
+1. Send K153 to the number above
 2. Save the transaction receipt/screenshot
 3. Upload the proof of payment in Step 3
 4. Include transaction reference if available
