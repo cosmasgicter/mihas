@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase, UserProfile } from '@/lib/supabase'
+import { UserProfile } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { AdminNavigation } from '@/components/ui/AdminNavigation'
@@ -12,6 +12,7 @@ import { UserPermissions } from '@/components/admin/UserPermissions'
 import { UserActivityLog } from '@/components/admin/UserActivityLog'
 import { UserExport } from '@/components/admin/UserExport'
 import { UserImport } from '@/components/admin/UserImport'
+import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from '@/hooks/useApiServices'
 import { ArrowLeft, Users, Shield, User, Plus, Edit, Trash2, Search, Filter, UserPlus, Settings, Eye, EyeOff, BarChart3, CheckSquare, Square, Lock, Clock, Download, Upload } from 'lucide-react'
 import { sanitizeForLog } from '@/lib/security'
 import { sanitizeForDisplay } from '@/lib/sanitize'
@@ -41,11 +42,14 @@ const AVAILABLE_ROLES = [
 ]
 
 export default function AdminUsers() {
-  const [users, setUsers] = useState<UserProfile[]>([])
+  const { data: usersData, isLoading: loading, error: queryError, refetch } = useUsers()
+  const createUserMutation = useCreateUser()
+  const updateUserMutation = useUpdateUser()
+  const deleteUserMutation = useDeleteUser()
+  
+  const users = usersData?.data || []
   const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([])
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [updating, setUpdating] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -77,32 +81,16 @@ export default function AdminUsers() {
   const [showImportDialog, setShowImportDialog] = useState(false)
 
   useEffect(() => {
-    loadUsers()
-  }, [])
+    if (queryError) {
+      setError(queryError instanceof Error ? queryError.message : 'Failed to load users')
+    }
+  }, [queryError])
 
   useEffect(() => {
     filterUsers()
   }, [users, searchTerm, roleFilter])
 
-  const loadUsers = async () => {
-    try {
-      setLoading(true)
-      setError('')
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      setUsers(data || [])
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load users. Please try again.'
-      console.error('Failed to load users:', sanitizeForLog(errorMessage))
-      setError(errorMessage)
-      setUsers([])
-    } finally {
-      setLoading(false)
-    }
-  }
+
 
   const filterUsers = () => {
     let filtered = users
@@ -124,39 +112,13 @@ export default function AdminUsers() {
 
   const createUser = async () => {
     try {
-      setUpdating('create')
-      
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: createForm.email,
-        password: createForm.password,
-      })
-      
-      if (authError) throw authError
-      if (!authData.user) throw new Error('Failed to create user')
-      
-      // Create user profile
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .insert({
-          user_id: authData.user.id,
-          email: createForm.email,
-          full_name: createForm.full_name,
-          phone: createForm.phone,
-          role: createForm.role
-        })
-      
-      if (profileError) throw profileError
-      
+      await createUserMutation.mutateAsync(createForm)
       setShowCreateDialog(false)
       setCreateForm({ email: '', password: '', full_name: '', phone: '', role: 'student' })
-      await loadUsers()
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create user'
       console.error('Failed to create user:', sanitizeForLog(errorMessage))
       setError(errorMessage)
-    } finally {
-      setUpdating(null)
     }
   }
 
@@ -164,28 +126,13 @@ export default function AdminUsers() {
     if (!selectedUser) return
     
     try {
-      setUpdating(selectedUser.user_id)
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({
-          full_name: editForm.full_name,
-          email: editForm.email,
-          phone: editForm.phone,
-          role: editForm.role
-        })
-        .eq('user_id', selectedUser.user_id)
-      
-      if (error) throw error
-      
+      await updateUserMutation.mutateAsync({ id: selectedUser.user_id, data: editForm })
       setShowEditDialog(false)
       setSelectedUser(null)
-      await loadUsers()
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update user'
       console.error('Failed to update user:', sanitizeForLog(errorMessage))
       setError(errorMessage)
-    } finally {
-      setUpdating(null)
     }
   }
 
@@ -193,45 +140,17 @@ export default function AdminUsers() {
     if (!selectedUser) return
     
     try {
-      setUpdating(selectedUser.user_id)
-      
-      // Delete user profile
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .delete()
-        .eq('user_id', selectedUser.user_id)
-      
-      if (profileError) throw profileError
-      
+      await deleteUserMutation.mutateAsync(selectedUser.user_id)
       setShowDeleteDialog(false)
       setSelectedUser(null)
-      await loadUsers()
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete user'
       console.error('Failed to delete user:', sanitizeForLog(errorMessage))
       setError(errorMessage)
-    } finally {
-      setUpdating(null)
     }
   }
 
-  const updateUserRole = async (userId: string, newRole: string) => {
-    try {
-      setUpdating(userId)
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({ role: newRole })
-        .eq('user_id', userId)
-      if (error) throw error
-      await loadUsers()
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update user role'
-      console.error('Failed to update user role:', sanitizeForLog(errorMessage))
-      setError(errorMessage)
-    } finally {
-      setUpdating(null)
-    }
-  }
+
 
   const openEditDialog = (user: UserProfile) => {
     setSelectedUser(user)
@@ -274,15 +193,9 @@ export default function AdminUsers() {
     if (!permissionsUser) return
     
     try {
-      setUpdating(permissionsUser.user_id)
       // In a real implementation, you would save permissions to a separate table
       // For now, we'll just log them
       console.log('Saving permissions for user:', sanitizeForLog(permissionsUser.user_id), sanitizeForLog(JSON.stringify(permissions)))
-      
-      // You could extend the user_profiles table or create a separate permissions table
-      // const { error } = await supabase
-      //   .from('user_permissions')
-      //   .upsert({ user_id: permissionsUser.user_id, permissions })
       
       setShowPermissionsDialog(false)
       setPermissionsUser(null)
@@ -290,8 +203,6 @@ export default function AdminUsers() {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save permissions'
       console.error('Failed to save permissions:', sanitizeForLog(errorMessage))
       setError(errorMessage)
-    } finally {
-      setUpdating(null)
     }
   }
 
@@ -448,7 +359,7 @@ export default function AdminUsers() {
                 users={filteredUsers}
                 selectedUsers={selectedUsers}
                 onSelectionChange={setSelectedUsers}
-                onOperationComplete={loadUsers}
+                onOperationComplete={() => refetch()}
               />
             </div>
           )}
@@ -479,7 +390,7 @@ export default function AdminUsers() {
                 <p className="text-gray-600 mb-6 max-w-md mx-auto">
                   No users have been registered yet. Users will appear here once they sign up for the system.
                 </p>
-                <Button onClick={loadUsers} className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-semibold">
+                <Button onClick={() => refetch()} className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-semibold">
                   Refresh Users
                 </Button>
               </div>
@@ -774,13 +685,13 @@ export default function AdminUsers() {
             <Button
               variant="outline"
               onClick={() => setShowCreateDialog(false)}
-              disabled={updating === 'create'}
+              disabled={createUserMutation.isPending}
             >
               Cancel
             </Button>
             <Button
               onClick={createUser}
-              loading={updating === 'create'}
+              loading={createUserMutation.isPending}
               className="bg-purple-600 hover:bg-purple-700 text-white"
             >
               Create User
@@ -846,13 +757,13 @@ export default function AdminUsers() {
             <Button
               variant="outline"
               onClick={() => setShowEditDialog(false)}
-              disabled={updating === selectedUser?.user_id}
+              disabled={updateUserMutation.isPending}
             >
               Cancel
             </Button>
             <Button
               onClick={updateUser}
-              loading={updating === selectedUser?.user_id}
+              loading={updateUserMutation.isPending}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               Update User
@@ -885,13 +796,13 @@ export default function AdminUsers() {
             <Button
               variant="outline"
               onClick={() => setShowDeleteDialog(false)}
-              disabled={updating === selectedUser?.user_id}
+              disabled={deleteUserMutation.isPending}
             >
               Cancel
             </Button>
             <Button
               onClick={deleteUser}
-              loading={updating === selectedUser?.user_id}
+              loading={deleteUserMutation.isPending}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               Delete User
@@ -936,7 +847,7 @@ export default function AdminUsers() {
         onClose={() => setShowImportDialog(false)}
         onImportComplete={() => {
           setShowImportDialog(false)
-          loadUsers()
+          refetch()
         }}
       />
     </div>

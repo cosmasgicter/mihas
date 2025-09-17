@@ -1,5 +1,12 @@
 import { supabase } from './supabase'
 import { sanitizeForLog } from './security'
+import { getApiBaseUrl } from './apiConfig'
+
+// Get the application base URL for notification links
+const getAppBaseUrl = () => {
+  const apiBase = getApiBaseUrl()
+  return import.meta.env.VITE_APP_BASE_URL || apiBase
+}
 
 export interface NotificationChannel {
   type: 'email' | 'sms' | 'whatsapp' | 'push' | 'in_app'
@@ -101,7 +108,7 @@ export class MultiChannelNotificationService {
         type: 'application_submitted',
         channels: ['email', 'in_app'],
         subject: '✅ Application Submitted Successfully - {{program}}',
-        content: 'Dear {{full_name}},\n\nYour application for {{program}} has been successfully submitted!\n\n📋 Tracking Code: {{tracking_code}}\n⏰ Expected Processing: 3-5 business days\n\nYou can track your application status anytime at: https://mihas-katc.com/track-application\n\nThank you for choosing {{institution}}!',
+        content: `Dear {{full_name}},\n\nYour application for {{program}} has been successfully submitted!\n\n📋 Tracking Code: {{tracking_code}}\n⏰ Expected Processing: 3-5 business days\n\nYou can track your application status anytime at: ${getAppBaseUrl()}/track-application\n\nThank you for choosing {{institution}}!`,
         variables: ['program', 'tracking_code', 'full_name', 'institution']
       },
       document_missing: {
@@ -109,7 +116,7 @@ export class MultiChannelNotificationService {
         type: 'document_missing',
         channels: ['email', 'in_app'],
         subject: '📄 Missing Documents - Action Required',
-        content: 'Dear {{full_name}},\n\nYour application requires the following documents:\n\n❌ {{missing_documents}}\n\n⏰ Deadline: {{deadline}}\n\nPlease upload these documents to continue processing your application.\n\nLogin to complete: https://mihas-katc.com/apply',
+        content: `Dear {{full_name}},\n\nYour application requires the following documents:\n\n❌ {{missing_documents}}\n\n⏰ Deadline: {{deadline}}\n\nPlease upload these documents to continue processing your application.\n\nLogin to complete: ${getAppBaseUrl()}/apply`,
         variables: ['full_name', 'missing_documents', 'deadline']
       },
       status_update: {
@@ -117,7 +124,7 @@ export class MultiChannelNotificationService {
         type: 'status_update',
         channels: ['email', 'in_app'],
         subject: '🔄 Application Status Update - {{status}}',
-        content: 'Dear {{full_name}},\n\nYour application status has been updated:\n\n📊 New Status: {{status}}\n💬 Message: {{message}}\n\nTrack your application: https://mihas-katc.com/track-application\n\nFor questions, contact us at info@{{institution_domain}}.edu.zm',
+        content: `Dear {{full_name}},\n\nYour application status has been updated:\n\n📊 New Status: {{status}}\n💬 Message: {{message}}\n\nTrack your application: ${getAppBaseUrl()}/track-application\n\nFor questions, contact us at info@{{institution_domain}}.edu.zm`,
         variables: ['status', 'message', 'full_name', 'institution_domain']
       },
       application_approved: {
@@ -133,7 +140,7 @@ export class MultiChannelNotificationService {
         type: 'incomplete_application',
         channels: ['email', 'in_app'],
         subject: '⚠️ Incomplete Application - Please Complete',
-        content: 'Dear {{full_name}},\n\nYour application is incomplete:\n\n❌ {{missing_info}}\n📊 Current: {{current_count}} items\n\nPlease complete your application to proceed.\n\nContinue here: https://mihas-katc.com/apply',
+        content: `Dear {{full_name}},\n\nYour application is incomplete:\n\n❌ {{missing_info}}\n📊 Current: {{current_count}} items\n\nPlease complete your application to proceed.\n\nContinue here: ${getAppBaseUrl()}/apply`,
         variables: ['full_name', 'missing_info', 'current_count']
       }
     }

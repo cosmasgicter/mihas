@@ -1,9 +1,22 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  'https://mylgegkqoddcrxtwcclb.supabase.co',
-  'sbp_a5d15dd3cf175a5b7fd47009861eca8794ead455'
-)
+const supabaseUrl = process.env.SUPABASE_URL
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+if (!supabaseUrl) {
+  throw new Error('SUPABASE_URL environment variable is required')
+}
+
+if (!supabaseServiceKey) {
+  throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required')
+}
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false
+  }
+})
 
 export class SupabaseMCPClient {
   private static instance: SupabaseMCPClient

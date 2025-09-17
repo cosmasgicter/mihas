@@ -1,8 +1,17 @@
+import { getApiBaseUrl } from './apiConfig'
+
+// Get the application base URL for email links
+const getAppBaseUrl = () => {
+  const apiBase = getApiBaseUrl()
+  // For production, use the configured domain, otherwise use the API base
+  return import.meta.env.VITE_APP_BASE_URL || apiBase
+}
+
 export const EMAIL_TEMPLATES = {
   submitted: {
     subject: (program: string) => `✅ Application Submitted Successfully - ${program}`,
     body: (userName: string, program: string, applicationNumber: string) => 
-      `Dear ${userName},\n\nYour application for ${program} has been successfully submitted!\n\n📋 Application Number: ${applicationNumber}\n📊 Status: Under Review\n⏰ Expected Processing Time: 3-5 business days\n\nYou can track your application status anytime at: https://mihas-katc.com/track-application\n\nWhat's Next?\n- Our admissions team will review your application\n- You'll receive email updates on any status changes\n- Make sure to check your email regularly\n\nThank you for choosing MIHAS-KATC for your educational journey!\n\nBest regards,\nMIHAS-KATC Admissions Team\n\n---\nThis is an automated message. Please do not reply to this email.\nFor questions, contact us at info@mihas.edu.zm or info@katc.edu.zm`
+      `Dear ${userName},\n\nYour application for ${program} has been successfully submitted!\n\n📋 Application Number: ${applicationNumber}\n📊 Status: Under Review\n⏰ Expected Processing Time: 3-5 business days\n\nYou can track your application status anytime at: ${getAppBaseUrl()}/track-application\n\nWhat's Next?\n- Our admissions team will review your application\n- You'll receive email updates on any status changes\n- Make sure to check your email regularly\n\nThank you for choosing MIHAS-KATC for your educational journey!\n\nBest regards,\nMIHAS-KATC Admissions Team\n\n---\nThis is an automated message. Please do not reply to this email.\nFor questions, contact us at info@mihas.edu.zm or info@katc.edu.zm`
   },
   
   approved: {
@@ -20,6 +29,6 @@ export const EMAIL_TEMPLATES = {
   pending_documents: {
     subject: (program: string) => `📄 Missing Documents Required - ${program}`,
     body: (userName: string, program: string, applicationNumber: string) =>
-      `Dear ${userName},\n\nYour application for ${program} requires additional documents to continue processing.\n\n📋 Application Number: ${applicationNumber}\n📊 Status: Pending Documents\n⏰ Deadline: Please upload within 7 days\n\nRequired Documents:\nPlease log into your account to see which specific documents are needed.\n\nTo upload documents:\n1. Visit: https://mihas-katc.com/apply\n2. Log into your account\n3. Navigate to your application\n4. Upload the required documents\n\nImportant: Failure to submit required documents within the deadline may result in application cancellation.\n\nFor technical support or questions:\n- MIHAS: +260 961 515 151 | info@mihas.edu.zm\n- KATC: +260 966 992 299 | info@katc.edu.zm\n\nBest regards,\nMIHAS-KATC Admissions Team`
+      `Dear ${userName},\n\nYour application for ${program} requires additional documents to continue processing.\n\n📋 Application Number: ${applicationNumber}\n📊 Status: Pending Documents\n⏰ Deadline: Please upload within 7 days\n\nRequired Documents:\nPlease log into your account to see which specific documents are needed.\n\nTo upload documents:\n1. Visit: ${getAppBaseUrl()}/apply\n2. Log into your account\n3. Navigate to your application\n4. Upload the required documents\n\nImportant: Failure to submit required documents within the deadline may result in application cancellation.\n\nFor technical support or questions:\n- MIHAS: +260 961 515 151 | info@mihas.edu.zm\n- KATC: +260 966 992 299 | info@katc.edu.zm\n\nBest regards,\nMIHAS-KATC Admissions Team`
   }
 } as const

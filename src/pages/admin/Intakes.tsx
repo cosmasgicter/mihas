@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase, Intake } from '@/lib/supabase'
+import { intakeService } from '@/services/apiClient'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import {
@@ -17,6 +17,18 @@ import { Pencil, Trash2, Plus, ArrowLeft } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
+
+interface Intake {
+  id: string
+  name: string
+  year: number
+  start_date: string
+  end_date: string
+  application_deadline: string
+  total_capacity: number
+  available_spots: number
+  is_active: boolean
+}
 
 const intakeSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -101,13 +113,8 @@ export default function AdminIntakes() {
   const loadIntakes = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
-        .from('intakes')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      setIntakes(data || [])
+      const response = await intakeService.list()
+      setIntakes(response.intakes || [])
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -151,8 +158,7 @@ export default function AdminIntakes() {
     try {
       setSaving(true)
       setError('')
-      const result = await operation()
-      if (result.error) throw result.error
+      await operation()
       onSuccess()
       await loadIntakes()
     } catch (err: any) {
@@ -163,31 +169,31 @@ export default function AdminIntakes() {
   }
 
   const createIntake = (data: IntakeForm) => handleOperation(
-    () => supabase.from('intakes').insert({
+    () => intakeService.create({
       name: data.name,
       year: data.year,
       start_date: data.start_date,
       end_date: data.end_date,
       application_deadline: data.application_deadline,
       total_capacity: data.total_capacity,
-      available_spots: data.available_spots,
-      is_active: true,
-    }).select(),
+      available_spots: data.available_spots
+    }),
     () => setShowCreate(false)
   )
 
   const updateIntake = (data: IntakeForm) => {
     if (!currentIntake) return
     handleOperation(
-      () => supabase.from('intakes').update({
+      () => intakeService.update({
+        id: currentIntake.id,
         name: data.name,
         year: data.year,
         start_date: data.start_date,
         end_date: data.end_date,
         application_deadline: data.application_deadline,
         total_capacity: data.total_capacity,
-        available_spots: data.available_spots,
-      }).eq('id', currentIntake.id).select(),
+        available_spots: data.available_spots
+      }),
       () => {
         setShowEdit(false)
         setCurrentIntake(null)
@@ -198,7 +204,7 @@ export default function AdminIntakes() {
   const deleteIntake = () => {
     if (!currentIntake) return
     handleOperation(
-      () => supabase.from('intakes').update({ is_active: false }).eq('id', currentIntake.id).select(),
+      () => intakeService.delete(currentIntake.id),
       () => {
         setShowDelete(false)
         setCurrentIntake(null)

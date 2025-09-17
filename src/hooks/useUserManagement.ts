@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
-import { supabase, UserProfile } from '@/lib/supabase'
+import { UserProfile } from '@/lib/supabase'
+import { userService } from '@/services/apiClient'
 import { sanitizeForLog } from '@/lib/sanitize'
 
 interface CreateUserData {
@@ -32,31 +33,8 @@ export function useUserManagement() {
       setLoading(true)
       setError(null)
 
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: userData.email,
-        password: userData.password,
-      })
-
-      if (authError) throw authError
-      if (!authData.user) throw new Error('Failed to create user')
-
-      // Create user profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
-        .insert({
-          user_id: authData.user.id,
-          email: userData.email,
-          full_name: userData.full_name,
-          phone: userData.phone,
-          role: userData.role
-        })
-        .select()
-        .single()
-
-      if (profileError) throw profileError
-
-      return profileData
+      const response = await userService.create(userData)
+      return response.data
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create user'
       console.error('Failed to create user:', sanitizeForLog(errorMessage))
@@ -72,13 +50,7 @@ export function useUserManagement() {
       setLoading(true)
       setError(null)
 
-      const { error } = await supabase
-        .from('user_profiles')
-        .update(userData)
-        .eq('user_id', userId)
-
-      if (error) throw error
-
+      await userService.update(userId, userData as any)
       return true
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update user'
@@ -95,14 +67,7 @@ export function useUserManagement() {
       setLoading(true)
       setError(null)
 
-      // Delete user profile (auth user deletion requires admin privileges)
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .delete()
-        .eq('user_id', userId)
-
-      if (profileError) throw profileError
-
+      await userService.remove(userId)
       return true
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete user'

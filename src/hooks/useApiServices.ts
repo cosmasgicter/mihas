@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
-import { applicationService, documentService, analyticsService } from '@/services/apiClient'
+import { applicationService, documentService, analyticsService, userService } from '@/services/apiClient'
 
 // Auth hooks
 export const useLogin = () => {
@@ -31,7 +31,7 @@ export const useApplications = () => {
 
 export const useApplication = (id: string) => {
   return useQuery({
-    queryKey: ['application', id],
+    queryKey: ['applications', id],
     queryFn: () => applicationService.getById(id),
     enabled: !!id
   })
@@ -55,7 +55,7 @@ export const useUpdateApplication = () => {
     mutationFn: ({ id, data }: { id: string; data: any }) => 
       applicationService.update(id, data),
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ['application', id] })
+      queryClient.invalidateQueries({ queryKey: ['applications', id] })
       queryClient.invalidateQueries({ queryKey: ['applications'] })
     }
   })
@@ -74,5 +74,47 @@ export const useAnalytics = () => {
     queryKey: ['analytics'],
     queryFn: analyticsService.getMetrics,
     refetchInterval: 5 * 60 * 1000 // Refresh every 5 minutes
+  })
+}
+
+// User management hooks
+export const useUsers = () => {
+  return useQuery({
+    queryKey: ['users'],
+    queryFn: userService.list
+  })
+}
+
+export const useCreateUser = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: userService.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+    }
+  })
+}
+
+export const useUpdateUser = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => 
+      userService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+    }
+  })
+}
+
+export const useDeleteUser = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: userService.remove,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+    }
   })
 }

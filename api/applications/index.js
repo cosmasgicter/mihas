@@ -153,21 +153,15 @@ async function handleGet(req, res, { user, isAdmin }) {
 
 async function fetchApplicationStats(userId) {
   try {
-    let baseQuery = supabaseAdminClient
-      .from('applications_new')
-      .select('status, payment_status')
+    const { data, error } = await supabaseAdminClient
+      .rpc('get_application_stats', { filter_user_id: userId })
 
-    if (userId) {
-      baseQuery = baseQuery.eq('user_id', userId)
-    }
-
-    const { data, error } = await baseQuery
     if (error) {
       throw error
     }
 
     const stats = {
-      total: data.length,
+      total: 0,
       draft: 0,
       submitted: 0,
       under_review: 0,
@@ -175,9 +169,10 @@ async function fetchApplicationStats(userId) {
       rejected: 0
     }
 
-    data.forEach(app => {
-      if (stats.hasOwnProperty(app.status)) {
-        stats[app.status] += 1
+    data.forEach(row => {
+      if (row.status && stats.hasOwnProperty(row.status)) {
+        stats[row.status] = parseInt(row.count) || 0
+        stats.total += stats[row.status]
       }
     })
 

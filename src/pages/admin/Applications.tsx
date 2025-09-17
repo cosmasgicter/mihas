@@ -9,7 +9,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useApplicationsData } from '@/hooks/useApplicationsData'
 import { useBulkOperations } from '@/hooks/useBulkOperations'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ApplicationsTable } from '@/components/admin/ApplicationsTable'
+
 import { applicationService } from '@/services/apiClient'
 import { 
   ArrowLeft, 

@@ -5,10 +5,25 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || 'https://mylgegkqoddcrxtwcclb.supabase.co',
-  process.env.SUPABASE_ANON_KEY || 'sbp_a5d15dd3cf175a5b7fd47009861eca8794ead455'
-);
+const supabaseUrl = process.env.SUPABASE_URL
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+if (!supabaseUrl) {
+  console.error('SUPABASE_URL environment variable is required')
+  process.exit(1)
+}
+
+if (!supabaseServiceKey) {
+  console.error('SUPABASE_SERVICE_ROLE_KEY environment variable is required')
+  process.exit(1)
+}
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false
+  }
+});
 
 const server = new Server(
   {

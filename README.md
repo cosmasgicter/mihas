@@ -123,6 +123,12 @@ VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
+# API Configuration
+VITE_API_BASE_URL=https://your-vercel-app.vercel.app
+
+# Application URL (for email links, defaults to API base URL if not set)
+VITE_APP_BASE_URL=https://your-domain.com
+
 # Optional: Cloudflare Turnstile (for bot protection)
 VITE_TURNSTILE_SITE_KEY=your_turnstile_site_key
 
@@ -131,6 +137,10 @@ VITE_ANALYTICS_ENABLED=true
 ```
 
 > ℹ️ The service role key is required for API routes because they run with elevated privileges on the server. Store it only in secure server-side environments (e.g., Vercel environment variables or a local `.env` file) and never expose it to the browser bundle.
+
+> 🔧 **API Configuration**: Set `VITE_API_BASE_URL` to override the API base URL. If not set, the application will use `window.location.origin` as fallback. This is useful for different deployment environments or local development with custom ports.
+
+> 🔗 **Application URLs**: Set `VITE_APP_BASE_URL` to configure the base URL used in email links and notifications. If not set, it defaults to the API base URL. This allows you to use a different domain for user-facing links than your API endpoints.
 
 ### Local API Development
 

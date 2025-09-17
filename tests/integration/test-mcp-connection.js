@@ -1,47 +1,36 @@
 #!/usr/bin/env node
 
-import { createClient } from '@supabase/supabase-js';
+import { mcpSupabase } from '../../api/_lib/mcpClient.ts';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_ANON_KEY
-);
-
-async function testConnection() {
-  console.log('Testing Supabase connection...');
+async function testMCPConnection() {
+  console.log('Testing MCP Supabase connection...');
   
   try {
-    // Test basic connection
-    const { data, error } = await supabase
-      .from('applications')
-      .select('count')
-      .limit(1);
+    // Test schema query
+    console.log('Testing schema query...');
+    const schema = await mcpSupabase.getSchema();
+    console.log(`✅ Schema query successful - found ${schema?.length || 0} tables`);
     
-    if (error) {
-      console.error('❌ Connection failed:', error.message);
-      return false;
-    }
+    // Test table info query
+    console.log('Testing table info query...');
+    const tableInfo = await mcpSupabase.getTableInfo('applications');
+    console.log(`✅ Table info query successful - found ${tableInfo?.length || 0} columns`);
     
-    console.log('✅ Supabase connection successful');
-    
-    // Test stats query
-    const { data: stats } = await supabase
-      .from('applications')
-      .select('status, program')
-      .limit(10);
-    
-    console.log(`📊 Found ${stats?.length || 0} applications`);
+    // Test SQL query
+    console.log('Testing SQL query...');
+    const result = await mcpSupabase.query('SELECT COUNT(*) as total FROM applications');
+    console.log(`✅ SQL query successful - found ${result?.[0]?.total || 0} applications`);
     
     return true;
   } catch (error) {
-    console.error('❌ Test failed:', error.message);
+    console.error('❌ MCP test failed:', error.message);
     return false;
   }
 }
 
-testConnection().then(success => {
+testMCPConnection().then(success => {
   process.exit(success ? 0 : 1);
 });

@@ -1,9 +1,8 @@
 import { monitoring } from '@/lib/monitoring'
 import { supabase } from '@/lib/supabase'
+import { getApiBaseUrl } from '@/lib/apiConfig'
 
-const API_BASE = process.env.NODE_ENV === 'production' 
-  ? 'https://your-vercel-app.vercel.app'
-  : 'http://localhost:3000'
+const API_BASE = getApiBaseUrl()
 
 class ApiClient {
   private normalizeHeaders(headers?: HeadersInit): Record<string, string> {
@@ -121,6 +120,10 @@ export const applicationService = {
   list: (params?: Record<string, any>) =>
     apiClient.request(`/api/applications${buildQueryString(params)}`),
 
+  // Alias for backward compatibility
+  getAll: (params?: Record<string, any>) =>
+    apiClient.request(`/api/applications${buildQueryString(params)}`),
+
   getById: (id: string, options?: { include?: string[] }) =>
     apiClient.request(`/api/applications/${id}${buildQueryString({ include: options?.include })}`),
 
@@ -199,4 +202,68 @@ export const catalogService = {
   getPrograms: () => apiClient.request('/api/catalog/programs'),
   getIntakes: () => apiClient.request('/api/catalog/intakes'),
   getSubjects: () => apiClient.request('/api/catalog/grade12-subjects')
+}
+
+// Program Service
+export const programService = {
+  list: () => apiClient.request('/api/catalog/programs'),
+  create: (data: { name: string; description?: string; duration_years: number; institution_id: string }) =>
+    apiClient.request('/api/catalog/programs', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+  update: (data: { id: string; name: string; description?: string; duration_years: number; institution_id: string }) =>
+    apiClient.request('/api/catalog/programs', {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+  delete: (id: string) =>
+    apiClient.request('/api/catalog/programs', {
+      method: 'DELETE',
+      body: JSON.stringify({ id })
+    })
+}
+
+// Intake Service
+export const intakeService = {
+  list: () => apiClient.request('/api/catalog/intakes'),
+  create: (data: { name: string; year: number; start_date: string; end_date: string; application_deadline: string; total_capacity: number; available_spots?: number }) =>
+    apiClient.request('/api/catalog/intakes', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+  update: (data: { id: string; name: string; year: number; start_date: string; end_date: string; application_deadline: string; total_capacity: number; available_spots?: number }) =>
+    apiClient.request('/api/catalog/intakes', {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+  delete: (id: string) =>
+    apiClient.request('/api/catalog/intakes', {
+      method: 'DELETE',
+      body: JSON.stringify({ id })
+    })
+}
+
+// User Service
+export const userService = {
+  list: () => apiClient.request('/api/admin/users'),
+  create: (data: { email: string; password: string; full_name: string; phone?: string; role: string }) =>
+    apiClient.request('/api/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+  update: (id: string, data: { full_name: string; email: string; phone?: string; role: string }) =>
+    apiClient.request(`/api/admin/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+  remove: (id: string) =>
+    apiClient.request(`/api/admin/users/${id}`, {
+      method: 'DELETE'
+    })
+}
+
+// Admin Dashboard Service
+export const adminDashboardService = {
+  getMetrics: () => apiClient.request('/api/admin/dashboard')
 }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase, Program, Institution } from '@/lib/supabase'
+import { supabase, Institution } from '@/lib/supabase'
+import { programService } from '@/services/apiClient'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { TextArea } from '@/components/ui/TextArea'
@@ -16,8 +17,18 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { AdminNavigation } from '@/components/ui/AdminNavigation'
 import { Pencil, Trash2, Plus, ArrowLeft } from 'lucide-react'
 
+interface Program {
+  id: string
+  name: string
+  description?: string
+  duration_years: number
+  institution_id: string
+  is_active: boolean
+  institutions?: Institution
+}
+
 export default function AdminPrograms() {
-  const [programs, setPrograms] = useState<(Program & { institutions?: Institution })[]>([])
+  const [programs, setPrograms] = useState<Program[]>([])
   const [institutions, setInstitutions] = useState<Institution[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -42,20 +53,8 @@ export default function AdminPrograms() {
   const loadPrograms = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
-        .from('programs')
-        .select(`
-          *,
-          institutions (
-            id,
-            name,
-            slug
-          )
-        `)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      setPrograms(data || [])
+      const response = await programService.list()
+      setPrograms(response.programs || [])
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -121,8 +120,7 @@ export default function AdminPrograms() {
   const handleOperation = async (operation: () => any, onSuccess: () => void) => {
     try {
       setSaving(true)
-      const result = await operation()
-      if (result.error) throw result.error
+      await operation()
       onSuccess()
       await loadPrograms()
     } catch (err: any) {
@@ -148,13 +146,12 @@ export default function AdminPrograms() {
     }
     
     handleOperation(
-      () => supabase.from('programs').insert({
+      () => programService.create({
         name: form.name.trim(),
         description: form.description.trim(),
         duration_years: form.duration_years,
-        institution_id: form.institution_id,
-        is_active: true
-      }).select(),
+        institution_id: form.institution_id
+      }),
       () => setShowCreate(false)
     )
   }
@@ -177,12 +174,13 @@ export default function AdminPrograms() {
     }
     
     handleOperation(
-      () => supabase.from('programs').update({
+      () => programService.update({
+        id: currentProgram.id,
         name: form.name.trim(),
         description: form.description.trim(),
         duration_years: form.duration_years,
         institution_id: form.institution_id
-      }).eq('id', currentProgram.id).select(),
+      }),
       () => {
         setShowEdit(false)
         setCurrentProgram(null)
@@ -193,7 +191,7 @@ export default function AdminPrograms() {
   const deleteProgram = () => {
     if (!currentProgram) return
     handleOperation(
-      () => supabase.from('programs').update({ is_active: false }).eq('id', currentProgram.id).select(),
+      () => programService.delete(currentProgram.id),
       () => {
         setShowDelete(false)
         setCurrentProgram(null)

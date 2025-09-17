@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { supabase } from '@/lib/supabase'
+import { adminDashboardService } from '@/services/apiClient'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Button } from '@/components/ui/Button'
 import { AdminNavigation } from '@/components/ui/AdminNavigation'
@@ -96,41 +96,9 @@ export default function AdminDashboard() {
       setLoading(true)
       setError('')
       
-      const today = new Date().toISOString().split('T')[0]
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-      const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-      
-      const [totalApps, pendingApps, approvedApps, rejectedApps, programs, intakes, students, todayApps, weekApps, monthApps] = await Promise.all([
-        supabase.from('applications_new').select('*', { count: 'exact', head: true }),
-        supabase.from('applications_new').select('*', { count: 'exact', head: true }).eq('status', 'submitted'),
-        supabase.from('applications_new').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
-        supabase.from('applications_new').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
-        supabase.from('programs').select('*', { count: 'exact', head: true }).eq('is_active', true),
-        supabase.from('intakes').select('*', { count: 'exact', head: true }).eq('is_active', true),
-        supabase.from('user_profiles').select('*', { count: 'exact', head: true }).eq('role', 'student'),
-        supabase.from('applications_new').select('*', { count: 'exact', head: true }).gte('created_at', today),
-        supabase.from('applications_new').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo),
-        supabase.from('applications_new').select('*', { count: 'exact', head: true }).gte('created_at', monthAgo)
-      ])
-
-      const newStats: DashboardStats = {
-        totalApplications: totalApps.count || 0,
-        pendingApplications: pendingApps.count || 0,
-        approvedApplications: approvedApps.count || 0,
-        rejectedApplications: rejectedApps.count || 0,
-        totalPrograms: programs.count || 0,
-        activeIntakes: intakes.count || 0,
-        totalStudents: students.count || 0,
-        todayApplications: todayApps.count || 0,
-        weekApplications: weekApps.count || 0,
-        monthApplications: monthApps.count || 0,
-        avgProcessingTime: Math.floor(Math.random() * 5) + 2,
-        systemHealth: (pendingApps.count || 0) > 50 ? 'warning' : 'good',
-        activeUsers: Math.floor(Math.random() * 20) + 5
-      }
-
-      setStats(newStats)
-      await loadRecentActivity()
+      const response = await adminDashboardService.getMetrics()
+      setStats(response.stats)
+      setRecentActivity(response.recentActivity || [])
     } catch (error: any) {
       console.error('Error loading dashboard stats:', error)
       setError(`Failed to load dashboard data: ${error.message}`)
@@ -139,27 +107,7 @@ export default function AdminDashboard() {
     }
   }
 
-  const loadRecentActivity = async () => {
-    try {
-      const { data } = await supabase
-        .from('applications_new')
-        .select('id, full_name, status, created_at, updated_at')
-        .order('updated_at', { ascending: false })
-        .limit(10)
-      
-      const activities: RecentActivity[] = (data || []).map(app => ({
-        id: app.id,
-        type: app.status === 'approved' ? 'approval' : app.status === 'rejected' ? 'rejection' : 'application',
-        message: `${sanitizeForDisplay(app.full_name)} - Application ${app.status}`,
-        timestamp: app.updated_at || app.created_at,
-        user: app.full_name
-      }))
-      
-      setRecentActivity(activities)
-    } catch (error) {
-      console.error('Error loading recent activity:', error)
-    }
-  }
+
 
   const refreshDashboard = async () => {
     setRefreshing(true)
