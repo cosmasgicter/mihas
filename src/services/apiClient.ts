@@ -1,29 +1,66 @@
 import { monitoring } from '@/lib/monitoring'
+import { supabase } from '@/lib/supabase'
 
 const API_BASE = process.env.NODE_ENV === 'production' 
   ? 'https://your-vercel-app.vercel.app'
   : 'http://localhost:3000'
 
 class ApiClient {
-  private getAuthHeaders() {
-    const token = localStorage.getItem('supabase.auth.token')
-    return {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` })
+  private normalizeHeaders(headers?: HeadersInit): Record<string, string> {
+    if (!headers) {
+      return {}
     }
+
+    if (headers instanceof Headers) {
+      return Object.fromEntries(headers.entries())
+    }
+
+    if (Array.isArray(headers)) {
+      return headers.reduce((acc, [key, value]) => {
+        acc[key] = value
+        return acc
+      }, {} as Record<string, string>)
+    }
+
+    return headers
+  }
+
+  private async getAuthHeaders() {
+    const baseHeaders: Record<string, string> = {
+      'Content-Type': 'application/json'
+    }
+
+    if (typeof window === 'undefined') {
+      return baseHeaders
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (token) {
+        baseHeaders.Authorization = `Bearer ${token}`
+      }
+    } catch (error) {
+      console.error('Failed to resolve Supabase session for API request:', error)
+    }
+
+    return baseHeaders
   }
 
   async request(endpoint: string, options: RequestInit = {}) {
     const start = Date.now()
     const service = endpoint.split('/')[2] || 'unknown'
-    
+
     try {
+      const authHeaders = await this.getAuthHeaders()
+      const requestHeaders = {
+        ...authHeaders,
+        ...this.normalizeHeaders(options.headers)
+      }
+
       const response = await fetch(`${API_BASE}${endpoint}`, {
         ...options,
-        headers: {
-          ...this.getAuthHeaders(),
-          ...options.headers
-        }
+        headers: requestHeaders
       })
 
       const duration = Date.now() - start
@@ -72,12 +109,6 @@ function buildQueryString(params: Record<string, any> = {}) {
 
 // Auth Service
 export const authService = {
-  login: (credentials: { email: string; password: string }) =>
-    apiClient.request('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials)
-    }),
-
   register: (data: { email: string; password: string; fullName: string }) =>
     apiClient.request('/api/auth/register', {
       method: 'POST',
