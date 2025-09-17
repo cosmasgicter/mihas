@@ -3,7 +3,18 @@ export function cspPlugin() {
     name: 'csp-plugin',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        res.setHeader('Content-Security-Policy', "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; img-src 'self' data: blob: https://*.supabase.co https://storage.googleapis.com;")
+        // Relaxed CSP for development to avoid blocking issues
+        const csp = [
+          "default-src 'self' 'unsafe-inline' 'unsafe-eval'",
+          "img-src 'self' data: blob: https: http: *", // Allow all image sources
+          "connect-src 'self' https: wss: ws:",
+          "style-src 'self' 'unsafe-inline' https:",
+          "font-src 'self' https: data:",
+          "media-src 'self' blob: https:",
+          "object-src 'none'"
+        ].join('; ')
+        
+        res.setHeader('Content-Security-Policy', csp)
         next()
       })
     }

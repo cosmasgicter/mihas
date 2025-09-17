@@ -29,7 +29,8 @@ export const CSP_CONFIG = {
     "'self'",
     "data:",
     "blob:",
-    "https://*.supabase.co"
+    "https:",
+    "http:"
   ],
   'connect-src': [
     "'self'",
@@ -39,7 +40,7 @@ export const CSP_CONFIG = {
   'object-src': ["'none'"],
   'base-uri': ["'self'"],
   'form-action': ["'self'"],
-  'frame-ancestors': ["'none'"],
+
   'upgrade-insecure-requests': []
 }
 
@@ -234,13 +235,8 @@ export function initializeSecurity(): void {
   // Apply security patches
   initializeSecurityPatches()
   
-  // Set up CSP if in browser environment
-  if (typeof document !== 'undefined') {
-    const meta = document.createElement('meta')
-    meta.httpEquiv = 'Content-Security-Policy'
-    meta.content = generateCSPHeader()
-    document.head.appendChild(meta)
-  }
+  // Note: CSP is handled by server headers, not meta tags
+  // Meta tag CSP has limitations and can cause issues
   
   console.log('Security measures initialized')
 }
