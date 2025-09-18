@@ -22,9 +22,19 @@ export default function LandingPageNew() {
   const shouldReduceMotion = useReducedMotion()
   const [heroRef, heroInView] = useInView({ threshold: 0.3, triggerOnce: true })
   const [statsRef, statsInView] = useInView({ threshold: 0.3, triggerOnce: true })
+  const [statsBackgroundRef, statsBackgroundInView] = useInView({ threshold: 0.1, triggerOnce: false })
+  const [programsBackgroundRef, programsBackgroundInView] = useInView({ threshold: 0.1, triggerOnce: false })
+  const [ctaBackgroundRef, ctaBackgroundInView] = useInView({ threshold: 0.1, triggerOnce: false })
+  const [footerBackgroundRef, footerBackgroundInView] = useInView({ threshold: 0.1, triggerOnce: false })
   const [showAnimations, setShowAnimations] = useState(false)
   const animationHelpersEnabled = showAnimations && !shouldReduceMotion
   const maybeMotion = <T,>(value: T) => (shouldReduceMotion ? undefined : value)
+
+  const heroFloatingCount = isMobile ? 16 : 30
+  const statsFloatingCount = isMobile ? 5 : 10
+  const programsFloatingCount = isMobile ? 8 : 15
+  const ctaFloatingCount = isMobile ? 12 : 25
+  const footerFloatingCount = isMobile ? 4 : 8
   
   useEffect(() => {
     // Defer animations to improve LCP
@@ -125,7 +135,7 @@ export default function LandingPageNew() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-black/10" />
         {animationHelpersEnabled && (
           <Suspense fallback={null}>
-            <FloatingElements count={30} />
+            <FloatingElements count={heroFloatingCount} />
             <GeometricPatterns />
           </Suspense>
         )}
@@ -199,10 +209,14 @@ export default function LandingPageNew() {
       </section>
 
       {/* Stats Section */}
-      <section id="stats" className="py-20 bg-gray-50 relative">
+      <section id="stats" ref={statsBackgroundRef} className="py-20 bg-gray-50 relative">
         {animationHelpersEnabled && (
           <Suspense fallback={null}>
-            <FloatingElements count={10} className="opacity-30" />
+            <FloatingElements
+              count={statsFloatingCount}
+              className="opacity-30"
+              shouldAnimate={statsBackgroundInView}
+            />
           </Suspense>
         )}
         <motion.div
@@ -428,10 +442,13 @@ export default function LandingPageNew() {
       </section>
 
       {/* Enhanced Programs Section */}
-      <section className="py-20 bg-gray-50 relative">
+      <section ref={programsBackgroundRef} className="py-20 bg-gray-50 relative">
         {animationHelpersEnabled && (
           <Suspense fallback={null}>
-            <FloatingElements count={15} />
+            <FloatingElements
+              count={programsFloatingCount}
+              shouldAnimate={programsBackgroundInView}
+            />
           </Suspense>
         )}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -544,12 +561,15 @@ export default function LandingPageNew() {
       </section>
 
       {/* Enhanced CTA Section */}
-      <section className="relative py-20 overflow-hidden">
+      <section ref={ctaBackgroundRef} className="relative py-20 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-accent" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/20" />
         {animationHelpersEnabled && (
           <Suspense fallback={null}>
-            <FloatingElements count={25} />
+            <FloatingElements
+              count={ctaFloatingCount}
+              shouldAnimate={ctaBackgroundInView}
+            />
             <GeometricPatterns />
           </Suspense>
         )}
@@ -590,10 +610,14 @@ export default function LandingPageNew() {
       </section>
 
       {/* Enhanced Footer */}
-      <footer className="bg-gray-900 text-white py-16 relative">
+      <footer ref={footerBackgroundRef} className="bg-gray-900 text-white py-16 relative">
         {animationHelpersEnabled && (
           <Suspense fallback={null}>
-            <FloatingElements count={8} className="opacity-20" />
+            <FloatingElements
+              count={footerFloatingCount}
+              className="opacity-20"
+              shouldAnimate={footerBackgroundInView}
+            />
           </Suspense>
         )}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

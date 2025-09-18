@@ -4,38 +4,29 @@ import { motion, useReducedMotion } from 'framer-motion'
 interface FloatingElementsProps {
   count?: number
   className?: string
+  shouldAnimate?: boolean
 }
 
-const generateElements = (count: number) => Array.from({ length: count }, (_, i) => ({
-  id: i,
-  size: Math.random() * 6 + 3,
-  left: Math.random() * 100,
-  delay: Math.random() * 8,
-  duration: 6 + Math.random() * 4,
-  opacity: 0.1 + Math.random() * 0.3
-}))
+const generateElements = (count: number) =>
+  Array.from({ length: count }, (_, i) => ({
+    id: i,
+    size: Math.random() * 6 + 3,
+    left: Math.random() * 100,
+    top: Math.random() * 100,
+    delay: Math.random() * 8,
+    duration: 6 + Math.random() * 4,
+    opacity: 0.1 + Math.random() * 0.3
+  }))
 
-export const FloatingElements = React.memo(({ count = 20, className = '' }: FloatingElementsProps) => {
+export const FloatingElements = React.memo(({ count = 20, className = '', shouldAnimate = true }: FloatingElementsProps) => {
   const prefersReducedMotion = useReducedMotion()
   const elements = useMemo(() => generateElements(count), [count])
+  const enableAnimation = shouldAnimate && !prefersReducedMotion
 
   return (
     <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
       {elements.map((element) => (
-        prefersReducedMotion ? (
-          <div
-            key={element.id}
-            className="absolute rounded-full"
-            style={{
-              width: element.size,
-              height: element.size,
-              left: `${element.left}%`,
-              top: '0%',
-              background: `radial-gradient(circle, rgba(20, 184, 166, ${element.opacity}) 0%, transparent 70%)`,
-              opacity: element.opacity
-            }}
-          />
-        ) : (
+        enableAnimation ? (
           <motion.div
             key={element.id}
             className="absolute rounded-full"
@@ -43,7 +34,8 @@ export const FloatingElements = React.memo(({ count = 20, className = '' }: Floa
               width: element.size,
               height: element.size,
               left: `${element.left}%`,
-              background: `radial-gradient(circle, rgba(20, 184, 166, ${element.opacity}) 0%, transparent 70%)`,
+              top: `${element.top}%`,
+              background: `radial-gradient(circle, rgba(20, 184, 166, ${element.opacity}) 0%, transparent 70%)`
             }}
             animate={{
               y: [-50, -100, -50],
@@ -55,7 +47,20 @@ export const FloatingElements = React.memo(({ count = 20, className = '' }: Floa
               duration: element.duration,
               delay: element.delay,
               repeat: Infinity,
-              ease: "easeInOut"
+              ease: 'easeInOut'
+            }}
+          />
+        ) : (
+          <div
+            key={element.id}
+            className="absolute rounded-full"
+            style={{
+              width: element.size,
+              height: element.size,
+              left: `${element.left}%`,
+              top: `${element.top}%`,
+              background: `radial-gradient(circle, rgba(20, 184, 166, ${element.opacity}) 0%, transparent 70%)`,
+              opacity: element.opacity
             }}
           />
         )
