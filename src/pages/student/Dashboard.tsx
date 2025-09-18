@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
 import type { Application, Program, Intake } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { AuthenticatedNavigation } from '@/components/ui/AuthenticatedNavigation'
 import { ContinueApplication } from '@/components/application/ContinueApplication'
 import { formatDate, getStatusColor } from '@/lib/utils'
@@ -17,6 +16,7 @@ import { getUserMetadata, getBestValue, calculateProfileCompletion } from '@/hoo
 import { ProfileCompletionBadge } from '@/components/ui/ProfileAutoPopulationIndicator'
 import { applicationService } from '@/services/applications'
 import { catalogService } from '@/services/catalog'
+import { StudentDashboardSkeleton } from '@/components/student/StudentDashboardSkeleton'
 import { 
   User, 
   FileText, 
@@ -36,10 +36,12 @@ export default function StudentDashboard() {
   const [applications, setApplications] = useState<Application[]>([])
   const [programs, setPrograms] = useState<Program[]>([])
   const [intakes, setIntakes] = useState<Intake[]>([])
-  const [loading, setLoading] = useState(true)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState('')
   const [hasDraft, setHasDraft] = useState(false)
   const [draftData, setDraftData] = useState<any>(null)
+  const hasLoadedRef = useRef(false)
 
   useEffect(() => {
     if (user) {
@@ -79,9 +81,15 @@ export default function StudentDashboard() {
   }, [])
 
   const loadDashboardData = async () => {
+    const isInitialLoad = !hasLoadedRef.current
+
     try {
-      setLoading(true)
-      
+      if (isInitialLoad) {
+        setIsInitialLoading(true)
+      } else {
+        setIsRefreshing(true)
+      }
+
       // Check for saved draft in localStorage
       const savedDraft = localStorage.getItem('applicationWizardDraft')
       if (savedDraft) {
@@ -136,7 +144,12 @@ export default function StudentDashboard() {
       console.error('Error loading dashboard data:', sanitizeForLog(error))
       setError(error instanceof Error ? sanitizeForLog(error.message) : 'Failed to load dashboard data')
     } finally {
-      setLoading(false)
+      hasLoadedRef.current = true
+      if (isInitialLoad) {
+        setIsInitialLoading(false)
+      } else {
+        setIsRefreshing(false)
+      }
     }
   }
 
@@ -179,21 +192,38 @@ export default function StudentDashboard() {
     return `Step ${step}/4: ${steps[step - 1] || 'Unknown'}`
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
       <AuthenticatedNavigation />
 
       <main className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-4 sm:py-6 lg:py-8">
-        {/* Welcome Section - Mobile First */}
+        {isInitialLoading ? (
+          <StudentDashboardSkeleton />
+        ) : (
+          <>
+            <AnimatePresence>
+              {isRefreshing && (
+                <motion.div
+                  key="dashboard-refresh-indicator"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mb-6"
+                >
+                  <div className="h-1 w-full overflow-hidden rounded-full bg-primary/10">
+                    <motion.div
+                      className="h-full w-1/3 rounded-full bg-gradient-to-r from-primary via-secondary to-primary"
+                      animate={{ x: ['-100%', '100%'] }}
+                      transition={{ repeat: Infinity, duration: 1.2, ease: 'easeInOut' }}
+                    />
+                  </div>
+                  <span className="sr-only">Refreshing dashboard data</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Welcome Section - Mobile First */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -603,6 +633,8 @@ export default function StudentDashboard() {
             </motion.div>
           </div>
         </div>
+          </>
+        )}
       </main>
     </div>
   )
