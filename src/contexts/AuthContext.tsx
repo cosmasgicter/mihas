@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
-import { supabase, UserProfile } from '@/lib/supabase'
+import { getSupabaseClient, UserProfile } from '@/lib/supabase'
 import { sanitizeForLog } from '@/lib/security'
 import { sanitizeForDisplay } from '@/lib/sanitize'
 import { secureDisplay } from '@/lib/secureDisplay'
@@ -39,20 +39,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Load user on mount - optimized for speed
   useEffect(() => {
+    if (typeof window === 'undefined') {
+      setLoading(false)
+      setHasLoaded(true)
+      return
+    }
+
+    const supabase = getSupabaseClient()
     let mounted = true
-    
+
     async function loadUser() {
       try {
         // Get current session first - this is fast
         const { data: { session } } = await supabase.auth.getSession()
-        
+
         if (!mounted) return
-        
+
         if (session?.user) {
           console.log('Session found on mount, user authenticated')
           setUser(session.user)
           setLoading(false) // Set loading to false immediately for faster UI
-          
+
           // Load profile and role in background after UI is ready
           setTimeout(() => {
             if (mounted) {
@@ -72,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUserRole(null)
           setLoading(false)
         }
-        
+
         setHasLoaded(true)
       } catch (error) {
         console.error('Error loading user:', error)
@@ -85,16 +92,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     }
-    
+
     loadUser()
 
     // Set up auth listener with enhanced security validation
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return
-        
+
         console.log('AuthContext: Auth state change:', sanitizeForLog(event))
-        
+
         // Handle token refresh - maintain current state
         if (event === 'TOKEN_REFRESHED' && session?.user) {
           console.log('Token refreshed successfully, maintaining session')
@@ -102,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false)
           return
         }
-        
+
         // Handle sign in
         if (event === 'SIGNED_IN' && session?.user) {
           console.log('User signed in successfully')
@@ -119,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false)
           return
         }
-        
+
         // Handle sign out
         if (event === 'SIGNED_OUT') {
           console.log('User signed out')
@@ -129,7 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false)
           return
         }
-        
+
         // Handle initial session or session recovery
         if (event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
           if (session?.user) {
@@ -151,7 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false)
           return
         }
-        
+
         // Default case - set loading to false
         if (mounted && !hasLoaded) {
           setLoading(false)
@@ -172,6 +179,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function loadUserProfile(userId: string) {
     try {
+      const supabase = getSupabaseClient()
       const { data: { session } } = await supabase.auth.getSession()
       const accessToken = session?.access_token
 
@@ -211,6 +219,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function createUserProfile(userId: string) {
     try {
+      const supabase = getSupabaseClient()
       const { data: user } = await supabase.auth.getUser()
       if (!user.user) {
         setProfile(null)
@@ -279,8 +288,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function signIn(email: string, password: string) {
     try {
       console.log('Attempting sign in for:', sanitizeForLog(email))
-      
+
       // Use direct Supabase login for all users (especially admins)
+      const supabase = getSupabaseClient()
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -310,6 +320,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return acc
     }, {} as any)
 
+    const supabase = getSupabaseClient()
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -330,11 +341,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() {
+    const supabase = getSupabaseClient()
     await supabase.auth.signOut()
   }
 
   async function loadUserRole(userId: string) {
     try {
+      const supabase = getSupabaseClient()
       // First check if user is super admin by email
       const { data: { user } } = await supabase.auth.getUser()
       if (user?.email === 'cosmas@beanola.com') {
@@ -409,6 +422,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('User not authenticated')
     }
 
+    const supabase = getSupabaseClient()
     const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !currentUser) {

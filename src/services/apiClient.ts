@@ -1,5 +1,5 @@
 import { monitoring } from '@/lib/monitoring'
-import { supabase } from '@/lib/supabase'
+import { getSupabaseClient } from '@/lib/supabase'
 import { getApiBaseUrl } from '@/lib/apiConfig'
 
 const API_BASE = getApiBaseUrl()
@@ -34,6 +34,7 @@ class ApiClient {
     }
 
     try {
+      const supabase = getSupabaseClient()
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
       if (token) {
