@@ -63,6 +63,10 @@ export default defineConfig(({ mode }) => {
               handler: 'NetworkOnly'
             },
             {
+              urlPattern: /\/api\/.*/,
+              handler: 'NetworkOnly'
+            },
+            {
               urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/.*/i,
               handler: 'CacheFirst',
               options: {
