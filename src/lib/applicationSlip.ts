@@ -343,7 +343,8 @@ export async function persistSlip(applicationNumber: string, blob: Blob): Promis
           application_id: application.id,
           document_type: 'application_slip',
           document_name: `Application Slip - ${trimmedNumber}.pdf`,
-          file_url: publicUrl || uploadData.path
+          file_url: publicUrl || uploadData.path,
+          system_generated: true
         }
 
         const { data: existingDocument, error: existingError } = await supabase
