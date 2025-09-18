@@ -1,14 +1,14 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AdminNavigation } from '@/components/ui/AdminNavigation'
-import { EnhancedDashboard } from '@/components/admin/EnhancedDashboard'
+import { EnhancedDashboard, type EnhancedDashboardMetrics } from '@/components/admin/EnhancedDashboard'
 import { QuickActionsPanel } from '@/components/admin/QuickActionsPanel'
 import { SystemMonitoring } from '@/components/admin/SystemMonitoring'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Button } from '@/components/ui/Button'
-import { applicationsData, catalogData, usersData } from '@/data'
+import { analyticsData } from '@/data/analytics'
 import { 
   BarChart3, 
   Activity, 
@@ -29,24 +29,40 @@ export default function EnhancedAdminDashboard() {
   const [showNotifications, setShowNotifications] = useState(true)
   
   // Data hooks
-  const { data: appStats, isLoading: statsLoading, refetch: refetchStats } = applicationsData.useStats()
-  const { data: programs } = catalogData.usePrograms()
-  const { data: intakes } = catalogData.useIntakes()
-  const { data: users } = usersData.useList()
-  
-  const loading = statsLoading
-  const stats = {
-    totalApplications: appStats?.totalApplications || 0,
-    pendingApplications: appStats?.pendingReviews || 0,
-    approvedApplications: Math.floor((appStats?.approvalRate || 0) * (appStats?.totalApplications || 0) / 100),
-    rejectedApplications: (appStats?.totalApplications || 0) - Math.floor((appStats?.approvalRate || 0) * (appStats?.totalApplications || 0) / 100),
-    totalPrograms: programs?.programs?.length || 0,
-    activeIntakes: intakes?.intakes?.length || 0,
-    totalStudents: users?.users?.filter(u => u.role === 'student').length || 0
+  const { data: dashboardData, isLoading: metricsLoading, isFetching, refetch: refetchMetrics } = analyticsData.useAdminMetrics()
+
+  const stats = dashboardData?.stats || {
+    totalApplications: 0,
+    pendingApplications: 0,
+    approvedApplications: 0,
+    rejectedApplications: 0,
+    totalPrograms: 0,
+    activeIntakes: 0,
+    totalStudents: 0,
+    todayApplications: 0,
+    weekApplications: 0,
+    monthApplications: 0,
+    avgProcessingTime: 0,
+    systemHealth: 'good',
+    activeUsers: 0
   }
 
+  const recentActivity = dashboardData?.recentActivity || []
+
+  const loading = metricsLoading
+
   const refreshDashboard = () => {
-    refetchStats()
+    refetchMetrics()
+  }
+
+  const enhancedMetrics: EnhancedDashboardMetrics = {
+    todayApplications: stats.todayApplications || 0,
+    pendingApplications: stats.pendingApplications || 0,
+    approvalRate: stats.approvedApplications + stats.rejectedApplications > 0
+      ? Math.round((stats.approvedApplications / (stats.approvedApplications + stats.rejectedApplications)) * 100)
+      : 0,
+    avgProcessingTime: stats.avgProcessingTime || 0,
+    activeUsers: stats.activeUsers || 0
   }
 
   if (loading) {
@@ -111,7 +127,7 @@ export default function EnhancedAdminDashboard() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <Activity className="h-4 w-4" />
-                      <span>{Math.floor(Math.random() * 20) + 15} active users</span>
+                      <span>{stats.activeUsers} active users</span>
                     </div>
                   </div>
                 </div>
@@ -127,6 +143,7 @@ export default function EnhancedAdminDashboard() {
                       variant="outline"
                       size="sm"
                       onClick={refreshDashboard}
+                      loading={isFetching}
                       className="bg-white/20 border-white/30 text-white hover:bg-white/30"
                     >
                       <RefreshCw className="h-4 w-4 mr-2" />
@@ -231,7 +248,12 @@ export default function EnhancedAdminDashboard() {
               className="grid grid-cols-1 lg:grid-cols-4 gap-6"
             >
               <div className="lg:col-span-3">
-                <EnhancedDashboard />
+                <EnhancedDashboard
+                  metrics={enhancedMetrics}
+                  recentActivity={recentActivity}
+                  onRefresh={refreshDashboard}
+                  isRefreshing={isFetching}
+                />
               </div>
               <div>
                 <QuickActionsPanel stats={{
@@ -290,7 +312,7 @@ export default function EnhancedAdminDashboard() {
               <div className="text-sm text-gray-600">Approval Rate</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">3.2 days</div>
+              <div className="text-2xl font-bold text-green-600">{stats.avgProcessingTime} days</div>
               <div className="text-sm text-gray-600">Avg Processing</div>
             </div>
             <div className="text-center">

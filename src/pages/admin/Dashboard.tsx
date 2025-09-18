@@ -34,7 +34,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { useAnalytics } from '@/hooks/useAnalytics'
-import { EnhancedDashboard } from '@/components/admin/EnhancedDashboard'
+import { EnhancedDashboard, type EnhancedDashboardMetrics } from '@/components/admin/EnhancedDashboard'
 import { QuickActionsPanel } from '@/components/admin/QuickActionsPanel'
 import { PredictiveDashboard } from '@/components/admin/PredictiveDashboard'
 import { workflowAutomation } from '@/lib/workflowAutomation'
@@ -184,6 +184,16 @@ export default function AdminDashboard() {
 
 
   const gridClasses = isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
+
+  const enhancedMetrics: EnhancedDashboardMetrics = {
+    todayApplications: stats.todayApplications,
+    pendingApplications: stats.pendingApplications,
+    approvalRate: stats.approvedApplications + stats.rejectedApplications > 0
+      ? Math.round((stats.approvedApplications / (stats.approvedApplications + stats.rejectedApplications)) * 100)
+      : 0,
+    avgProcessingTime: stats.avgProcessingTime,
+    activeUsers: stats.activeUsers
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -407,7 +417,12 @@ export default function AdminDashboard() {
         {/* Enhanced Dashboard Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           <div className="lg:col-span-2">
-            <EnhancedDashboard />
+            <EnhancedDashboard
+              metrics={enhancedMetrics}
+              recentActivity={recentActivity}
+              onRefresh={refreshDashboard}
+              isRefreshing={refreshing}
+            />
           </div>
 
           {/* Enhanced Sidebar */}

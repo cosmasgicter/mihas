@@ -16,29 +16,46 @@ import {
   ArrowDown
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { applicationsData } from '@/data/applications'
 import { analyticsData } from '@/data/analytics'
 
-export function EnhancedDashboard() {
-  const { data: metrics, isLoading: metricsLoading, refetch: refetchMetrics } = applicationsData.useStats()
-  const { data: recentActivity, isLoading: activityLoading } = applicationsData.useRecentActivity()
+export interface EnhancedDashboardMetrics {
+  todayApplications: number
+  pendingApplications: number
+  approvalRate: number
+  avgProcessingTime: number
+  activeUsers: number
+}
+
+export interface EnhancedDashboardActivity {
+  id: string
+  type: 'application' | 'approval' | 'rejection' | 'system'
+  message: string
+  timestamp: string | number
+  user?: string
+}
+
+interface EnhancedDashboardProps {
+  metrics?: EnhancedDashboardMetrics | null
+  recentActivity?: EnhancedDashboardActivity[]
+  onRefresh?: () => void
+  isRefreshing?: boolean
+}
+
+export function EnhancedDashboard({
+  metrics,
+  recentActivity = [],
+  onRefresh,
+  isRefreshing = false
+}: EnhancedDashboardProps) {
   const { data: systemHealth } = analyticsData.useSystemHealth()
 
-  const loading = metricsLoading || activityLoading
-  
-  const refreshData = () => {
-    refetchMetrics()
-  }
-
-  if (loading) {
+  if (!metrics) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+        <p className="text-sm text-gray-500">Dashboard metrics are not available right now.</p>
       </div>
     )
   }
-
-  if (!metrics) return null
 
   return (
     <div className="space-y-6">
@@ -81,12 +98,12 @@ export function EnhancedDashboard() {
                 <Clock className="h-6 w-6 text-yellow-600" />
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-gray-900">{metrics.pendingReviews}</div>
+                <div className="text-2xl font-bold text-gray-900">{metrics.pendingApplications}</div>
                 <div className="text-xs text-gray-500">Pending</div>
               </div>
             </div>
             <div className="text-sm font-medium text-gray-600">Awaiting Review</div>
-            {metrics.pendingReviews > 0 && (
+            {metrics.pendingApplications > 0 && (
               <div className="text-xs text-yellow-600 mt-2">Requires attention</div>
             )}
           </div>
@@ -156,7 +173,9 @@ export function EnhancedDashboard() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={refreshData}
+              onClick={onRefresh}
+              disabled={!onRefresh}
+              loading={isRefreshing}
             >
               <RefreshCw className="h-4 w-4" />
             </Button>
