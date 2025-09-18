@@ -7,7 +7,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { AnimatedCard } from '@/components/ui/AnimatedCard'
 import { formatDate, getStatusColor } from '@/lib/utils'
 
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { sanitizeForDisplay } from '@/lib/sanitize'
 import { 
   Search, 
@@ -51,6 +51,8 @@ interface PublicApplicationStatus {
 }
 
 export default function PublicApplicationTracker() {
+  const shouldReduceMotion = useReducedMotion()
+  const maybeMotion = <T,>(value: T) => (shouldReduceMotion ? undefined : value)
   const [searchTerm, setSearchTerm] = useState('')
   const [application, setApplication] = useState<PublicApplicationStatus | null>(null)
   const [loading, setLoading] = useState(false)
@@ -204,38 +206,38 @@ export default function PublicApplicationTracker() {
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
-          animate={{
+          animate={maybeMotion({
             x: [0, 100, 0],
             y: [0, -100, 0],
             rotate: [0, 180, 360]
-          }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          })}
+          transition={maybeMotion({ duration: 20, repeat: Infinity, ease: "linear" })}
           className="absolute top-10 left-10 w-20 h-20 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full opacity-20"
         />
         <motion.div
-          animate={{
+          animate={maybeMotion({
             x: [0, -150, 0],
             y: [0, 100, 0],
             rotate: [360, 180, 0]
-          }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+          })}
+          transition={maybeMotion({ duration: 25, repeat: Infinity, ease: "linear" })}
           className="absolute top-1/3 right-10 w-32 h-32 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full opacity-15"
         />
         <motion.div
-          animate={{
+          animate={maybeMotion({
             x: [0, 80, 0],
             y: [0, -80, 0],
             scale: [1, 1.2, 1]
-          }}
-          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+          })}
+          transition={maybeMotion({ duration: 15, repeat: Infinity, ease: "linear" })}
           className="absolute bottom-20 left-1/4 w-16 h-16 bg-gradient-to-r from-green-400 to-blue-400 rounded-full opacity-25"
         />
       </div>
 
       {/* Enhanced Header - Mobile First */}
-      <motion.header 
-        initial={{ y: -50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
+      <motion.header
+        initial={maybeMotion({ y: -50, opacity: 0 })}
+        animate={maybeMotion({ y: 0, opacity: 1 })}
         className="relative bg-white/90 backdrop-blur-md shadow-2xl border-b border-white/30 safe-area-top"
       >
         <div className="container-mobile">
@@ -246,17 +248,17 @@ export default function PublicApplicationTracker() {
                 <span className="font-bold text-base sm:text-lg">Back to Home</span>
               </Link>
               <div>
-                <motion.h1 
-                  initial={{ scale: 0.8 }}
-                  animate={{ scale: 1 }}
+                <motion.h1
+                  initial={maybeMotion({ scale: 0.8 })}
+                  animate={maybeMotion({ scale: 1 })}
                   className="text-responsive-3xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent"
                 >
                   🔍 Track Application
                 </motion.h1>
-                <motion.p 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
+                <motion.p
+                  initial={maybeMotion({ opacity: 0 })}
+                  animate={maybeMotion({ opacity: 1 })}
+                  transition={maybeMotion({ delay: 0.2 })}
                   className="text-sm sm:text-xl text-secondary/80 mt-1 sm:mt-2 font-medium"
                 >
                   ✨ Check status instantly - no login required!
@@ -264,8 +266,8 @@ export default function PublicApplicationTracker() {
               </div>
             </div>
             <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
+              animate={maybeMotion({ rotate: [0, 10, -10, 0] })}
+              transition={maybeMotion({ duration: 2, repeat: Infinity })}
               className="text-4xl sm:text-6xl self-center sm:self-auto"
             >
               🎓
@@ -277,16 +279,16 @@ export default function PublicApplicationTracker() {
       <main className="relative container-mobile py-6 sm:py-12 safe-area-bottom mobile-scroll">
         {/* Enhanced Search Section - Mobile First */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          initial={maybeMotion({ opacity: 0, y: 30 })}
+          animate={maybeMotion({ opacity: 1, y: 0 })}
+          transition={maybeMotion({ delay: 0.3 })}
         >
           <AnimatedCard className="mb-8 sm:mb-12 bg-gradient-to-br from-white via-blue-50 to-purple-50 card-mobile" glassEffect hover3d>
             <div className="text-center space-y-6 sm:space-y-8">
               <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.5, type: "spring" }}
+                initial={maybeMotion({ scale: 0 })}
+                animate={maybeMotion({ scale: 1 })}
+                transition={maybeMotion({ delay: 0.5, type: "spring" })}
                 className="text-6xl sm:text-8xl"
               >
                 🔍
@@ -306,7 +308,7 @@ export default function PublicApplicationTracker() {
                 <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:gap-4">
                   <div className="flex-1">
                     <motion.div
-                      whileFocus={{ scale: 1.02 }}
+                      whileFocus={maybeMotion({ scale: 1.02 })}
                       className="relative"
                     >
                       <Search className="absolute left-4 sm:left-6 top-1/2 transform -translate-y-1/2 h-5 w-5 sm:h-6 sm:w-6 text-secondary/60" />
@@ -333,12 +335,12 @@ export default function PublicApplicationTracker() {
                   </Button>
                 </div>
                 
-                <AnimatePresence>
+                <AnimatePresence initial={!shouldReduceMotion}>
                   {error && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
+                    <motion.div
+                      initial={maybeMotion({ opacity: 0, y: 20 })}
+                      animate={maybeMotion({ opacity: 1, y: 0 })}
+                      exit={maybeMotion({ opacity: 0, y: -20 })}
                       className="mt-8 rounded-2xl bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200 p-8 shadow-lg"
                     >
                       <div className="flex items-center space-x-4">
@@ -352,10 +354,10 @@ export default function PublicApplicationTracker() {
               
               {/* Quick Tips - Mobile First */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-8 sm:mt-12">
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7 }}
+                <motion.div
+                  initial={maybeMotion({ opacity: 0, y: 20 })}
+                  animate={maybeMotion({ opacity: 1, y: 0 })}
+                  transition={maybeMotion({ delay: 0.7 })}
                   className="bg-blue-50 rounded-xl p-4 sm:p-6 border border-blue-200"
                 >
                   <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">📧</div>
@@ -363,10 +365,10 @@ export default function PublicApplicationTracker() {
                   <p className="text-secondary/70 text-xs sm:text-sm">Application number sent after submission</p>
                 </motion.div>
                 
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 }}
+                <motion.div
+                  initial={maybeMotion({ opacity: 0, y: 20 })}
+                  animate={maybeMotion({ opacity: 1, y: 0 })}
+                  transition={maybeMotion({ delay: 0.8 })}
                   className="bg-green-50 rounded-xl p-4 sm:p-6 border border-green-200"
                 >
                   <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">🔢</div>
@@ -374,10 +376,10 @@ export default function PublicApplicationTracker() {
                   <p className="text-secondary/70 font-mono text-xs sm:text-sm">MIHAS123456</p>
                 </motion.div>
                 
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.9 }}
+                <motion.div
+                  initial={maybeMotion({ opacity: 0, y: 20 })}
+                  animate={maybeMotion({ opacity: 1, y: 0 })}
+                  transition={maybeMotion({ delay: 0.9 })}
                   className="bg-purple-50 rounded-xl p-4 sm:p-6 border border-purple-200 sm:col-span-2 lg:col-span-1"
                 >
                   <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">⚡</div>
@@ -390,13 +392,13 @@ export default function PublicApplicationTracker() {
         </motion.div>
 
         {/* Enhanced Application Status */}
-        <AnimatePresence>
+        <AnimatePresence initial={!shouldReduceMotion}>
           {application && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 50 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: -50 }}
-              transition={{ type: "spring", damping: 20 }}
+              initial={maybeMotion({ opacity: 0, scale: 0.9, y: 50 })}
+              animate={maybeMotion({ opacity: 1, scale: 1, y: 0 })}
+              exit={maybeMotion({ opacity: 0, scale: 0.9, y: -50 })}
+              transition={maybeMotion({ type: "spring", damping: 20 })}
             >
               <AnimatedCard className="overflow-hidden shadow-2xl" glassEffect>
                 {/* Spectacular Status Header */}
@@ -404,13 +406,13 @@ export default function PublicApplicationTracker() {
                   {/* Animated background pattern */}
                   <div className="absolute inset-0 opacity-20">
                     <motion.div
-                      animate={{ x: [0, 100, 0], y: [0, -50, 0] }}
-                      transition={{ duration: 10, repeat: Infinity }}
+                      animate={maybeMotion({ x: [0, 100, 0], y: [0, -50, 0] })}
+                      transition={maybeMotion({ duration: 10, repeat: Infinity })}
                       className="absolute top-0 left-0 w-32 h-32 bg-white rounded-full"
                     />
                     <motion.div
-                      animate={{ x: [100, 0, 100], y: [0, 50, 0] }}
-                      transition={{ duration: 15, repeat: Infinity }}
+                      animate={maybeMotion({ x: [100, 0, 100], y: [0, 50, 0] })}
+                      transition={maybeMotion({ duration: 15, repeat: Infinity })}
                       className="absolute bottom-0 right-0 w-24 h-24 bg-white rounded-full"
                     />
                   </div>
@@ -419,9 +421,9 @@ export default function PublicApplicationTracker() {
                     <div className="flex flex-col space-y-4 lg:flex-row lg:items-start lg:justify-between lg:space-y-0 lg:space-x-6">
                       <div className="space-y-3 sm:space-y-4 flex-1">
                         <motion.div
-                          initial={{ x: -50, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ delay: 0.2 }}
+                          initial={maybeMotion({ x: -50, opacity: 0 })}
+                          animate={maybeMotion({ x: 0, opacity: 1 })}
+                          transition={maybeMotion({ delay: 0.2 })}
                         >
                           <h3 className="text-responsive-2xl font-black mb-3 sm:mb-4 flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                             <span className="text-3xl sm:text-4xl">📋</span>
@@ -430,9 +432,9 @@ export default function PublicApplicationTracker() {
                         </motion.div>
                         
                         <motion.div
-                          initial={{ x: -50, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ delay: 0.3 }}
+                          initial={maybeMotion({ x: -50, opacity: 0 })}
+                          animate={maybeMotion({ x: 0, opacity: 1 })}
+                          transition={maybeMotion({ delay: 0.3 })}
                           className="space-y-2 sm:space-y-3"
                         >
                           <p className="text-white/95 text-base sm:text-2xl font-bold flex items-start sm:items-center space-x-2 sm:space-x-3">
@@ -447,15 +449,15 @@ export default function PublicApplicationTracker() {
                       </div>
                       
                       <motion.div
-                        initial={{ x: 50, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ delay: 0.4 }}
+                        initial={maybeMotion({ x: 50, opacity: 0 })}
+                        animate={maybeMotion({ x: 0, opacity: 1 })}
+                        transition={maybeMotion({ delay: 0.4 })}
                         className="text-center lg:text-right space-y-3 sm:space-y-4 flex-shrink-0"
                       >
                         <div className="flex items-center justify-center lg:justify-end space-x-3 sm:space-x-4">
                           <motion.div
-                            animate={{ rotate: [0, 10, -10, 0] }}
-                            transition={{ duration: 2, repeat: Infinity }}
+                            animate={maybeMotion({ rotate: [0, 10, -10, 0] })}
+                            transition={maybeMotion({ duration: 2, repeat: Infinity })}
                             className="text-4xl sm:text-6xl"
                           >
                             {getStatusEmoji(application.status)}
@@ -465,10 +467,10 @@ export default function PublicApplicationTracker() {
                           </div>
                         </div>
                         
-                        <motion.span 
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ delay: 0.5, type: "spring" }}
+                        <motion.span
+                          initial={maybeMotion({ scale: 0 })}
+                          animate={maybeMotion({ scale: 1 })}
+                          transition={maybeMotion({ delay: 0.5, type: "spring" })}
                           className="inline-block bg-white/25 backdrop-blur-sm px-4 sm:px-8 py-2 sm:py-4 rounded-xl sm:rounded-2xl text-white font-black text-base sm:text-2xl border-2 border-white/30 shadow-lg"
                         >
                           {application.status.replace('_', ' ').toUpperCase()}
@@ -510,9 +512,9 @@ export default function PublicApplicationTracker() {
                     {/* Main Status */}
                     <div className="xl:col-span-2 space-y-6 sm:space-y-8">
                       <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.6 }}
+                        initial={maybeMotion({ opacity: 0, y: 20 })}
+                        animate={maybeMotion({ opacity: 1, y: 0 })}
+                        transition={maybeMotion({ delay: 0.6 })}
                       >
                         <h4 className="text-responsive-2xl font-black text-secondary mb-6 sm:mb-8 flex items-center space-x-2 sm:space-x-3">
                           <span className="text-2xl sm:text-3xl">📊</span>
@@ -530,11 +532,11 @@ export default function PublicApplicationTracker() {
                         }`}>
                           <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6 lg:space-x-8">
                             <motion.div
-                              animate={{ 
+                              animate={maybeMotion({
                                 scale: [1, 1.1, 1],
                                 rotate: [0, 5, -5, 0]
-                              }}
-                              transition={{ duration: 3, repeat: Infinity }}
+                              })}
+                              transition={maybeMotion({ duration: 3, repeat: Infinity })}
                               className="text-5xl sm:text-6xl lg:text-7xl flex-shrink-0"
                             >
                               {getStatusEmoji(application.status)}
@@ -552,13 +554,13 @@ export default function PublicApplicationTracker() {
                       </motion.div>
 
                       {/* Admin Feedback - Mobile First */}
-                      <AnimatePresence>
+                      <AnimatePresence initial={!shouldReduceMotion}>
                         {application.admin_feedback && (
                           <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ delay: 0.7 }}
+                            initial={maybeMotion({ opacity: 0, y: 20 })}
+                            animate={maybeMotion({ opacity: 1, y: 0 })}
+                            exit={maybeMotion({ opacity: 0, y: -20 })}
+                            transition={maybeMotion({ delay: 0.7 })}
                             className="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 border-2 border-green-300 rounded-2xl space-responsive shadow-2xl"
                           >
                             <h5 className="font-black text-green-900 mb-4 sm:mb-6 text-lg sm:text-xl lg:text-2xl flex items-center space-x-2 sm:space-x-3">
@@ -583,9 +585,9 @@ export default function PublicApplicationTracker() {
 
                     {/* Application Info - Mobile First */}
                     <motion.div
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.8 }}
+                      initial={maybeMotion({ opacity: 0, x: 20 })}
+                      animate={maybeMotion({ opacity: 1, x: 0 })}
+                      transition={maybeMotion({ delay: 0.8 })}
                       className="space-y-4 sm:space-y-6"
                     >
                       <h4 className="text-responsive-2xl font-black text-secondary mb-6 sm:mb-8 flex items-center space-x-2 sm:space-x-3">
@@ -651,9 +653,9 @@ export default function PublicApplicationTracker() {
                   <div className="p-10">
                     <div className="flex flex-col lg:flex-row justify-between items-center space-y-6 lg:space-y-0">
                       <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.9 }}
+                        initial={maybeMotion({ opacity: 0, x: -20 })}
+                        animate={maybeMotion({ opacity: 1, x: 0 })}
+                        transition={maybeMotion({ delay: 0.9 })}
                         className="text-center lg:text-left"
                       >
                         <p className="text-2xl text-secondary font-bold mb-2 flex items-center justify-center lg:justify-start space-x-2">
@@ -666,9 +668,9 @@ export default function PublicApplicationTracker() {
                       </motion.div>
                       
                       <motion.div
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 1 }}
+                        initial={maybeMotion({ opacity: 0, x: 20 })}
+                        animate={maybeMotion({ opacity: 1, x: 0 })}
+                        transition={maybeMotion({ delay: 1 })}
                         className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4"
                       >
                         <Link to="/apply">
@@ -703,22 +705,22 @@ export default function PublicApplicationTracker() {
         </AnimatePresence>
 
         {/* Enhanced No Results */}
-        <AnimatePresence>
+        <AnimatePresence initial={!shouldReduceMotion}>
           {searched && !application && !loading && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
+              initial={maybeMotion({ opacity: 0, scale: 0.9 })}
+              animate={maybeMotion({ opacity: 1, scale: 1 })}
+              exit={maybeMotion({ opacity: 0, scale: 0.9 })}
             >
               <AnimatedCard className="text-center py-20" glassEffect>
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  initial={maybeMotion({ opacity: 0, y: 20 })}
+                  animate={maybeMotion({ opacity: 1, y: 0 })}
                   className="space-y-8"
                 >
                   <motion.div
-                    animate={{ rotate: [0, -10, 10, 0] }}
-                    transition={{ duration: 2, repeat: Infinity }}
+                    animate={maybeMotion({ rotate: [0, -10, 10, 0] })}
+                    transition={maybeMotion({ duration: 2, repeat: Infinity })}
                     className="text-8xl"
                   >
                     🔍
@@ -769,9 +771,9 @@ export default function PublicApplicationTracker() {
 
         {/* Enhanced Help Section */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.2 }}
+          initial={maybeMotion({ opacity: 0, y: 30 })}
+          animate={maybeMotion({ opacity: 1, y: 0 })}
+          transition={maybeMotion({ delay: 1.2 })}
           className="mt-16"
         >
           <AnimatedCard glassEffect>
@@ -877,19 +879,19 @@ export default function PublicApplicationTracker() {
         </motion.div>
         
         {/* Share Modal */}
-        <AnimatePresence>
+        <AnimatePresence initial={!shouldReduceMotion}>
           {showShareModal && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={maybeMotion({ opacity: 0 })}
+              animate={maybeMotion({ opacity: 1 })}
+              exit={maybeMotion({ opacity: 0 })}
               className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
               onClick={() => setShowShareModal(false)}
             >
               <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.8, opacity: 0 }}
+                initial={maybeMotion({ scale: 0.8, opacity: 0 })}
+                animate={maybeMotion({ scale: 1, opacity: 1 })}
+                exit={maybeMotion({ scale: 0.8, opacity: 0 })}
                 className="bg-white rounded-2xl p-8 max-w-md w-full"
                 onClick={(e) => e.stopPropagation()}
               >
