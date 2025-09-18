@@ -42,71 +42,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true
     
     async function loadUser() {
-    try {
-      // Get current session first - this is fast
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!mounted) return
-      
-      if (session?.user) {
-        console.log('Session found on mount, user authenticated')
-        setUser(session.user)
-        setLoading(false) // Set loading to false immediately for faster UI
-        
-        // Load profile and role in background after UI is ready
-        setTimeout(() => {
-          if (mounted) {
-            Promise.all([
-              loadUserProfile(session.user.id),
-              loadUserRole(session.user.id)
-            ]).catch(error => {
-              console.warn('Background profile/role loading failed:', error)
-              // Don't block the UI for this
-            })
-          }
-        }, 50) // Very short delay to let UI render first
-      } else {
-        console.log('No session found on mount')
-        setUser(null)
-        setProfile(null)
-        setUserRole(null)
-        setLoading(false)
-      }
-      
-      setHasLoaded(true)
-    } catch (error) {
-      console.error('Error loading user:', error)
-      if (mounted) {
-        setUser(null)
-        setProfile(null)
-        setUserRole(null)
-        setLoading(false)
-        setHasLoaded(true)
-      }
-    }
-  } } = await supabase.auth.getSession()
+      try {
+        // Get current session first - this is fast
+        const { data: { session } } = await supabase.auth.getSession()
         
         if (!mounted) return
         
         if (session?.user) {
           console.log('Session found on mount, user authenticated')
           setUser(session.user)
+          setLoading(false) // Set loading to false immediately for faster UI
           
-          // Load profile and role in background
+          // Load profile and role in background after UI is ready
           setTimeout(() => {
             if (mounted) {
-              loadUserProfile(session.user.id)
-              loadUserRole(session.user.id)
+              Promise.all([
+                loadUserProfile(session.user.id),
+                loadUserRole(session.user.id)
+              ]).catch(error => {
+                console.warn('Background profile/role loading failed:', error)
+                // Don't block the UI for this
+              })
             }
-          }, 100)
+          }, 50) // Very short delay to let UI render first
         } else {
           console.log('No session found on mount')
           setUser(null)
           setProfile(null)
           setUserRole(null)
+          setLoading(false)
         }
         
-        setLoading(false)
         setHasLoaded(true)
       } catch (error) {
         console.error('Error loading user:', error)
