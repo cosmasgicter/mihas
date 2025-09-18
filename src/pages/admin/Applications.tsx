@@ -1,5 +1,6 @@
 import React from 'react'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { AdminNavigation } from '@/components/ui/AdminNavigation'
 import {
   FiltersPanel,
   MetricsHeader,
@@ -25,52 +26,59 @@ export default function Applications() {
   } = useApplicationFilters(applications)
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Applications Management
-          </h1>
-          <p className="text-gray-600">
-            Manage student applications and review submissions
-          </p>
-        </div>
-
-        {error && (
-          <div className="rounded-md bg-red-50 p-4 mb-6">
-            <div className="text-sm text-red-700">{error}</div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <AdminNavigation />
+      <div className="container-mobile py-4 sm:py-6 lg:py-8 safe-area-bottom">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          <div className="bg-gradient-to-r from-secondary to-primary p-6 text-white">
+            <div className="space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold">📄 Applications Management</h1>
+                <p className="text-white/90 text-sm sm:text-base">
+                  Manage student applications and review submissions
+                </p>
+              </div>
+            </div>
           </div>
-        )}
 
-        {isInitialLoading ? (
-          <ApplicationsSkeleton />
-        ) : (
-          <>
-            <MetricsHeader applications={applications} />
-
-            {isRefreshing && (
-              <div className="flex items-center gap-2 text-sm text-blue-600 mb-4">
-                <LoadingSpinner size="sm" />
-                <span>Refreshing latest applications…</span>
+          <div className="p-6 space-y-6">
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+                <div className="text-sm font-medium">{error}</div>
               </div>
             )}
 
-            <FiltersPanel
-              searchTerm={filters.searchTerm}
-              statusFilter={filters.statusFilter}
-              paymentFilter={filters.paymentFilter}
-              programFilter={filters.programFilter}
-              institutionFilter={filters.institutionFilter}
-              onFilterChange={updateFilter}
-            />
+            {isInitialLoading ? (
+              <ApplicationsSkeleton />
+            ) : (
+              <div className="space-y-6">
+                <MetricsHeader applications={applications} />
 
-            <ApplicationsTable
-              applications={filteredApplications}
-              onStatusUpdate={updateStatus}
-              onPaymentStatusUpdate={updatePaymentStatus}
-            />
-          </>
-        )}
+                {isRefreshing && (
+                  <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-600">
+                    <LoadingSpinner size="sm" />
+                    <span>Refreshing latest applications…</span>
+                  </div>
+                )}
+
+                <FiltersPanel
+                  searchTerm={filters.searchTerm}
+                  statusFilter={filters.statusFilter}
+                  paymentFilter={filters.paymentFilter}
+                  programFilter={filters.programFilter}
+                  institutionFilter={filters.institutionFilter}
+                  onFilterChange={updateFilter}
+                />
+
+                <ApplicationsTable
+                  applications={filteredApplications}
+                  onStatusUpdate={updateStatus}
+                  onPaymentStatusUpdate={updatePaymentStatus}
+                />
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )
