@@ -38,9 +38,10 @@ type TemplateRenderer = (data: Record<string, unknown>) => TemplateResult
 
 const emailTemplates: Record<string, TemplateRenderer> = {
   'admin-new-application': (data) => {
-    const applicationNumber = getStringField(data, 'applicationNumber')
-    const applicantName = getStringField(data, 'applicantName')
-    const programName = getStringField(data, 'programName')
+    const templateId = 'admin-new-application'
+    const applicationNumber = getStringField(data, 'applicationNumber', templateId)
+    const applicantName = getStringField(data, 'applicantName', templateId)
+    const programName = getStringField(data, 'programName', templateId)
     const submittedAt = typeof data.submittedAt === 'string' && data.submittedAt.trim()
       ? data.submittedAt.trim()
       : new Date().toISOString()
@@ -122,11 +123,12 @@ const emailTemplates: Record<string, TemplateRenderer> = {
     }
   },
   'application-receipt': (data) => {
-    const applicationNumber = getStringField(data, 'applicationNumber')
-    const trackingCode = getStringField(data, 'trackingCode')
-    const programName = getStringField(data, 'programName')
-    const submissionDate = getStringField(data, 'submissionDate')
-    const paymentStatus = getStringField(data, 'paymentStatus')
+    const templateId = 'application-receipt'
+    const applicationNumber = getStringField(data, 'applicationNumber', templateId)
+    const trackingCode = getStringField(data, 'trackingCode', templateId)
+    const programName = getStringField(data, 'programName', templateId)
+    const submissionDate = getStringField(data, 'submissionDate', templateId)
+    const paymentStatus = getStringField(data, 'paymentStatus', templateId)
 
     const html = `<!DOCTYPE html>
 <html>
@@ -173,6 +175,91 @@ const emailTemplates: Record<string, TemplateRenderer> = {
     const text = `Application Received\n\nApplication Number: ${applicationNumber}\nTracking Code: ${trackingCode}\nProgram: ${programName}\nSubmission Date: ${submissionDate}\nPayment Status: ${paymentStatus}\n\nYou can track your application status in the MIHAS-KATC applicant portal.`
 
     return { html, text }
+  },
+  'application-slip': (data) => {
+    const templateId = 'application-slip'
+    const applicationNumber = getStringField(data, 'applicationNumber', templateId)
+    const trackingCode = getStringField(data, 'trackingCode', templateId)
+    const status = getStringField(data, 'status', templateId)
+    const slipUrl = getStringField(data, 'slipUrl', templateId)
+
+    const applicantName = typeof data.applicantName === 'string' && data.applicantName.trim()
+      ? data.applicantName.trim()
+      : 'Applicant'
+    const programName = typeof data.programName === 'string' && data.programName.trim()
+      ? data.programName.trim()
+      : ''
+    const paymentStatus = typeof data.paymentStatus === 'string' && data.paymentStatus.trim()
+      ? data.paymentStatus.trim()
+      : ''
+
+    const formattedStatus = humanizeStatus(status)
+    const formattedPayment = paymentStatus ? humanizeStatus(paymentStatus) : 'Pending Review'
+
+    const programHtml = programName ? `<li><strong>Program:</strong> ${escapeHtml(programName)}</li>` : ''
+
+    const html = `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charSet="utf-8" />
+    <title>Your MIHAS Application Slip</title>
+    <style>
+      body { font-family: Arial, sans-serif; color: #111827; background: #f9fafb; padding: 24px; }
+      .container { max-width: 640px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 32px; border: 1px solid #e5e7eb; }
+      h1 { color: #4c1d95; font-size: 24px; margin-bottom: 16px; }
+      p { line-height: 1.6; margin-bottom: 16px; }
+      .details { background: #f5f3ff; border-radius: 10px; padding: 16px; margin: 24px 0; }
+      .details ul { margin: 0; padding-left: 20px; }
+      .cta { text-align: center; margin: 32px 0; }
+      .cta a { background: #4c1d95; color: #ffffff; padding: 14px 24px; border-radius: 9999px; text-decoration: none; font-weight: bold; display: inline-block; }
+      .footer { color: #6b7280; font-size: 14px; margin-top: 32px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Your application slip is ready</h1>
+      <p>Dear ${escapeHtml(applicantName)},</p>
+      <p>We've generated your official MIHAS application slip. Keep this document for your records and present it during any admissions follow-up.</p>
+      <div class="details">
+        <ul>
+          <li><strong>Application Number:</strong> ${escapeHtml(applicationNumber)}</li>
+          <li><strong>Tracking Code:</strong> ${escapeHtml(trackingCode)}</li>
+          <li><strong>Status:</strong> ${escapeHtml(formattedStatus)}</li>
+          <li><strong>Payment Status:</strong> ${escapeHtml(formattedPayment)}</li>
+          ${programHtml}
+        </ul>
+      </div>
+      <div class="cta">
+        <a href="${escapeHtml(slipUrl)}" target="_blank" rel="noopener noreferrer">Download Your Application Slip</a>
+      </div>
+      <p>You can also track your application progress any time by visiting the admissions portal and entering your tracking code.</p>
+      <p class="footer">This is an automated notification from the MIHAS admissions system.</p>
+    </div>
+  </body>
+</html>`
+
+    const textLines = [
+      `Hello ${applicantName},`,
+      '',
+      'Your MIHAS application slip is ready.',
+      '',
+      `Application Number: ${applicationNumber}`,
+      `Tracking Code: ${trackingCode}`,
+      `Status: ${formattedStatus}`,
+      `Payment Status: ${formattedPayment}`,
+      programName ? `Program: ${programName}` : '',
+      '',
+      `Download your slip: ${slipUrl}`,
+      '',
+      'You can track your application at any time using your tracking code.',
+      '',
+      'This is an automated notification from the MIHAS admissions system.'
+    ].filter(Boolean)
+
+    return {
+      html,
+      text: textLines.join('\n')
+    }
   }
 }
 
@@ -386,10 +473,10 @@ function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
-function getStringField(data: Record<string, unknown>, key: string): string {
+function getStringField(data: Record<string, unknown>, key: string, template: string): string {
   const value = data[key]
   if (typeof value !== 'string' || !value.trim()) {
-    throw new Error(`Field ${key} is required for template application-receipt`)
+    throw new Error(`Field ${key} is required for template ${template}`)
   }
   return value.trim()
 }
@@ -401,4 +488,14 @@ function escapeHtml(value: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
+}
+
+function humanizeStatus(value: string): string {
+  if (!value) return ''
+
+  return value
+    .split(/[_-]/)
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
 }
