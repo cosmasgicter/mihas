@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { checkEligibility, getRecommendedSubjects } from '@/lib/eligibility'
 
-import { ArrowLeft, CheckCircle, ArrowRight, X, FileText, CreditCard, Send, XCircle, AlertTriangle, Sparkles } from 'lucide-react'
+import { ArrowLeft, CheckCircle, ArrowRight, X, FileText, CreditCard, Send, XCircle, AlertTriangle, Sparkles, Download, Mail } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AIAssistant } from '@/components/application/AIAssistant'
@@ -22,6 +22,9 @@ import { useProfileAutoPopulation, getBestValue, getUserMetadata } from '@/hooks
 import { ProfileCompletionBadge } from '@/components/ui/ProfileAutoPopulationIndicator'
 import { applicationsData } from '@/data/applications'
 import { catalogData } from '@/data/catalog'
+import { useToast } from '@/components/ui/Toast'
+import { createApplicationSlip } from '@/lib/slipService'
+import type { ApplicationSlipData } from '@/lib/applicationSlip'
 
 const wizardSchema = z.object({
   full_name: z.string().min(2, 'Full name is required'),
@@ -69,6 +72,7 @@ export default function ApplicationWizard() {
   const location = useLocation()
   const { user, loading: authLoading } = useAuth()
   const { profile } = useProfileQuery()
+  const toast = useToast()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -79,8 +83,16 @@ export default function ApplicationWizard() {
     trackingCode: string
     program: string
     institution: string
+    intake?: string | null
+    fullName?: string | null
+    email?: string | null
+    phone?: string | null
+    status?: string | null
+    paymentStatus?: string | null
+    submittedAt?: string | null
+    updatedAt?: string | null
   } | null>(null)
-  
+
   const [selectedGrades, setSelectedGrades] = useState<SubjectGrade[]>([])
   const [resultSlipFile, setResultSlipFile] = useState<File | null>(null)
   const [extraKycFile, setExtraKycFile] = useState<File | null>(null)
@@ -92,6 +104,11 @@ export default function ApplicationWizard() {
   const [draftSaved, setDraftSaved] = useState(false)
   const [sessionWarning, setSessionWarning] = useState<any>(null)
   const [restoringDraft, setRestoringDraft] = useState(false)
+  const [slipCache, setSlipCache] = useState<{ objectUrl?: string; publicUrl?: string; path?: string; documentId?: string } | null>(null)
+  const [slipLoading, setSlipLoading] = useState(false)
+  const [emailLoading, setEmailLoading] = useState(false)
+  const [persistingSlip, setPersistingSlip] = useState(false)
+  const hasPersistedSlipRef = useRef(false)
 
   const [confirmSubmission, setConfirmSubmission] = useState(false)
   
@@ -119,6 +136,273 @@ export default function ApplicationWizard() {
       navigate('/auth/signin?redirect=/student/application-wizard')
     }
   }, [user, authLoading, navigate])
+
+  useEffect(() => () => {
+    if (slipCache?.objectUrl) {
+      URL.revokeObjectURL(slipCache.objectUrl)
+    }
+  }, [slipCache?.objectUrl])
+
+  useEffect(() => {
+    if (success) return
+    hasPersistedSlipRef.current = false
+    setSlipCache(prev => {
+      if (!prev) return prev
+      if (prev.objectUrl) {
+        URL.revokeObjectURL(prev.objectUrl)
+      }
+      return null
+    })
+  }, [success])
+
+  const slipPayload: ApplicationSlipData | null = useMemo(() => {
+    if (!submittedApplication) return null
+
+    const nowIso = new Date().toISOString()
+
+    return {
+      public_tracking_code: submittedApplication.trackingCode,
+      application_number: submittedApplication.applicationNumber,
+      status: submittedApplication.status || 'submitted',
+      payment_status: submittedApplication.paymentStatus || 'pending_review',
+      submitted_at: submittedApplication.submittedAt || nowIso,
+      updated_at: submittedApplication.updatedAt || nowIso,
+      program_name: submittedApplication.program || null,
+      intake_name: submittedApplication.intake || null,
+      institution: submittedApplication.institution || null,
+      full_name: submittedApplication.fullName || null,
+      email: submittedApplication.email || user?.email || 'no-email@mihas.local',
+      phone: submittedApplication.phone || null,
+      admin_feedback: null,
+      admin_feedback_date: null
+    }
+  }, [submittedApplication, user?.email])
+
+  useEffect(() => {
+    if (!success || !slipPayload || hasPersistedSlipRef.current) {
+      return
+    }
+
+    let cancelled = false
+
+    const persist = async () => {
+      setPersistingSlip(true)
+      try {
+        const result = await createApplicationSlip(slipPayload, { toast })
+
+        if (cancelled) return
+
+        if (result.error) {
+          toast.showError('Slip unavailable', result.error)
+          return
+        }
+
+        setSlipCache(prev => {
+          if (prev?.objectUrl && result.blob) {
+            URL.revokeObjectURL(prev.objectUrl)
+          }
+
+          const objectUrl = result.blob ? URL.createObjectURL(result.blob) : prev?.objectUrl
+
+          return {
+            objectUrl,
+            publicUrl: result.publicUrl || prev?.publicUrl,
+            path: result.path || prev?.path,
+            documentId: result.documentId || prev?.documentId
+          }
+        })
+
+        hasPersistedSlipRef.current = true
+      } catch (persistError) {
+        if (!cancelled) {
+          console.error('Automatic slip persistence failed:', persistError)
+        }
+      } finally {
+        if (!cancelled) {
+          setPersistingSlip(false)
+        }
+      }
+    }
+
+    persist()
+
+    return () => {
+      cancelled = true
+    }
+  }, [success, slipPayload, toast])
+
+  const formatPaymentStatusLabel = (status?: string | null) => {
+    if (!status) return 'Pending Review'
+    return status
+      .split('_')
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ')
+  }
+
+  const getPaymentStatusStyles = (status?: string | null) => {
+    switch (status) {
+      case 'verified':
+        return 'bg-emerald-100 text-emerald-800 border-emerald-200'
+      case 'rejected':
+        return 'bg-rose-100 text-rose-800 border-rose-200'
+      case 'pending_review':
+      default:
+        return 'bg-amber-100 text-amber-800 border-amber-200'
+    }
+  }
+
+  const getPaymentStatusDescription = (status?: string | null) => {
+    switch (status) {
+      case 'verified':
+        return 'Payment verified — you are all set.'
+      case 'rejected':
+        return 'Payment issue detected — please contact support.'
+      case 'pending_review':
+      default:
+        return 'Payment submitted — awaiting verification by admissions.'
+    }
+  }
+
+  const triggerDownload = useCallback((url: string, filename: string) => {
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }, [])
+
+  const handleDownloadSlip = useCallback(async () => {
+    if (!submittedApplication) {
+      toast.showError('Slip unavailable', 'We could not find your submitted application details.')
+      return
+    }
+
+    const filename = `Application-Slip-${submittedApplication.applicationNumber || submittedApplication.trackingCode}.pdf`
+
+    if (slipCache?.objectUrl) {
+      triggerDownload(slipCache.objectUrl, filename)
+      return
+    }
+
+    if (persistingSlip && !slipCache?.publicUrl) {
+      toast.showInfo('Preparing slip', 'We are still preparing your application slip. Please try again shortly.')
+      return
+    }
+
+    try {
+      setSlipLoading(true)
+
+      if (slipCache?.publicUrl && !slipCache.objectUrl) {
+        const response = await fetch(slipCache.publicUrl)
+        if (!response.ok) {
+          throw new Error('Unable to download stored application slip')
+        }
+        const blob = await response.blob()
+        const objectUrl = URL.createObjectURL(blob)
+        setSlipCache(prev => {
+          if (prev?.objectUrl) {
+            URL.revokeObjectURL(prev.objectUrl)
+          }
+          return { ...prev, objectUrl }
+        })
+        triggerDownload(objectUrl, filename)
+        return
+      }
+
+      if (!slipPayload) {
+        toast.showError('Slip unavailable', 'Missing application data for slip generation.')
+        return
+      }
+
+      const result = await createApplicationSlip(slipPayload, { toast })
+
+      if (result.error) {
+        toast.showError('Download failed', result.error)
+        return
+      }
+
+      const objectUrl = result.blob ? URL.createObjectURL(result.blob) : undefined
+      const downloadUrl = objectUrl || result.publicUrl
+
+      if (!downloadUrl) {
+        toast.showError('Download failed', 'We could not prepare the application slip for download.')
+        return
+      }
+
+      setSlipCache(prev => {
+        if (prev?.objectUrl && objectUrl && prev.objectUrl !== objectUrl) {
+          URL.revokeObjectURL(prev.objectUrl)
+        }
+        return {
+          objectUrl: objectUrl || prev?.objectUrl,
+          publicUrl: result.publicUrl || prev?.publicUrl,
+          path: result.path || prev?.path,
+          documentId: result.documentId || prev?.documentId
+        }
+      })
+
+      triggerDownload(downloadUrl, filename)
+    } catch (downloadError) {
+      console.error('Slip download failed:', downloadError)
+      toast.showError('Download failed', downloadError instanceof Error ? downloadError.message : 'Unable to download slip')
+    } finally {
+      setSlipLoading(false)
+    }
+  }, [submittedApplication, slipCache, persistingSlip, slipPayload, toast, triggerDownload])
+
+  const handleEmailSlip = useCallback(async () => {
+    if (!slipPayload || !submittedApplication) {
+      toast.showError('Slip unavailable', 'Missing application details for slip delivery.')
+      return
+    }
+
+    let emailAddress = submittedApplication.email?.trim() || user?.email || ''
+    if (!emailAddress) {
+      const promptResult = window.prompt('Enter the email address to send your application slip to:')
+      emailAddress = promptResult?.trim() || ''
+    }
+
+    if (!emailAddress) {
+      toast.showError('Email required', 'Please provide an email address to receive the slip.')
+      return
+    }
+
+    const payload: ApplicationSlipData = { ...slipPayload, email: emailAddress }
+
+    try {
+      setEmailLoading(true)
+      const result = await createApplicationSlip(payload, { toast, sendEmail: true })
+
+      if (result.error || result.emailError) {
+        const message = result.error || result.emailError || 'We could not email the slip.'
+        toast.showError('Email failed', message)
+        return
+      }
+
+      setSlipCache(prev => {
+        if (prev?.objectUrl && result.blob) {
+          URL.revokeObjectURL(prev.objectUrl)
+        }
+
+        const objectUrl = result.blob ? URL.createObjectURL(result.blob) : prev?.objectUrl
+
+        return {
+          objectUrl,
+          publicUrl: result.publicUrl || prev?.publicUrl,
+          path: result.path || prev?.path,
+          documentId: result.documentId || prev?.documentId
+        }
+      })
+
+      setSubmittedApplication(prev => (prev ? { ...prev, email: emailAddress } : prev))
+    } catch (emailError) {
+      console.error('Slip email failed:', emailError)
+      toast.showError('Email failed', emailError instanceof Error ? emailError.message : 'Unable to email slip')
+    } finally {
+      setEmailLoading(false)
+    }
+  }, [slipPayload, submittedApplication, toast, user?.email])
 
   // Prevent accidental page refresh when user has unsaved changes
   useEffect(() => {
@@ -490,7 +774,13 @@ export default function ApplicationWizard() {
           applicationNumber,
           trackingCode,
           program: formData.program,
-          institution
+          institution,
+          intake: formData.intake,
+          fullName: formData.full_name,
+          email: formData.email,
+          phone: formData.phone,
+          status: 'draft',
+          paymentStatus: 'pending_review'
         })
         setCurrentStep(2)
       } catch (err: any) {
@@ -623,9 +913,24 @@ export default function ApplicationWizard() {
       if (!updatedApp) {
         throw new Error('Application not found or access denied')
       }
-      
+
       console.log('Application submitted successfully:', { applicationId: sanitizeForLog(updatedApp.id) })
-      
+
+      setSubmittedApplication(prev => ({
+        applicationNumber: updatedApp.application_number,
+        trackingCode: updatedApp.public_tracking_code,
+        program: updatedApp.program,
+        institution: updatedApp.institution,
+        intake: updatedApp.intake,
+        fullName: updatedApp.full_name,
+        email: updatedApp.email,
+        phone: updatedApp.phone,
+        status: updatedApp.status,
+        paymentStatus: updatedApp.payment_status ?? prev?.paymentStatus ?? 'pending_review',
+        submittedAt: updatedApp.submitted_at,
+        updatedAt: updatedApp.updated_at
+      }))
+
       // Send notifications after successful submission
       try {
         const { getApiBaseUrl } = await import('@/lib/apiConfig')
@@ -650,12 +955,20 @@ export default function ApplicationWizard() {
           
           // Update submitted application details from API response
           if (result.application) {
-            setSubmittedApplication({
+            setSubmittedApplication(prev => ({
               applicationNumber: result.application.number,
               trackingCode: result.application.trackingCode,
-              program: result.application.program,
-              institution: result.application.institution
-            })
+              program: result.application.program ?? prev?.program ?? updatedApp.program,
+              institution: result.application.institution ?? prev?.institution ?? updatedApp.institution,
+              intake: prev?.intake ?? updatedApp.intake ?? null,
+              fullName: prev?.fullName ?? updatedApp.full_name ?? null,
+              email: prev?.email ?? updatedApp.email ?? user.email ?? null,
+              phone: prev?.phone ?? updatedApp.phone ?? null,
+              status: prev?.status ?? updatedApp.status ?? 'submitted',
+              paymentStatus: prev?.paymentStatus ?? updatedApp.payment_status ?? 'pending_review',
+              submittedAt: prev?.submittedAt ?? updatedApp.submitted_at ?? null,
+              updatedAt: prev?.updatedAt ?? updatedApp.updated_at ?? null
+            }))
           }
         } else {
           console.warn('Failed to send notifications via API:', response.status)
@@ -732,9 +1045,15 @@ export default function ApplicationWizard() {
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
               Application Submitted Successfully!
             </h2>
-            
+
+            {persistingSlip && (
+              <p className="text-sm text-blue-600 mb-4">
+                Saving a copy of your application slip for admissions records...
+              </p>
+            )}
+
             {submittedApplication && (
-              <motion.div 
+              <motion.div
                 className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -758,14 +1077,48 @@ export default function ApplicationWizard() {
                     <span className="text-green-700">Institution:</span>
                     <span className="font-semibold text-green-900">{submittedApplication.institution}</span>
                   </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <span className="text-green-700 flex items-center justify-between sm:justify-start">
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Payment Status:
+                    </span>
+                    <span
+                      className={`inline-flex items-center px-2 py-1 mt-2 sm:mt-0 rounded-full border text-xs font-semibold ${getPaymentStatusStyles(submittedApplication.paymentStatus)}`}
+                    >
+                      {formatPaymentStatusLabel(submittedApplication.paymentStatus)}
+                    </span>
+                  </div>
+                  <p className="text-left text-xs text-green-700">
+                    {getPaymentStatusDescription(submittedApplication.paymentStatus)}
+                  </p>
                 </div>
               </motion.div>
             )}
-            
+
             <p className="text-gray-600 mb-6">
               Your application is now under review. You'll receive notifications about status updates.
             </p>
-            
+
+            <div className="space-y-3 mb-6">
+              <Button
+                onClick={handleDownloadSlip}
+                loading={slipLoading || persistingSlip}
+                className="w-full bg-emerald-600 hover:bg-emerald-700"
+              >
+                <Download className="h-5 w-5 mr-2" />
+                Download Application Slip
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleEmailSlip}
+                loading={emailLoading}
+                className="w-full"
+              >
+                <Mail className="h-5 w-5 mr-2" />
+                Email Me the Slip
+              </Button>
+            </div>
+
             <div className="space-y-3">
               <Link to="/student/dashboard">
                 <Button className="w-full bg-blue-600 hover:bg-blue-700">Go to Dashboard</Button>

@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState, useCallback, useEffect } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -9,6 +9,8 @@ import { formatDate, getStatusColor } from '@/lib/utils'
 
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { sanitizeForDisplay } from '@/lib/sanitize'
+import { useToast } from '@/components/ui/Toast'
+import { createApplicationSlip } from '@/lib/slipService'
 import {
   Search,
   CheckCircle,
@@ -59,6 +61,8 @@ interface PublicApplicationStatus {
 export default function PublicApplicationTracker() {
   const shouldReduceMotion = useReducedMotion()
   const maybeMotion = <T,>(value: T) => (shouldReduceMotion ? undefined : value)
+  const toast = useToast()
+  const [searchParams] = useSearchParams()
   const [searchTerm, setSearchTerm] = useState('')
   const [application, setApplication] = useState<PublicApplicationStatus | null>(null)
   const [loading, setLoading] = useState(false)
@@ -66,23 +70,35 @@ export default function PublicApplicationTracker() {
   const [searched, setSearched] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [slipCache, setSlipCache] = useState<{ objectUrl?: string; publicUrl?: string; path?: string; documentId?: string } | null>(null)
+  const [slipLoading, setSlipLoading] = useState(false)
+  const [emailLoading, setEmailLoading] = useState(false)
 
-  const validateSearchTerm = (term: string): boolean => {
+  const validateSearchTerm = useCallback((term: string): boolean => {
     const trimmed = term.trim()
     if (!trimmed) return false
     if (trimmed.length > 50) return false
-    
+
     // Check if it's a valid application number format (KATC/MIHAS + year + sequence)
     const appNumberPattern = /^(KATC|MIHAS)\d{6}$/
     if (appNumberPattern.test(trimmed)) return true
-    
+
     // Allow tracking codes (TRK format)
     return /^[a-zA-Z0-9\-_]+$/.test(trimmed)
-  }
+  }, [])
 
-  const searchApplication = useCallback(async () => {
-    const trimmedTerm = searchTerm.trim()
-    
+  const resetSlipCache = useCallback(() => {
+    setSlipCache(prev => {
+      if (prev?.objectUrl) {
+        URL.revokeObjectURL(prev.objectUrl)
+      }
+      return null
+    })
+  }, [])
+
+  const searchApplication = useCallback(async (term: string) => {
+    const trimmedTerm = term.trim()
+
     if (!trimmedTerm) {
       setError('Please enter an application number or tracking code')
       return
@@ -97,6 +113,7 @@ export default function PublicApplicationTracker() {
       setLoading(true)
       setError('')
       setApplication(null)
+      resetSlipCache()
 
       // Search by application number or tracking code using exact match
       const { data, error: searchError } = await supabase
@@ -128,7 +145,27 @@ export default function PublicApplicationTracker() {
     } finally {
       setLoading(false)
     }
-  }, [searchTerm])
+  }, [resetSlipCache, validateSearchTerm])
+
+  useEffect(() => {
+    const code = searchParams.get('code')
+    if (!code) return
+
+    const trimmed = code.trim()
+    if (!validateSearchTerm(trimmed)) {
+      setError('Invalid tracking code provided in the link. Please verify and try again.')
+      return
+    }
+
+    setSearchTerm(trimmed)
+    searchApplication(trimmed)
+  }, [searchParams, searchApplication, validateSearchTerm])
+
+  useEffect(() => () => {
+    if (slipCache?.objectUrl) {
+      URL.revokeObjectURL(slipCache.objectUrl)
+    }
+  }, [slipCache?.objectUrl])
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -237,9 +274,9 @@ export default function PublicApplicationTracker() {
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault()
-      searchApplication()
+      searchApplication(searchTerm)
     }
-  }, [searchApplication])
+  }, [searchApplication, searchTerm])
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
@@ -260,6 +297,162 @@ export default function PublicApplicationTracker() {
       setError('')
     }
   }, [error])
+
+  const triggerDownload = useCallback((url: string, filename: string) => {
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }, [])
+
+  const buildSlipPayload = useCallback((email: string) => {
+    if (!application) return null
+
+    return {
+      public_tracking_code: application.public_tracking_code,
+      application_number: application.application_number,
+      status: application.status,
+      payment_status: application.payment_status,
+      submitted_at: application.submitted_at,
+      updated_at: application.updated_at,
+      program_name: application.program_name,
+      intake_name: application.intake_name,
+      institution: application.institution,
+      full_name: application.full_name,
+      email,
+      phone: application.phone,
+      admin_feedback: application.admin_feedback,
+      admin_feedback_date: application.admin_feedback_date
+    }
+  }, [application])
+
+  const handleDownloadSlip = useCallback(async () => {
+    if (!application) return
+
+    const filename = `Application-Slip-${application.application_number || application.public_tracking_code}.pdf`
+
+    if (slipCache?.objectUrl) {
+      triggerDownload(slipCache.objectUrl, filename)
+      return
+    }
+
+    try {
+      setSlipLoading(true)
+
+      if (slipCache?.publicUrl && !slipCache.objectUrl) {
+        const response = await fetch(slipCache.publicUrl)
+        if (!response.ok) {
+          throw new Error('Unable to download stored application slip')
+        }
+        const blob = await response.blob()
+        const objectUrl = URL.createObjectURL(blob)
+        setSlipCache(prev => {
+          if (prev?.objectUrl) {
+            URL.revokeObjectURL(prev.objectUrl)
+          }
+          return { ...prev, objectUrl }
+        })
+        triggerDownload(objectUrl, filename)
+        return
+      }
+
+      const slipEmail = application.email?.trim() || 'no-email@mihas.local'
+      const payload = buildSlipPayload(slipEmail)
+      if (!payload) {
+        toast.showError('Slip unavailable', 'Missing application details for slip generation.')
+        return
+      }
+
+      const result = await createApplicationSlip(payload, { toast })
+
+      if (result.error) {
+        toast.showError('Download failed', result.error)
+        return
+      }
+
+      const objectUrl = result.blob ? URL.createObjectURL(result.blob) : undefined
+      const downloadUrl = objectUrl || result.publicUrl
+
+      if (!downloadUrl) {
+        toast.showError('Download failed', 'We could not prepare the application slip for download.')
+        return
+      }
+
+      setSlipCache(prev => {
+        if (prev?.objectUrl && objectUrl && prev.objectUrl !== objectUrl) {
+          URL.revokeObjectURL(prev.objectUrl)
+        }
+        return {
+          objectUrl: objectUrl || prev?.objectUrl,
+          publicUrl: result.publicUrl || prev?.publicUrl,
+          path: result.path || prev?.path,
+          documentId: result.documentId || prev?.documentId
+        }
+      })
+
+      triggerDownload(downloadUrl, filename)
+    } catch (downloadError) {
+      console.error('Slip download failed:', downloadError)
+      toast.showError('Download failed', downloadError instanceof Error ? downloadError.message : 'Unable to download slip')
+    } finally {
+      setSlipLoading(false)
+    }
+  }, [application, buildSlipPayload, slipCache, toast, triggerDownload])
+
+  const handleEmailSlip = useCallback(async () => {
+    if (!application) return
+
+    let emailAddress = application.email?.trim() || ''
+    if (!emailAddress) {
+      const promptResult = window.prompt('Enter the email address to send your application slip to:')
+      emailAddress = promptResult?.trim() || ''
+    }
+
+    if (!emailAddress) {
+      toast.showError('Email required', 'Please provide an email address to receive the slip.')
+      return
+    }
+
+    const payload = buildSlipPayload(emailAddress)
+    if (!payload) {
+      toast.showError('Slip unavailable', 'Missing application details for slip delivery.')
+      return
+    }
+
+    try {
+      setEmailLoading(true)
+      const result = await createApplicationSlip(payload, { toast, sendEmail: true })
+
+      if (result.error || result.emailError) {
+        const message = result.error || result.emailError || 'We could not email the slip.'
+        toast.showError('Email failed', message)
+        return
+      }
+
+      setSlipCache(prev => {
+        if (prev?.objectUrl && result.blob) {
+          URL.revokeObjectURL(prev.objectUrl)
+        }
+
+        const objectUrl = result.blob ? URL.createObjectURL(result.blob) : prev?.objectUrl
+        return {
+          objectUrl,
+          publicUrl: result.publicUrl || prev?.publicUrl,
+          path: result.path || prev?.path,
+          documentId: result.documentId || prev?.documentId
+        }
+      })
+
+      setApplication(prev => (prev ? { ...prev, email: emailAddress } : prev))
+    } catch (emailError) {
+      console.error('Slip email failed:', emailError)
+      toast.showError('Email failed', emailError instanceof Error ? emailError.message : 'Unable to email slip')
+    } finally {
+      setEmailLoading(false)
+    }
+  }, [application, buildSlipPayload, toast])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 relative overflow-hidden">
@@ -382,8 +575,8 @@ export default function PublicApplicationTracker() {
                       />
                     </motion.div>
                   </div>
-                  <Button 
-                    onClick={searchApplication}
+                  <Button
+                    onClick={() => searchApplication(searchTerm)}
                     loading={loading}
                     size="lg"
                     className="btn-responsive text-base sm:text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:shadow-2xl rounded-2xl transform hover:scale-105 transition-all duration-300 touch-target"
@@ -559,6 +752,28 @@ export default function PublicApplicationTracker() {
                           >
                             <Copy className="h-4 w-4 mr-2" />
                             {copied ? 'Copied!' : 'Copy #'}
+                          </Button>
+                        </div>
+                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleDownloadSlip}
+                            loading={slipLoading}
+                            className="bg-white/20 border-white/30 text-white hover:bg-white/30 btn-mobile touch-target"
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Download Slip
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleEmailSlip}
+                            loading={emailLoading}
+                            className="bg-white/20 border-white/30 text-white hover:bg-white/30 btn-mobile touch-target"
+                          >
+                            <Mail className="h-4 w-4 mr-2" />
+                            Email Me the Slip
                           </Button>
                         </div>
                       </motion.div>
