@@ -1,3 +1,5 @@
+import { getSecureId } from './security'
+
 interface OfflineData {
   id: string
   type: 'application_draft' | 'document_upload' | 'form_submission'
@@ -46,7 +48,7 @@ class OfflineStorageManager {
   async store(data: Omit<OfflineData, 'id' | 'timestamp'>): Promise<string> {
     if (!this.db) throw new Error('Database not initialized')
     
-    const id = `${data.type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const id = `${data.type}_${Date.now()}_${getSecureId()}`
     const offlineData: OfflineData = {
       ...data,
       id,

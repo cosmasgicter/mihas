@@ -1,5 +1,4 @@
 // Secure application number generator with institution prefixes
-import { generateSecureId } from './security'
 
 export interface ApplicationNumberConfig {
   institution: 'MIHAS' | 'KATC'

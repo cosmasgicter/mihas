@@ -2,9 +2,58 @@ import DOMPurify from 'dompurify';
 
 // Security utilities for input sanitization and validation
 
-export function generateSecureId(): string {
+type CryptoGlobal = typeof globalThis & { msCrypto?: Crypto }
+
+function getCrypto(): Crypto | undefined {
+  if (typeof globalThis === 'undefined') {
+    return undefined
+  }
+
+  const globalCrypto = (globalThis as CryptoGlobal).crypto ?? (globalThis as CryptoGlobal).msCrypto
+
+  return globalCrypto ?? undefined
+}
+
+function generateUuidFromRandomValues(cryptoObj: Crypto): string {
+  const randomBytes = new Uint8Array(16)
+  cryptoObj.getRandomValues(randomBytes)
+
+  // Per RFC 4122 section 4.4
+  randomBytes[6] = (randomBytes[6] & 0x0f) | 0x40
+  randomBytes[8] = (randomBytes[8] & 0x3f) | 0x80
+
+  const toHex = (value: number) => value.toString(16).padStart(2, '0')
+
+  const segments = [
+    Array.from(randomBytes.subarray(0, 4), toHex).join(''),
+    Array.from(randomBytes.subarray(4, 6), toHex).join(''),
+    Array.from(randomBytes.subarray(6, 8), toHex).join(''),
+    Array.from(randomBytes.subarray(8, 10), toHex).join(''),
+    Array.from(randomBytes.subarray(10, 16), toHex).join('')
+  ]
+
+  return segments.join('-')
+}
+
+export function getSecureId(): string {
+  const cryptoObj = getCrypto()
+
+  if (cryptoObj?.randomUUID) {
+    try {
+      return cryptoObj.randomUUID()
+    } catch {
+      // Fallback to manual generation if randomUUID throws
+    }
+  }
+
+  if (cryptoObj?.getRandomValues) {
+    return generateUuidFromRandomValues(cryptoObj)
+  }
+
   return Math.random().toString(36).substring(2) + Date.now().toString(36)
 }
+
+export const generateSecureId = getSecureId
 
 /**
  * Sanitize input for logging to prevent log injection
