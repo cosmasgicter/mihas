@@ -203,9 +203,63 @@ async function handlePost(req, res, { user }) {
       return res.status(400).json({ error: error.message })
     }
 
+    notifyAdminsOfNewApplication(data).catch(emailError => {
+      console.error('Failed to send admin application notification email:', emailError)
+    })
+
     return res.status(201).json(data)
   } catch (error) {
     console.error('Applications POST error', error)
     return res.status(500).json({ error: 'Internal server error' })
+  }
+}
+
+function getAdminNotificationRecipients() {
+  const rawRecipients = process.env.APPLICATION_ADMIN_EMAILS || process.env.ADMIN_NOTIFICATION_RECIPIENTS || ''
+  return rawRecipients
+    .split(/[;,\s]+/)
+    .map(email => email.trim())
+    .filter(Boolean)
+}
+
+async function notifyAdminsOfNewApplication(application) {
+  const recipients = getAdminNotificationRecipients()
+
+  if (!recipients.length) {
+    console.warn('Admin notification email recipients not configured. Skipping admin email for new application.')
+    return
+  }
+
+  const applicationNumber = String(application?.application_number || 'N/A')
+  const applicantName = String(application?.full_name || application?.name || 'Unknown Applicant')
+  const programName = String(application?.program || 'Unspecified Program')
+  const applicantEmail = typeof application?.email === 'string' ? application.email : ''
+  const applicantPhone = typeof application?.phone === 'string' ? application.phone : ''
+  const submissionTimestamp = application?.created_at || new Date().toISOString()
+  const status = typeof application?.status === 'string' ? application.status : ''
+
+  try {
+    const { error } = await supabaseAdminClient.functions.invoke('send-email', {
+      body: {
+        to: recipients,
+        subject: `New application received: ${applicationNumber}`,
+        template: 'admin-new-application',
+        data: {
+          applicationNumber,
+          applicantName,
+          programName,
+          submittedAt: submissionTimestamp,
+          applicationStatus: status,
+          applicantEmail,
+          applicantPhone
+        }
+      }
+    })
+
+    if (error) {
+      throw error
+    }
+  } catch (error) {
+    console.error('Admin notification email invocation failed:', error)
   }
 }
