@@ -19,20 +19,19 @@ export class NetworkDiagnostics {
   async testConnection(): Promise<{ status: 'online' | 'offline' | 'slow', latency?: number }> {
     const start = Date.now()
     
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
+
     try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5000)
-      
-      // Use a simple HTTP endpoint instead of Supabase REST API
-      const response = await fetch('https://httpbin.org/status/200', {
-        method: 'HEAD',
+      // Use a same-origin health check so the browser receives proper CORS headers
+      const response = await fetch('/api/test', {
+        method: 'GET',
         signal: controller.signal
       })
-      
-      clearTimeout(timeoutId)
+
       const latency = Date.now() - start
-      
-      if (response.ok) {
+
+      if (response.status >= 200 && response.status < 300) {
         this.connectionStatus = latency > 3000 ? 'slow' : 'online'
         return { status: this.connectionStatus, latency }
       } else {
@@ -42,6 +41,8 @@ export class NetworkDiagnostics {
     } catch (error) {
       this.connectionStatus = 'offline'
       return { status: 'offline' }
+    } finally {
+      clearTimeout(timeoutId)
     }
   }
   
