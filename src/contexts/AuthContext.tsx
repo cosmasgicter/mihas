@@ -274,10 +274,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('Attempting sign in for:', sanitizeForLog(email))
       
       // Use API endpoint instead of direct Supabase for better performance
-      const response = await fetch('/api/auth', {
+      const response = await fetch('/api/auth?action=signin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'signin', email, password })
+        body: JSON.stringify({ email, password })
       })
       
       const result = await response.json()
