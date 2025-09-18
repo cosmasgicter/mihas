@@ -28,12 +28,19 @@ interface ApplicationSummary {
 
 export function useApplicationsData() {
   const [applications, setApplications] = useState<ApplicationSummary[]>([])
-  const [loading, setLoading] = useState(true)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState('')
 
   const loadApplications = async () => {
+    const isFirstLoad = isInitialLoading
     try {
-      setLoading(true)
+      setError('')
+      if (isFirstLoad) {
+        setIsInitialLoading(true)
+      } else {
+        setIsRefreshing(true)
+      }
       const { data, error } = await supabase
         .from('admin_application_detailed')
         .select('*')
@@ -44,7 +51,11 @@ export function useApplicationsData() {
     } catch (err: any) {
       setError(err.message)
     } finally {
-      setLoading(false)
+      if (isFirstLoad) {
+        setIsInitialLoading(false)
+      } else {
+        setIsRefreshing(false)
+      }
     }
   }
 
@@ -74,7 +85,8 @@ export function useApplicationsData() {
 
   return {
     applications,
-    loading,
+    isInitialLoading,
+    isRefreshing,
     error,
     loadApplications,
     updateStatus,
