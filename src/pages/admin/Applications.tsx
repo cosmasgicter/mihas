@@ -11,19 +11,22 @@ import { useApplicationsData, useApplicationFilters } from '@/hooks/admin'
 
 export default function Applications() {
   const {
+    filters,
+    updateFilter
+  } = useApplicationFilters()
+
+  const {
     applications,
     isInitialLoading,
     isRefreshing,
+    isLoadingMore,
     error,
+    pagination,
+    hasMore,
+    loadNextPage,
     updateStatus,
     updatePaymentStatus
-  } = useApplicationsData()
-
-  const { 
-    filters, 
-    updateFilter, 
-    filteredApplications 
-  } = useApplicationFilters(applications)
+  } = useApplicationsData(filters)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -52,7 +55,10 @@ export default function Applications() {
               <ApplicationsSkeleton />
             ) : (
               <div className="space-y-6">
-                <MetricsHeader applications={applications} />
+                <MetricsHeader
+                  applications={applications}
+                  totalCount={pagination.totalCount}
+                />
 
                 {isRefreshing && (
                   <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-600">
@@ -71,7 +77,12 @@ export default function Applications() {
                 />
 
                 <ApplicationsTable
-                  applications={filteredApplications}
+                  applications={applications}
+                  totalCount={pagination.totalCount}
+                  loadedCount={pagination.loadedCount}
+                  hasMore={hasMore}
+                  isLoadingMore={isLoadingMore}
+                  onLoadMore={loadNextPage}
                   onStatusUpdate={updateStatus}
                   onPaymentStatusUpdate={updatePaymentStatus}
                 />

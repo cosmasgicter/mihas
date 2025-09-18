@@ -1,5 +1,6 @@
 import React from 'react'
 import { sanitizeHtml } from '@/lib/sanitizer'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 interface ApplicationSummary {
   id: string
@@ -35,12 +36,22 @@ interface ApplicationSummary {
 
 interface ApplicationsTableProps {
   applications: ApplicationSummary[]
+  totalCount: number
+  loadedCount: number
+  hasMore: boolean
+  isLoadingMore: boolean
+  onLoadMore: () => void | Promise<void>
   onStatusUpdate: (id: string, status: string) => void
   onPaymentStatusUpdate: (id: string, status: string) => void
 }
 
 export function ApplicationsTable({
   applications,
+  totalCount,
+  loadedCount,
+  hasMore,
+  isLoadingMore,
+  onLoadMore,
   onStatusUpdate,
   onPaymentStatusUpdate
 }: ApplicationsTableProps) {
@@ -260,6 +271,35 @@ export function ApplicationsTable({
           <div className="text-gray-500">No applications found matching your criteria.</div>
         </div>
       )}
+
+      <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-sm text-gray-500">
+          Showing <span className="font-semibold text-gray-700">{loadedCount}</span>
+          {totalCount > 0 && (
+            <>
+              {' '}of{' '}
+              <span className="font-semibold text-gray-700">{totalCount}</span>
+            </>
+          )}{' '}
+          applications
+        </div>
+
+        {hasMore ? (
+          <button
+            type="button"
+            onClick={onLoadMore}
+            disabled={isLoadingMore}
+            className="inline-flex items-center justify-center rounded-md border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isLoadingMore && <LoadingSpinner size="sm" className="mr-2" />}
+            {isLoadingMore ? 'Loading more...' : 'Load more applications'}
+          </button>
+        ) : (
+          totalCount > 0 && (
+            <span className="text-sm text-gray-400">All applications loaded.</span>
+          )
+        )}
+      </div>
     </div>
   )
 }

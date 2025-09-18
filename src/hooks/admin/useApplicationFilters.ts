@@ -1,17 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 
-interface ApplicationSummary {
-  id: string
-  application_number: string
-  full_name: string
-  email: string
-  status: string
-  payment_status: string
-  program: string
-  institution: string
-}
-
-interface FilterState {
+export interface ApplicationFilters {
   searchTerm: string
   statusFilter: string
   paymentFilter: string
@@ -19,38 +8,28 @@ interface FilterState {
   institutionFilter: string
 }
 
-export function useApplicationFilters(applications: ApplicationSummary[]) {
-  const [filters, setFilters] = useState<FilterState>({
-    searchTerm: '',
-    statusFilter: '',
-    paymentFilter: '',
-    programFilter: '',
-    institutionFilter: ''
-  })
+export const DEFAULT_APPLICATION_FILTERS: ApplicationFilters = {
+  searchTerm: '',
+  statusFilter: '',
+  paymentFilter: '',
+  programFilter: '',
+  institutionFilter: ''
+}
 
-  const updateFilter = (key: keyof FilterState, value: string) => {
+export function useApplicationFilters() {
+  const [filters, setFilters] = useState<ApplicationFilters>({ ...DEFAULT_APPLICATION_FILTERS })
+
+  const updateFilter = (key: keyof ApplicationFilters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }))
   }
 
-  const filteredApplications = useMemo(() => {
-    return applications.filter(app => {
-      const matchesSearch = !filters.searchTerm || 
-        app.full_name.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-        app.email.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-        app.application_number.toLowerCase().includes(filters.searchTerm.toLowerCase())
-      
-      const matchesStatus = !filters.statusFilter || app.status === filters.statusFilter
-      const matchesPayment = !filters.paymentFilter || app.payment_status === filters.paymentFilter
-      const matchesProgram = !filters.programFilter || app.program === filters.programFilter
-      const matchesInstitution = !filters.institutionFilter || app.institution === filters.institutionFilter
-
-      return matchesSearch && matchesStatus && matchesPayment && matchesProgram && matchesInstitution
-    })
-  }, [applications, filters])
+  const resetFilters = () => {
+    setFilters({ ...DEFAULT_APPLICATION_FILTERS })
+  }
 
   return {
     filters,
     updateFilter,
-    filteredApplications
+    resetFilters
   }
 }

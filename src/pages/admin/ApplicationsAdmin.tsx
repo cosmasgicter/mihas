@@ -49,8 +49,12 @@ export default function ApplicationsAdmin() {
     applications,
     isInitialLoading,
     isRefreshing,
+    isLoadingMore,
     error: dataError,
     loadApplications,
+    loadNextPage,
+    hasMore,
+    pagination,
     updateStatus: updateApplicationStatus,
     updatePaymentStatus: updateApplicationPaymentStatus
   } = useApplicationsData()
@@ -427,41 +431,75 @@ export default function ApplicationsAdmin() {
             </table>
           </div>
           
-          {filteredApplications.length === 0 && (
-            <div className="text-center py-12">
-              <div className="text-gray-500">No applications found matching your criteria.</div>
+            {filteredApplications.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-gray-500">No applications found matching your criteria.</div>
+              </div>
+            )}
+            <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm text-gray-500">
+                Showing{' '}
+                <span className="font-semibold text-gray-700">{filteredApplications.length}</span>
+                {' '}of{' '}
+                <span className="font-semibold text-gray-700">{pagination.loadedCount}</span>{' '}
+                loaded
+                {pagination.totalCount > 0 && (
+                  <>
+                    {' '}•{' '}
+                    <span className="font-semibold text-gray-700">{pagination.totalCount}</span>{' '}
+                    total
+                  </>
+                )}{' '}
+                applications
+              </div>
+
+              {hasMore ? (
+                <button
+                  type="button"
+                  onClick={loadNextPage}
+                  disabled={isLoadingMore}
+                  className="inline-flex items-center justify-center rounded-md border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isLoadingMore && <LoadingSpinner size="sm" className="mr-2" />}
+                  {isLoadingMore ? 'Loading more...' : 'Load more applications'}
+                </button>
+              ) : (
+                pagination.totalCount > 0 && (
+                  <span className="text-sm text-gray-400">All applications loaded.</span>
+                )
+              )}
             </div>
-          )}
-        </div>
+          </div>
 
             {/* Summary Stats */}
             <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="text-2xl font-bold text-gray-900">
-                  {applications.length}
+                  {pagination.totalCount}
                 </div>
                 <div className="text-sm text-gray-500">Total Applications</div>
+                <div className="text-xs text-gray-400 mt-1">Loaded: {applications.length}</div>
               </div>
 
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="text-2xl font-bold text-blue-600">
                   {applications.filter(app => app.status === 'submitted').length}
                 </div>
-                <div className="text-sm text-gray-500">Submitted</div>
+                <div className="text-sm text-gray-500">Submitted (loaded)</div>
               </div>
 
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="text-2xl font-bold text-yellow-600">
                   {applications.filter(app => app.payment_status === 'pending_review').length}
                 </div>
-                <div className="text-sm text-gray-500">Pending Payment Review</div>
+                <div className="text-sm text-gray-500">Pending Payment Review (loaded)</div>
               </div>
 
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="text-2xl font-bold text-green-600">
                   {applications.filter(app => app.status === 'approved').length}
                 </div>
-                <div className="text-sm text-gray-500">Approved</div>
+                <div className="text-sm text-gray-500">Approved (loaded)</div>
               </div>
             </div>
           </>
