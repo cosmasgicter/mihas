@@ -12,6 +12,7 @@ EMAIL_PROVIDER=resend
 EMAIL_FROM=admissions@mihas.edu.zm
 RESEND_API_KEY=
 RESEND_FROM_EMAIL="MIHAS Admissions <admissions@mihas.edu.zm>"
+APPLICATION_ADMIN_EMAILS=admissions-team@mihas.edu.zm
 SMTP_HOST=
 SMTP_PORT=587
 SMTP_USERNAME=

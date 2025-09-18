@@ -37,6 +37,90 @@ type SendResult = {
 type TemplateRenderer = (data: Record<string, unknown>) => TemplateResult
 
 const emailTemplates: Record<string, TemplateRenderer> = {
+  'admin-new-application': (data) => {
+    const applicationNumber = getStringField(data, 'applicationNumber')
+    const applicantName = getStringField(data, 'applicantName')
+    const programName = getStringField(data, 'programName')
+    const submittedAt = typeof data.submittedAt === 'string' && data.submittedAt.trim()
+      ? data.submittedAt.trim()
+      : new Date().toISOString()
+    const applicationStatus = typeof data.applicationStatus === 'string' && data.applicationStatus.trim()
+      ? data.applicationStatus.trim()
+      : 'unknown'
+    const applicantEmail = typeof data.applicantEmail === 'string' ? data.applicantEmail.trim() : ''
+    const applicantPhone = typeof data.applicantPhone === 'string' ? data.applicantPhone.trim() : ''
+
+    const contactDetails = [
+      applicantEmail ? `<li><strong>Email:</strong> ${escapeHtml(applicantEmail)}</li>` : '',
+      applicantPhone ? `<li><strong>Phone:</strong> ${escapeHtml(applicantPhone)}</li>` : ''
+    ].filter(Boolean).join('')
+
+    const html = `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charSet="utf-8" />
+    <title>New Application Received</title>
+    <style>
+      body { font-family: Arial, sans-serif; color: #111827; background: #f9fafb; padding: 24px; }
+      .container { max-width: 640px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 32px; border: 1px solid #e5e7eb; }
+      h1 { color: #7c3aed; font-size: 24px; margin-bottom: 16px; }
+      p { line-height: 1.6; margin-bottom: 16px; }
+      .details { background: #f5f3ff; border-radius: 10px; padding: 16px; margin: 24px 0; }
+      .details dt { font-weight: 600; }
+      .details dd { margin: 0 0 12px 0; }
+      .contacts { margin-top: 16px; padding: 16px; background: #eef2ff; border-radius: 8px; }
+      .contacts ul { margin: 0; padding-left: 20px; }
+      .footer { color: #6b7280; font-size: 14px; margin-top: 24px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>New Application Received</h1>
+      <p>A new application has been submitted in the admissions portal.</p>
+      <div class="details">
+        <dl>
+          <dt>Application Number</dt>
+          <dd>${escapeHtml(applicationNumber)}</dd>
+          <dt>Applicant Name</dt>
+          <dd>${escapeHtml(applicantName)}</dd>
+          <dt>Program</dt>
+          <dd>${escapeHtml(programName)}</dd>
+          <dt>Status</dt>
+          <dd>${escapeHtml(applicationStatus)}</dd>
+          <dt>Submitted At</dt>
+          <dd>${escapeHtml(submittedAt)}</dd>
+        </dl>
+      </div>
+      ${contactDetails ? `<div class="contacts"><h2>Contact Details</h2><ul>${contactDetails}</ul></div>` : ''}
+      <p>Please log into the admissions dashboard for full application details.</p>
+      <p class="footer">This is an automated notification from the MIHAS admissions system.</p>
+    </div>
+  </body>
+</html>`
+
+    const contactsText = [
+      applicantEmail ? `Email: ${applicantEmail}` : '',
+      applicantPhone ? `Phone: ${applicantPhone}` : ''
+    ].filter(Boolean).join('\n')
+
+    const textLines = [
+      'New Application Received',
+      '',
+      `Application Number: ${applicationNumber}`,
+      `Applicant Name: ${applicantName}`,
+      `Program: ${programName}`,
+      `Status: ${applicationStatus}`,
+      `Submitted At: ${submittedAt}`,
+      contactsText,
+      '',
+      'Please log into the admissions dashboard for more information.'
+    ].filter(Boolean)
+
+    return {
+      html,
+      text: textLines.join('\n')
+    }
+  },
   'application-receipt': (data) => {
     const applicationNumber = getStringField(data, 'applicationNumber')
     const trackingCode = getStringField(data, 'trackingCode')
