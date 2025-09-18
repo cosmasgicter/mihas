@@ -7,15 +7,13 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { NotificationBell } from '@/components/student/NotificationBell'
-import { 
-  User, 
-  LogOut, 
-  Bell, 
-  Settings, 
-  Menu, 
-  X, 
+import {
+  User,
+  LogOut,
+  Settings,
+  Menu,
+  X,
   Home,
-  FileText,
   Plus
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -106,72 +104,80 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
             </motion.div>
           </div>
 
-          {/* Desktop Navigation */}
-          <NavigationMenu.List className="hidden lg:flex items-center space-x-2">
-            {navigationItems.map((item) => (
-              <NavigationMenu.Item key={item.href}>
-                <Link to={item.href}>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="flex items-center space-x-2 hover:bg-primary/10 hover:text-primary transition-all duration-200"
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span className="font-medium">{item.label}</span>
-                  </Button>
-                </Link>
-              </NavigationMenu.Item>
-            ))}
-            
-            <NavigationMenu.Item>
+          {/* Right Side Actions */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="lg:hidden">
               <NotificationBell />
-            </NavigationMenu.Item>
-            
-            <NavigationMenu.Item>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleSignOut}
-                className="ml-2 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </NavigationMenu.Item>
-          </NavigationMenu.List>
+            </div>
 
-          {/* Mobile Menu Button */}
-          <motion.button
-            className="lg:hidden p-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 touch-target"
-            onClick={toggleMenu}
-            whileTap={{ scale: 0.95 }}
-            aria-label={isOpen ? "Close menu" : "Open menu"}
-            aria-expanded={isOpen}
-          >
-            <AnimatePresence mode="wait">
-              {isOpen ? (
-                <motion.div
-                  key="close"
-                  initial={{ rotate: -90, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: 90, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
+            {/* Desktop Navigation */}
+            <NavigationMenu.List className="hidden lg:flex items-center space-x-2">
+              {navigationItems.map((item) => (
+                <NavigationMenu.Item key={item.href}>
+                  <Link to={item.href}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex items-center space-x-2 hover:bg-primary/10 hover:text-primary transition-all duration-200"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span className="font-medium">{item.label}</span>
+                    </Button>
+                  </Link>
+                </NavigationMenu.Item>
+              ))}
+
+              <NavigationMenu.Item>
+                <NotificationBell />
+              </NavigationMenu.Item>
+
+              <NavigationMenu.Item>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSignOut}
+                  className="ml-2 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
                 >
-                  <X className="h-6 w-6" />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="menu"
-                  initial={{ rotate: 90, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: -90, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Menu className="h-6 w-6" />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.button>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
+              </NavigationMenu.Item>
+            </NavigationMenu.List>
+
+            {/* Mobile Menu Button */}
+            <motion.button
+              className="lg:hidden p-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 touch-target"
+              onClick={toggleMenu}
+              whileTap={{ scale: 0.95 }}
+              aria-label={isOpen ? "Close menu" : "Open menu"}
+              aria-expanded={isOpen}
+            >
+              <AnimatePresence mode="wait">
+                {isOpen ? (
+                  <motion.div
+                    key="close"
+                    initial={{ rotate: -90, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: 90, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <X className="h-6 w-6" />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="menu"
+                    initial={{ rotate: 90, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: -90, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Menu className="h-6 w-6" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.button>
+          </div>
+
         </div>
       </div>
 
@@ -243,21 +249,6 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
                       </motion.div>
                     </NavigationMenu.Item>
                   ))}
-
-                  {/* Notifications in Mobile Menu */}
-                  <NavigationMenu.Item>
-                    <motion.div
-                      variants={itemVariants}
-                      custom={navigationItems.length}
-                      initial="closed"
-                      animate="open"
-                      className="flex justify-center"
-                    >
-                      <div className="mobile-nav-item mobile-nav-focus bg-blue-50 border-blue-200 hover:bg-blue-100 transition-all duration-300 flex items-center justify-center">
-                        <NotificationBell />
-                      </div>
-                    </motion.div>
-                  </NavigationMenu.Item>
 
                   {/* Sign Out */}
                   <NavigationMenu.Item className="mt-4">
