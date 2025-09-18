@@ -1,4 +1,29 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+
+vi.mock('@/lib/supabase', () => ({
+  createSupabaseClient: vi.fn(() => ({
+    auth: {
+      onAuthStateChange: vi.fn(() => ({
+        data: { subscription: { unsubscribe: vi.fn() } }
+      }))
+    }
+  })),
+  getSupabaseClient: vi.fn(() => ({
+    auth: {
+      onAuthStateChange: vi.fn(() => ({
+        data: { subscription: { unsubscribe: vi.fn() } }
+      }))
+    }
+  })),
+  supabase: {
+    auth: {
+      onAuthStateChange: vi.fn(() => ({
+        data: { subscription: { unsubscribe: vi.fn() } }
+      }))
+    }
+  }
+}))
+
 import { routes } from '@/routes/config'
 
 describe('Route Configuration', () => {
