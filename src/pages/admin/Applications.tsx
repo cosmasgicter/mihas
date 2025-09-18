@@ -1,15 +1,21 @@
 import React from 'react'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { FiltersPanel, MetricsHeader, ApplicationsTable } from '@/components/admin/applications'
+import {
+  FiltersPanel,
+  MetricsHeader,
+  ApplicationsTable,
+  ApplicationsSkeleton
+} from '@/components/admin/applications'
 import { useApplicationsData, useApplicationFilters } from '@/hooks/admin'
 
 export default function Applications() {
-  const { 
-    applications, 
-    loading, 
-    error, 
-    updateStatus, 
-    updatePaymentStatus 
+  const {
+    applications,
+    isInitialLoading,
+    isRefreshing,
+    error,
+    updateStatus,
+    updatePaymentStatus
   } = useApplicationsData()
 
   const { 
@@ -17,14 +23,6 @@ export default function Applications() {
     updateFilter, 
     filteredApplications 
   } = useApplicationFilters(applications)
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -44,22 +42,35 @@ export default function Applications() {
           </div>
         )}
 
-        <MetricsHeader applications={applications} />
+        {isInitialLoading ? (
+          <ApplicationsSkeleton />
+        ) : (
+          <>
+            <MetricsHeader applications={applications} />
 
-        <FiltersPanel
-          searchTerm={filters.searchTerm}
-          statusFilter={filters.statusFilter}
-          paymentFilter={filters.paymentFilter}
-          programFilter={filters.programFilter}
-          institutionFilter={filters.institutionFilter}
-          onFilterChange={updateFilter}
-        />
+            {isRefreshing && (
+              <div className="flex items-center gap-2 text-sm text-blue-600 mb-4">
+                <LoadingSpinner size="sm" />
+                <span>Refreshing latest applications…</span>
+              </div>
+            )}
 
-        <ApplicationsTable
-          applications={filteredApplications}
-          onStatusUpdate={updateStatus}
-          onPaymentStatusUpdate={updatePaymentStatus}
-        />
+            <FiltersPanel
+              searchTerm={filters.searchTerm}
+              statusFilter={filters.statusFilter}
+              paymentFilter={filters.paymentFilter}
+              programFilter={filters.programFilter}
+              institutionFilter={filters.institutionFilter}
+              onFilterChange={updateFilter}
+            />
+
+            <ApplicationsTable
+              applications={filteredApplications}
+              onStatusUpdate={updateStatus}
+              onPaymentStatusUpdate={updatePaymentStatus}
+            />
+          </>
+        )}
       </div>
     </div>
   )

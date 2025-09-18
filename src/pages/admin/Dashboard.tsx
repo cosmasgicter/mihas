@@ -42,6 +42,7 @@ import { sanitizeForDisplay } from '@/lib/sanitize'
 import OfflineAdminDashboard from '@/components/admin/OfflineAdminDashboard'
 import { AdminDebug } from '@/components/AdminDebug'
 import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
+import { DashboardSkeleton } from '@/components/admin/DashboardSkeleton'
 
 interface DashboardStats {
   totalApplications: number
@@ -87,27 +88,32 @@ export default function AdminDashboard() {
     systemHealth: 'good',
     activeUsers: 0
   })
-  const [loading, setLoading] = useState(true)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [error, setError] = useState('')
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
-  const [refreshing, setRefreshing] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [showQuickActions, setShowQuickActions] = useState(true)
   const [networkError, setNetworkError] = useState(false)
 
 
 
-  const loadDashboardStats = async () => {
+  const loadDashboardStats = async (options?: { refresh?: boolean }) => {
+    const isRefresh = options?.refresh ?? false
     try {
-      setLoading(true)
+      if (isRefresh) {
+        setIsRefreshing(true)
+      } else {
+        setIsInitialLoading(true)
+      }
       setError('')
       setNetworkError(false)
-      
+
       const response = await adminDashboardService.getMetrics()
       setStats(response.stats)
       setRecentActivity(response.recentActivity || [])
     } catch (error: any) {
       console.error('Error loading dashboard stats:', error)
-      
+
       // Check if it's a network error
       if (error.message.includes('fetch failed') || error.message.includes('Network Error') || error.message.includes('Failed to fetch')) {
         setNetworkError(true)
@@ -116,16 +122,18 @@ export default function AdminDashboard() {
         setError(`Failed to load dashboard data: ${error.message}`)
       }
     } finally {
-      setLoading(false)
+      if (isRefresh) {
+        setIsRefreshing(false)
+      } else {
+        setIsInitialLoading(false)
+      }
     }
   }
 
 
 
   const refreshDashboard = async () => {
-    setRefreshing(true)
-    await loadDashboardStats()
-    setRefreshing(false)
+    await loadDashboardStats({ refresh: true })
   }
 
   useEffect(() => {
@@ -134,12 +142,8 @@ export default function AdminDashboard() {
     }
   }, [user, profile])
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    )
+  if (isInitialLoading) {
+    return <DashboardSkeleton />
   }
 
   // Show offline dashboard if network error
@@ -240,7 +244,7 @@ export default function AdminDashboard() {
                     variant="outline"
                     size="sm"
                     onClick={refreshDashboard}
-                    loading={refreshing}
+                    loading={isRefreshing}
                     className="bg-white/20 border-white/30 text-white hover:bg-white/30"
                   >
                     <RefreshCw className="h-4 w-4 mr-2" />
@@ -270,6 +274,22 @@ export default function AdminDashboard() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {isRefreshing && (
+          <div className="mb-6">
+            <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
+                  <LoadingSpinner size="sm" />
+                  <span>Refreshing dashboard metrics…</span>
+                </div>
+                <div className="h-1 w-full overflow-hidden rounded-full bg-blue-100 sm:w-56">
+                  <div className="h-full w-1/2 animate-pulse bg-blue-400" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Debug info in development */}
         {import.meta.env.DEV && (
@@ -421,7 +441,7 @@ export default function AdminDashboard() {
               metrics={enhancedMetrics}
               recentActivity={recentActivity}
               onRefresh={refreshDashboard}
-              isRefreshing={refreshing}
+              isRefreshing={isRefreshing}
             />
           </div>
 
