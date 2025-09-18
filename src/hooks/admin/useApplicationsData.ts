@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 interface ApplicationSummary {
@@ -30,34 +30,91 @@ export function useApplicationsData() {
   const [applications, setApplications] = useState<ApplicationSummary[]>([])
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [error, setError] = useState('')
+  const [pageSize, setPageSize] = useState(25)
+  const [currentPage, setCurrentPage] = useState(0)
+  const [totalCount, setTotalCount] = useState(0)
+  const loadedCount = applications.length
+  const hasMore = loadedCount < totalCount
 
-  const loadApplications = async () => {
-    const isFirstLoad = isInitialLoading
-    try {
-      setError('')
-      if (isFirstLoad) {
-        setIsInitialLoading(true)
-      } else {
-        setIsRefreshing(true)
-      }
-      const { data, error } = await supabase
+  const fetchApplications = useCallback(
+    async (page: number, { replaceAll = false } = {}) => {
+      const safePage = Math.max(page, 1)
+      const start = replaceAll ? 0 : (safePage - 1) * pageSize
+      const end = replaceAll ? safePage * pageSize - 1 : start + pageSize - 1
+
+      const { data, count, error } = await supabase
         .from('admin_application_detailed')
-        .select('*')
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false })
+        .range(start, Math.max(end, start))
 
       if (error) throw error
-      setApplications(data || [])
+
+      if (typeof count === 'number') {
+        setTotalCount(count)
+      }
+
+      if (replaceAll) {
+        setApplications(data || [])
+      } else if (data && data.length > 0) {
+        setApplications(prev => {
+          const existingIds = new Set(prev.map(app => app.id))
+          const newItems = data.filter(app => !existingIds.has(app.id))
+          if (newItems.length === 0) {
+            return prev
+          }
+          return [...prev, ...newItems]
+        })
+      }
+
+      if (replaceAll || (data && data.length > 0)) {
+        setCurrentPage(safePage)
+      }
+
+      return data || []
+    },
+    [pageSize]
+  )
+
+  const loadInitialPage = useCallback(async () => {
+    setError('')
+    setIsInitialLoading(true)
+    try {
+      await fetchApplications(1, { replaceAll: true })
     } catch (err: any) {
       setError(err.message)
     } finally {
-      if (isFirstLoad) {
-        setIsInitialLoading(false)
-      } else {
-        setIsRefreshing(false)
-      }
+      setIsInitialLoading(false)
     }
-  }
+  }, [fetchApplications])
+
+  const refreshCurrentPage = useCallback(async () => {
+    const pageToRefresh = currentPage || 1
+    setError('')
+    setIsRefreshing(true)
+    try {
+      await fetchApplications(pageToRefresh, { replaceAll: true })
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }, [currentPage, fetchApplications])
+
+  const loadNextPage = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return
+    setError('')
+    setIsLoadingMore(true)
+    try {
+      await fetchApplications(currentPage + 1)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }, [currentPage, fetchApplications, hasMore, isLoadingMore])
 
   const updateStatus = async (applicationId: string, newStatus: string) => {
     const { error } = await supabase
@@ -66,7 +123,7 @@ export function useApplicationsData() {
       .eq('id', applicationId)
 
     if (error) throw error
-    await loadApplications()
+    await refreshCurrentPage()
   }
 
   const updatePaymentStatus = async (applicationId: string, newPaymentStatus: string) => {
@@ -76,19 +133,41 @@ export function useApplicationsData() {
       .eq('id', applicationId)
 
     if (error) throw error
-    await loadApplications()
+    await refreshCurrentPage()
   }
 
+  const hasLoadedRef = useRef(false)
+
   useEffect(() => {
-    loadApplications()
-  }, [])
+    const runInitialLoad = async () => {
+      await loadInitialPage()
+      hasLoadedRef.current = true
+    }
+
+    runInitialLoad()
+  }, [loadInitialPage])
+
+  useEffect(() => {
+    if (!hasLoadedRef.current) return
+    loadInitialPage()
+  }, [pageSize, loadInitialPage])
+
+  const totalPages = pageSize > 0 ? Math.ceil(totalCount / pageSize) : 0
 
   return {
     applications,
     isInitialLoading,
     isRefreshing,
+    isLoadingMore,
     error,
-    loadApplications,
+    pageSize,
+    setPageSize,
+    currentPage,
+    totalPages,
+    totalCount,
+    hasMore,
+    loadNextPage,
+    refreshCurrentPage,
     updateStatus,
     updatePaymentStatus
   }

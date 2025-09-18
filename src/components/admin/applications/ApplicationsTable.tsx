@@ -1,5 +1,6 @@
 import React from 'react'
 import { sanitizeHtml } from '@/lib/sanitizer'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 interface ApplicationSummary {
   id: string
@@ -25,14 +26,34 @@ interface ApplicationSummary {
 
 interface ApplicationsTableProps {
   applications: ApplicationSummary[]
+  totalCount: number
+  loadedCount: number
+  currentPage: number
+  pageSize: number
+  hasMore: boolean
+  isLoadingMore: boolean
+  isFiltered: boolean
+  isRefreshing: boolean
+  onLoadMore: () => void
+  onRefresh: () => void
   onStatusUpdate: (id: string, status: string) => void
   onPaymentStatusUpdate: (id: string, status: string) => void
 }
 
-export function ApplicationsTable({ 
-  applications, 
-  onStatusUpdate, 
-  onPaymentStatusUpdate 
+export function ApplicationsTable({
+  applications,
+  totalCount,
+  loadedCount,
+  currentPage,
+  pageSize,
+  hasMore,
+  isLoadingMore,
+  isFiltered,
+  isRefreshing,
+  onLoadMore,
+  onRefresh,
+  onStatusUpdate,
+  onPaymentStatusUpdate
 }: ApplicationsTableProps) {
   const getStatusBadge = (status: string) => {
     const colors = {
@@ -63,6 +84,10 @@ export function ApplicationsTable({
       </span>
     )
   }
+
+  const summaryText = isFiltered
+    ? `Showing ${applications.length} matching application${applications.length === 1 ? '' : 's'} from ${loadedCount} loaded`
+    : `Showing ${loadedCount} of ${totalCount} applications • Page ${Math.max(currentPage, 1)} • ${pageSize} per page`
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -211,6 +236,30 @@ export function ApplicationsTable({
           <div className="text-gray-500">No applications found matching your criteria.</div>
         </div>
       )}
+
+      <div className="px-6 py-4 border-t border-gray-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-sm text-gray-500">{summaryText}</div>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400"
+          >
+            {isRefreshing && <LoadingSpinner size="sm" className="mr-2" />}
+            Refresh
+          </button>
+          <button
+            type="button"
+            onClick={onLoadMore}
+            disabled={!hasMore || isLoadingMore}
+            className="inline-flex items-center justify-center rounded-md border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:border-blue-300 disabled:bg-blue-300"
+          >
+            {isLoadingMore && <LoadingSpinner size="sm" className="mr-2" />}
+            {hasMore ? (isLoadingMore ? 'Loading…' : 'Load more') : 'No more results'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

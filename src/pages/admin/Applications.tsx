@@ -13,16 +13,25 @@ export default function Applications() {
     applications,
     isInitialLoading,
     isRefreshing,
+    isLoadingMore,
     error,
+    totalCount,
+    currentPage,
+    pageSize,
+    hasMore,
+    loadNextPage,
+    refreshCurrentPage,
     updateStatus,
     updatePaymentStatus
   } = useApplicationsData()
 
-  const { 
-    filters, 
-    updateFilter, 
-    filteredApplications 
+  const {
+    filters,
+    updateFilter,
+    filteredApplications
   } = useApplicationFilters(applications)
+
+  const isFiltered = Object.values(filters).some(Boolean)
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -66,6 +75,16 @@ export default function Applications() {
 
             <ApplicationsTable
               applications={filteredApplications}
+              totalCount={totalCount}
+              loadedCount={applications.length}
+              currentPage={currentPage}
+              pageSize={pageSize}
+              hasMore={hasMore}
+              isLoadingMore={isLoadingMore}
+              isFiltered={isFiltered}
+              isRefreshing={isRefreshing}
+              onLoadMore={loadNextPage}
+              onRefresh={refreshCurrentPage}
               onStatusUpdate={updateStatus}
               onPaymentStatusUpdate={updatePaymentStatus}
             />
