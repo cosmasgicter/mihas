@@ -6,6 +6,7 @@ import { Dialog } from '@/components/ui/Dialog'
 import { AnalyticsService, ApplicationStats, ProgramAnalytics, EligibilityAnalytics, AutomatedReport } from '@/lib/analytics'
 import { ReportsGenerator } from '@/components/admin/ReportsGenerator'
 import { sanitizeForDisplay } from '@/lib/sanitize'
+import { exportReport, ReportExportData, ReportFormat } from '@/lib/reportExports'
 import { TrendingUp, Users, FileText, CheckCircle, Download, Plus, Edit, Trash2, RefreshCw, Eye, Filter, BarChart3 } from 'lucide-react'
 
 export default function Analytics() {
@@ -29,6 +30,7 @@ export default function Analytics() {
   const [selectedItem, setSelectedItem] = useState<any>(null)
   const [createType, setCreateType] = useState<'application' | 'program' | 'eligibility'>('application')
   const [formData, setFormData] = useState<any>({})
+  const [exportFormat, setExportFormat] = useState<ReportFormat>('pdf')
 
   useEffect(() => {
     loadAnalytics()
@@ -146,19 +148,14 @@ export default function Analytics() {
 
   const generateReport = async () => {
     try {
-      const { report } = await AnalyticsService.generateDailyReport()
+      const { report } = await AnalyticsService.generateDailyReport(exportFormat)
       await loadAutomatedReports()
-      
-      const blob = new Blob([JSON.stringify(report.reportData, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${sanitizeForDisplay(report.reportName).replace(/\s+/g, '_')}.json`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-      
+
+      const reportData: ReportExportData = report.reportData || (report as any).report_data
+      const reportName = report.reportName || (report as any).report_name || 'Daily Report'
+
+      await exportReport(reportData, exportFormat, reportName)
+
       alert('Analytics report generated and downloaded successfully!')
     } catch (error) {
       console.error('Failed to generate report:', error)
@@ -312,10 +309,15 @@ export default function Analytics() {
             </div>
             <div>
               <label htmlFor="export_format" className="block text-sm font-medium text-gray-700 mb-2">Export Format</label>
-              <select id="export_format" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-green-500 focus:ring-2 focus:ring-green-500/20">
-                <option value="json">JSON</option>
-                <option value="csv">CSV</option>
+              <select
+                id="export_format"
+                value={exportFormat}
+                onChange={(e) => setExportFormat(e.target.value as ReportFormat)}
+                className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+              >
                 <option value="pdf">PDF</option>
+                <option value="excel">Excel</option>
+                <option value="json">JSON</option>
               </select>
             </div>
           </div>
@@ -630,16 +632,10 @@ export default function Analytics() {
                         </div>
                         <div className="flex space-x-2">
                           <Button
-                            onClick={() => {
-                              const blob = new Blob([JSON.stringify(report.reportData, null, 2)], { type: 'application/json' })
-                              const url = URL.createObjectURL(blob)
-                              const a = document.createElement('a')
-                              a.href = url
-                              a.download = `${sanitizeForDisplay(report.reportName).replace(/\s+/g, '_')}.json`
-                              document.body.appendChild(a)
-                              a.click()
-                              document.body.removeChild(a)
-                              URL.revokeObjectURL(url)
+                            onClick={async () => {
+                              const format = (report as any).format || (report.reportData?.metadata?.exportFormat as ReportFormat) || 'json'
+                              const reportData: ReportExportData = report.reportData || (report as any).report_data
+                              await exportReport(reportData, format, report.reportName || (report as any).report_name || 'automated_report')
                             }}
                             className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 text-xs"
                           >

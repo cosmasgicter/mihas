@@ -2,7 +2,8 @@ import React, { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { supabase } from '@/lib/supabase'
-import { Download, FileText, Calendar, Users, TrendingUp } from 'lucide-react'
+import { Download, FileText, Calendar, FileDown, FileSpreadsheet } from 'lucide-react'
+import { exportReport, ReportFormat } from '@/lib/reportExports'
 
 interface ReportConfig {
   type: 'daily' | 'weekly' | 'monthly' | 'regulatory'
@@ -11,6 +12,7 @@ interface ReportConfig {
   includePrograms: boolean
   includeEngagement: boolean
   includeEligibility: boolean
+  format: ReportFormat
 }
 
 export function ReportsGenerator() {
@@ -21,7 +23,8 @@ export function ReportsGenerator() {
     endDate: new Date().toISOString().split('T')[0],
     includePrograms: true,
     includeEngagement: true,
-    includeEligibility: true
+    includeEligibility: true,
+    format: 'pdf'
   })
 
   const generateReport = async () => {
@@ -64,19 +67,23 @@ export function ReportsGenerator() {
       }, {})
 
       // Generate report data
+      const reportName = `${config.type.charAt(0).toUpperCase() + config.type.slice(1)} Report - ${config.startDate} to ${config.endDate}`
+
       const reportData = {
         period: `${config.startDate} to ${config.endDate}`,
         generatedAt: new Date().toISOString(),
         statistics: stats,
         programBreakdown: programStats,
-        approvalRate: stats.totalApplications > 0 
+        approvalRate: stats.totalApplications > 0
           ? ((stats.approvedApplications / (stats.approvedApplications + stats.rejectedApplications)) * 100).toFixed(2)
           : '0',
         metadata: {
           reportType: config.type,
           includePrograms: config.includePrograms,
           includeEngagement: config.includeEngagement,
-          includeEligibility: config.includeEligibility
+          includeEligibility: config.includeEligibility,
+          exportFormat: config.format,
+          reportTitle: reportName
         }
       }
 
@@ -85,22 +92,13 @@ export function ReportsGenerator() {
         .from('automated_reports')
         .insert({
           report_type: config.type,
-          report_name: `${config.type.charAt(0).toUpperCase() + config.type.slice(1)} Report - ${config.startDate} to ${config.endDate}`,
+          report_name: reportName,
           report_data: reportData
         })
 
       if (saveError) throw saveError
 
-      // Download as JSON (in a real app, you'd generate PDF/Excel)
-      const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${config.type}_report_${config.startDate}_${config.endDate}.json`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      await exportReport(reportData, config.format, reportName)
 
       alert('Report generated and downloaded successfully!')
     } catch (error) {
@@ -116,6 +114,12 @@ export function ReportsGenerator() {
     { value: 'weekly', label: 'Weekly Report', icon: Calendar },
     { value: 'monthly', label: 'Monthly Report', icon: Calendar },
     { value: 'regulatory', label: 'Regulatory Compliance', icon: FileText }
+  ]
+
+  const reportFormats = [
+    { value: 'pdf' as ReportFormat, label: 'PDF Document', description: 'Ready-to-share summary', icon: FileDown },
+    { value: 'excel' as ReportFormat, label: 'Excel Workbook', description: 'Multi-sheet analytics', icon: FileSpreadsheet },
+    { value: 'json' as ReportFormat, label: 'JSON Export', description: 'Raw data for developers', icon: FileText }
   ]
 
   return (
@@ -205,6 +209,35 @@ export function ReportsGenerator() {
               />
               <span className="ml-2 text-sm text-gray-700">Eligibility Success Rates</span>
             </label>
+          </div>
+        </div>
+
+        {/* Output Format */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-3">Output Format</label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {reportFormats.map((format) => {
+              const Icon = format.icon
+              const isActive = config.format === format.value
+              return (
+                <button
+                  key={format.value}
+                  type="button"
+                  onClick={() => setConfig(prev => ({ ...prev, format: format.value }))}
+                  className={`p-3 border rounded-lg text-left transition-colors ${
+                    isActive
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Icon className="h-4 w-4" />
+                    <span className="text-sm font-medium">{format.label}</span>
+                  </div>
+                  <p className="mt-2 text-xs text-gray-600">{format.description}</p>
+                </button>
+              )
+            })}
           </div>
         </div>
 
