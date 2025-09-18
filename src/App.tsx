@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { AdminRoute } from '@/components/AdminRoute'
@@ -67,6 +68,7 @@ function App() {
               </Routes>
             </div>
           </Router>
+          <SpeedInsights />
         </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>
