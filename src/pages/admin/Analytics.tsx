@@ -8,6 +8,8 @@ import { ReportsGenerator } from '@/components/admin/ReportsGenerator'
 import { sanitizeForDisplay } from '@/lib/sanitize'
 import { exportReport, ReportExportData, ReportFormat } from '@/lib/reportExports'
 import { TrendingUp, Users, FileText, CheckCircle, Download, Plus, Edit, Trash2, RefreshCw, Eye, Filter, BarChart3 } from 'lucide-react'
+import { useRoleQuery } from '@/hooks/auth/useRoleQuery'
+import { isReportManagerRole } from '@/lib/auth/roles'
 
 export default function Analytics() {
   const [loading, setLoading] = useState(true)
@@ -31,14 +33,32 @@ export default function Analytics() {
   const [createType, setCreateType] = useState<'application' | 'program' | 'eligibility'>('application')
   const [formData, setFormData] = useState<any>({})
   const [exportFormat, setExportFormat] = useState<ReportFormat>('pdf')
+  const {
+    userRole,
+    isLoading: roleLoading,
+    isFetching: roleFetching,
+    error: roleError
+  } = useRoleQuery()
+  const canManageReports = isReportManagerRole(userRole?.role)
+  const roleStatusLoading = roleLoading || roleFetching
 
   useEffect(() => {
     loadAnalytics()
   }, [dateRange])
 
   useEffect(() => {
-    loadAutomatedReports()
-  }, [])
+    if (canManageReports) {
+      loadAutomatedReports()
+    } else {
+      setAutomatedReports([])
+    }
+  }, [canManageReports])
+
+  useEffect(() => {
+    if (!canManageReports && activeTab === 'reports') {
+      setActiveTab('overview')
+    }
+  }, [activeTab, canManageReports])
 
   const loadAnalytics = async () => {
     try {
@@ -87,14 +107,15 @@ export default function Analytics() {
       } else if (createType === 'eligibility') {
         await AnalyticsService.createEligibilityAnalytics(formData)
       }
-      
+
       setShowCreateDialog(false)
       setFormData({})
       await loadAnalytics()
       alert('Record created successfully!')
     } catch (error) {
       console.error('Failed to create record:', error)
-      alert('Failed to create record')
+      const message = error instanceof Error ? error.message : 'Failed to create record'
+      alert(message)
     }
   }
 
@@ -117,7 +138,8 @@ export default function Analytics() {
       alert('Record updated successfully!')
     } catch (error) {
       console.error('Failed to update record:', error)
-      alert('Failed to update record')
+      const message = error instanceof Error ? error.message : 'Failed to update record'
+      alert(message)
     }
   }
 
@@ -142,12 +164,17 @@ export default function Analytics() {
       alert('Record deleted successfully!')
     } catch (error) {
       console.error('Failed to delete record:', error)
-      alert('Failed to delete record')
+      const message = error instanceof Error ? error.message : 'Failed to delete record'
+      alert(message)
     }
   }
 
   const generateReport = async () => {
     try {
+      if (!canManageReports) {
+        throw new Error('You do not have permission to generate analytics reports.')
+      }
+
       const { report } = await AnalyticsService.generateDailyReport(exportFormat)
       await loadAutomatedReports()
 
@@ -159,7 +186,8 @@ export default function Analytics() {
       alert('Analytics report generated and downloaded successfully!')
     } catch (error) {
       console.error('Failed to generate report:', error)
-      alert('Failed to generate report')
+      const message = error instanceof Error ? error.message : 'Failed to generate report'
+      alert(message)
     }
   }
 
@@ -219,14 +247,24 @@ export default function Analytics() {
               { key: 'reports', label: '📄 Reports', icon: Download }
             ].map((tab) => {
               const Icon = tab.icon
+              const isReportsTab = tab.key === 'reports'
+              const disabled = isReportsTab && (!canManageReports || roleStatusLoading || Boolean(roleError))
               return (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key as any)}
+                  onClick={() => {
+                    if (disabled) {
+                      return
+                    }
+                    setActiveTab(tab.key as any)
+                  }}
+                  disabled={disabled}
                   className={`flex items-center px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === tab.key
                       ? 'border-green-500 text-green-600 bg-green-50'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      : disabled
+                        ? 'border-transparent text-gray-300 cursor-not-allowed'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
                   <Icon className="h-4 w-4 mr-2" />
@@ -259,11 +297,22 @@ export default function Analytics() {
               </Button>
               <Button
                 onClick={generateReport}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={!canManageReports || roleStatusLoading || Boolean(roleError)}
+                className={`bg-blue-600 text-white ${(!canManageReports || roleStatusLoading || Boolean(roleError)) ? 'opacity-60 cursor-not-allowed' : 'hover:bg-blue-700'}`}
               >
                 <Download className="h-4 w-4 mr-2" />
                 Generate Report
               </Button>
+              {roleError && (
+                <p className="text-xs text-red-600 w-full">
+                  Unable to verify analytics permissions. Please refresh and try again.
+                </p>
+              )}
+              {!roleError && !roleStatusLoading && !canManageReports && (
+                <p className="text-xs text-amber-600 w-full">
+                  Report generation is limited to authorised admissions, registrar, finance or admin staff.
+                </p>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -615,50 +664,68 @@ export default function Analytics() {
         )}
 
         {activeTab === 'reports' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-              <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-200">
-                <h3 className="text-xl font-bold text-gray-900">📄 Automated Reports</h3>
-              </div>
-              <div className="p-6">
-                <div className="space-y-4">
-                  {automatedReports.map((report, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-semibold text-gray-900">{sanitizeForDisplay(report.reportName)}</h4>
-                          <p className="text-sm text-gray-500">{sanitizeForDisplay(report.reportType)}</p>
-                          <p className="text-xs text-gray-400">{new Date(report.createdAt || '').toLocaleString()}</p>
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button
-                            onClick={async () => {
-                              const format = (report as any).format || (report.reportData?.metadata?.exportFormat as ReportFormat) || 'json'
-                              const reportData: ReportExportData = report.reportData || (report as any).report_data
-                              await exportReport(reportData, format, report.reportName || (report as any).report_name || 'automated_report')
-                            }}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 text-xs"
-                          >
-                            <Download className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            onClick={() => {
-                              setSelectedItem({ ...report, type: 'report' })
-                              setShowDeleteDialog(true)
-                            }}
-                            className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 text-xs"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
+          !canManageReports ? (
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 text-center text-sm text-amber-700">
+              You do not have permission to view analytics reports.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-200">
+                  <h3 className="text-xl font-bold text-gray-900">📄 Automated Reports</h3>
+                </div>
+                <div className="p-6">
+                  {automatedReports.length === 0 ? (
+                    <div className="text-center text-sm text-gray-500 py-6">
+                      No automated reports available yet. Generate a report to populate this list.
                     </div>
-                  ))}
+                  ) : (
+                    <div className="space-y-4">
+                      {automatedReports.map((report, index) => (
+                        <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-semibold text-gray-900">{sanitizeForDisplay(report.reportName)}</h4>
+                              <p className="text-sm text-gray-500">{sanitizeForDisplay(report.reportType)}</p>
+                              <p className="text-xs text-gray-400">{new Date(report.createdAt || '').toLocaleString()}</p>
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button
+                                onClick={async () => {
+                                  try {
+                                    const format = (report as any).format || (report.reportData?.metadata?.exportFormat as ReportFormat) || 'json'
+                                    const reportData: ReportExportData = report.reportData || (report as any).report_data
+                                    await exportReport(reportData, format, report.reportName || (report as any).report_name || 'automated_report')
+                                    alert('Report downloaded successfully!')
+                                  } catch (error) {
+                                    console.error('Failed to download report:', error)
+                                    alert(error instanceof Error ? error.message : 'Failed to download report')
+                                  }
+                                }}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 text-xs"
+                              >
+                                <Download className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                onClick={() => {
+                                  setSelectedItem({ ...report, type: 'report' })
+                                  setShowDeleteDialog(true)
+                                }}
+                                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 text-xs"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
+              <ReportsGenerator />
             </div>
-            <ReportsGenerator />
-          </div>
+          )
         )}
 
         {/* Create Dialog */}

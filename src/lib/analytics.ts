@@ -1,5 +1,8 @@
+import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import { ReportExportData, ReportFormat } from './reportExports'
+import { isReportManagerRole } from '@/lib/auth/roles'
+import { sanitizeForLog } from './security'
 
 export interface AnalyticsEvent {
   user_id?: string
@@ -63,6 +66,57 @@ export class AnalyticsService {
     return session
   }
 
+  private static async fetchCurrentUserRole(session: Session): Promise<string | null> {
+    const userId = session.user?.id
+
+    if (!userId) {
+      return null
+    }
+
+    if (session.user?.email === 'cosmas@beanola.com') {
+      return 'super_admin'
+    }
+
+    if (typeof fetch === 'undefined') {
+      console.warn('Fetch API unavailable while verifying analytics permissions.')
+      return null
+    }
+
+    try {
+      const response = await fetch(`/api/admin/users?id=${userId}&action=role`, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      })
+
+      if (response.status === 404) {
+        return null
+      }
+
+      if (!response.ok) {
+        throw new Error(response.statusText || 'Failed to retrieve user role for analytics guard')
+      }
+
+      const data = await response.json()
+      return typeof data?.role === 'string' ? data.role : null
+    } catch (error) {
+      console.error(
+        'Failed to verify analytics permissions:',
+        sanitizeForLog(error instanceof Error ? error.message : error)
+      )
+      throw error instanceof Error ? error : new Error('Failed to verify analytics permissions')
+    }
+  }
+
+  static async ensureReportManagerAccess() {
+    const session = await this.ensureAuthenticated()
+    const role = await this.fetchCurrentUserRole(session)
+
+    if (!isReportManagerRole(role)) {
+      throw new Error('You do not have permission to manage analytics reports.')
+    }
+  }
+
   // Event Tracking
   static async trackEvent(event: AnalyticsEvent) {
     try {
@@ -87,6 +141,8 @@ export class AnalyticsService {
 
   // Application Statistics CRUD
   static async createApplicationStats(stats: Omit<ApplicationStats, 'id'>) {
+    await this.ensureReportManagerAccess()
+
     const { data, error } = await supabase
       .from('application_statistics')
       .insert({
@@ -107,6 +163,8 @@ export class AnalyticsService {
   }
 
   static async updateApplicationStats(id: string, stats: Partial<ApplicationStats>) {
+    await this.ensureReportManagerAccess()
+
     const { data, error } = await supabase
       .from('application_statistics')
       .update({
@@ -127,6 +185,8 @@ export class AnalyticsService {
   }
 
   static async deleteApplicationStats(id: string) {
+    await this.ensureReportManagerAccess()
+
     const { error } = await supabase
       .from('application_statistics')
       .delete()
@@ -159,6 +219,8 @@ export class AnalyticsService {
 
   // Program Analytics CRUD
   static async createProgramAnalytics(analytics: Omit<ProgramAnalytics, 'id' | 'programName'>) {
+    await this.ensureReportManagerAccess()
+
     const { data, error } = await supabase
       .from('program_analytics')
       .insert({
@@ -177,6 +239,8 @@ export class AnalyticsService {
   }
 
   static async updateProgramAnalytics(id: string, analytics: Partial<ProgramAnalytics>) {
+    await this.ensureReportManagerAccess()
+
     const { data, error } = await supabase
       .from('program_analytics')
       .update({
@@ -196,6 +260,8 @@ export class AnalyticsService {
   }
 
   static async deleteProgramAnalytics(id: string) {
+    await this.ensureReportManagerAccess()
+
     const { error } = await supabase
       .from('program_analytics')
       .delete()
@@ -233,6 +299,8 @@ export class AnalyticsService {
 
   // Eligibility Analytics CRUD
   static async createEligibilityAnalytics(analytics: Omit<EligibilityAnalytics, 'id'>) {
+    await this.ensureReportManagerAccess()
+
     const { data, error } = await supabase
       .from('eligibility_analytics')
       .insert({
@@ -251,6 +319,8 @@ export class AnalyticsService {
   }
 
   static async updateEligibilityAnalytics(id: string, analytics: Partial<EligibilityAnalytics>) {
+    await this.ensureReportManagerAccess()
+
     const { data, error } = await supabase
       .from('eligibility_analytics')
       .update({
@@ -270,6 +340,8 @@ export class AnalyticsService {
   }
 
   static async deleteEligibilityAnalytics(id: string) {
+    await this.ensureReportManagerAccess()
+
     const { error } = await supabase
       .from('eligibility_analytics')
       .delete()
@@ -300,6 +372,8 @@ export class AnalyticsService {
 
   // Automated Reports CRUD
   static async createAutomatedReport(report: Omit<AutomatedReport, 'id' | 'createdAt'>) {
+    await this.ensureReportManagerAccess()
+
     const { data: { user } } = await supabase.auth.getUser()
 
     const preparedReportData = report.reportData
@@ -337,6 +411,8 @@ export class AnalyticsService {
   }
 
   static async getAutomatedReports(limit?: number): Promise<AutomatedReport[]> {
+    await this.ensureReportManagerAccess()
+
     let query = supabase
       .from('automated_reports')
       .select('*')
@@ -361,6 +437,8 @@ export class AnalyticsService {
   }
 
   static async deleteAutomatedReport(id: string) {
+    await this.ensureReportManagerAccess()
+
     const { error } = await supabase
       .from('automated_reports')
       .delete()
@@ -385,6 +463,8 @@ export class AnalyticsService {
 
   // Enhanced Daily Report Generation
   static async generateDailyReport(format: ReportFormat = 'pdf') {
+    await this.ensureReportManagerAccess()
+
     const today = new Date().toISOString().split('T')[0]
     
     const { data: applications, error: appsError } = await supabase
@@ -438,6 +518,8 @@ export class AnalyticsService {
 
   // Real-time Analytics Data Refresh
   static async refreshAnalyticsData() {
+    await this.ensureReportManagerAccess()
+
     const today = new Date().toISOString().split('T')[0]
     
     // Get current applications data

@@ -19,6 +19,8 @@ import {
   renderTemplateById
 } from '@/lib/documentTemplates'
 import { useRoleQuery } from '@/hooks/auth/useRoleQuery'
+import { isReportManagerRole } from '@/lib/auth/roles'
+import { AnalyticsService } from '@/lib/analytics'
 
 interface ReportConfig {
   type: 'daily' | 'weekly' | 'monthly' | 'regulatory'
@@ -131,7 +133,18 @@ const parseBreakdownInput = (value: string) =>
 
 export function ReportsGenerator() {
   const [loading, setLoading] = useState(false)
-  const { isAdmin } = useRoleQuery()
+  const {
+    userRole,
+    isAdmin,
+    isLoading: roleLoading,
+    isFetching: roleFetching,
+    error: roleError
+  } = useRoleQuery()
+  const canManageReports = useMemo(
+    () => isReportManagerRole(userRole?.role),
+    [userRole?.role]
+  )
+  const roleStatusLoading = roleLoading || roleFetching
   const [config, setConfig] = useState<ReportConfig>({
     type: 'monthly',
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -280,7 +293,13 @@ export function ReportsGenerator() {
 
   const generateReport = async () => {
     try {
+      if (!canManageReports) {
+        throw new Error('You do not have permission to generate analytics reports.')
+      }
+
       setLoading(true)
+
+      await AnalyticsService.ensureReportManagerAccess()
 
       // Fetch application data
       const { data: applications, error: appsError } = await supabase
@@ -354,7 +373,8 @@ export function ReportsGenerator() {
       alert('Report generated and downloaded successfully!')
     } catch (error) {
       console.error('Failed to generate report:', error)
-      alert('Failed to generate report. Please try again.')
+      const message = error instanceof Error ? error.message : 'Failed to generate report. Please try again.'
+      alert(message)
     } finally {
       setLoading(false)
     }
@@ -372,6 +392,52 @@ export function ReportsGenerator() {
     { value: 'excel' as ReportFormat, label: 'Excel Workbook', description: 'Multi-sheet analytics', icon: FileSpreadsheet },
     { value: 'json' as ReportFormat, label: 'JSON Export', description: 'Raw data for developers', icon: FileText }
   ]
+
+  if (roleStatusLoading) {
+    return (
+      <div className="bg-white rounded-lg shadow">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900">Generate Reports</h3>
+          <p className="text-sm text-gray-600">Create automated reports for analysis and compliance</p>
+        </div>
+        <div className="p-6 flex justify-center">
+          <LoadingSpinner size="lg" />
+        </div>
+      </div>
+    )
+  }
+
+  if (roleError) {
+    return (
+      <div className="bg-white rounded-lg shadow">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900">Generate Reports</h3>
+          <p className="text-sm text-gray-600">Create automated reports for analysis and compliance</p>
+        </div>
+        <div className="p-6">
+          <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            Unable to verify your permissions at this time. Please refresh the page or contact an administrator.
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!canManageReports) {
+    return (
+      <div className="bg-white rounded-lg shadow">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900">Generate Reports</h3>
+          <p className="text-sm text-gray-600">Create automated reports for analysis and compliance</p>
+        </div>
+        <div className="p-6">
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+            You do not have permission to access analytics report generation. Please contact your administrator if you believe this is a mistake.
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-white rounded-lg shadow">
