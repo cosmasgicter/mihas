@@ -172,10 +172,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function loadUserProfile(userId: string) {
     try {
-      const { data: session } = await supabase.auth.getSession()
+      const { data: { session } } = await supabase.auth.getSession()
+      const accessToken = session?.access_token
+
+      if (!accessToken) {
+        setProfile(null)
+        return
+      }
+
       const response = await fetch(`/api/admin/users?id=${userId}`, {
         headers: {
-          'Authorization': `Bearer ${session?.access_token}`
+          'Authorization': `Bearer ${accessToken}`
         }
       })
       
@@ -342,10 +349,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      const { data: session } = await supabase.auth.getSession()
+      const { data: { session } } = await supabase.auth.getSession()
+      const accessToken = session?.access_token
+
+      if (!accessToken) {
+        setUserRole(null)
+        return
+      }
+
       const response = await fetch(`/api/admin/users?id=${userId}&action=role`, {
         headers: {
-          'Authorization': `Bearer ${session?.access_token}`
+          'Authorization': `Bearer ${accessToken}`
         }
       })
       
