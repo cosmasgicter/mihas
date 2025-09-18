@@ -24,6 +24,14 @@ interface ApplicationWithDetails {
   application_fee?: number
   payer_name?: string
   payment_status?: string
+  payment_verified_at?: string | null
+  payment_verified_by_name?: string | null
+  payment_verified_by_email?: string | null
+  last_payment_audit_at?: string | null
+  last_payment_audit_by_name?: string | null
+  last_payment_audit_by_email?: string | null
+  last_payment_audit_notes?: string | null
+  last_payment_reference?: string | null
   status: string
   submitted_at?: string
   result_slip_url?: string
@@ -206,6 +214,30 @@ export function ApplicationDetailModal({
                     <p><strong>Amount:</strong> K{application.amount || application.application_fee || 'Not provided'}</p>
                     <p><strong>Payer:</strong> {application.payer_name || 'Not provided'}</p>
                     <p><strong>Status:</strong> {application.payment_status || 'Not provided'}</p>
+                    {application.payment_verified_at && (
+                      <p>
+                        <strong>Verified:</strong>{' '}
+                        {new Date(application.payment_verified_at).toLocaleString()}
+                        {(application.payment_verified_by_name || application.payment_verified_by_email) && (
+                          <>
+                            {' '}by{' '}
+                            {application.payment_verified_by_name || application.payment_verified_by_email}
+                          </>
+                        )}
+                      </p>
+                    )}
+                    {application.last_payment_audit_at && (
+                      <p>
+                        <strong>Ledger Entry:</strong>{' '}
+                        {new Date(application.last_payment_audit_at).toLocaleString()}
+                        {application.last_payment_reference && ` • Ref: ${application.last_payment_reference}`}
+                      </p>
+                    )}
+                    {application.last_payment_audit_notes && (
+                      <p>
+                        <strong>Ledger Notes:</strong> {application.last_payment_audit_notes}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div>

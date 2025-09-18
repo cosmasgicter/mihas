@@ -66,7 +66,9 @@ CREATE TABLE applications_new (
   momo_ref VARCHAR(100),
   pop_url VARCHAR(500),
   payment_status VARCHAR(20) DEFAULT 'pending_review' CHECK (payment_status IN ('pending_review', 'verified', 'rejected')),
-  
+  payment_verified_at TIMESTAMP WITH TIME ZONE,
+  payment_verified_by UUID REFERENCES auth.users(id),
+
   -- Step 4: Status tracking
   status VARCHAR(20) DEFAULT 'draft' CHECK (status IN ('draft', 'submitted', 'under_review', 'approved', 'rejected')),
   submitted_at TIMESTAMP WITH TIME ZONE,
@@ -93,6 +95,21 @@ CREATE TABLE IF NOT EXISTS application_grades (
   UNIQUE(application_id, subject_id)
 );
 
+-- Payment audit ledger
+CREATE TABLE IF NOT EXISTS payment_audit_log (
+  id BIGSERIAL PRIMARY KEY,
+  application_id UUID NOT NULL REFERENCES applications_new(id) ON DELETE CASCADE,
+  action VARCHAR(50) NOT NULL,
+  amount DECIMAL(10,2),
+  payment_method VARCHAR(50),
+  reference VARCHAR(100),
+  notes TEXT,
+  recorded_by UUID REFERENCES auth.users(id),
+  recorded_by_name VARCHAR(255),
+  recorded_by_email VARCHAR(255),
+  recorded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Admin summary view
 CREATE OR REPLACE VIEW admin_application_summary AS
 SELECT 
@@ -106,6 +123,8 @@ SELECT
   a.institution,
   a.status,
   a.payment_status,
+  a.payment_verified_at,
+  a.payment_verified_by,
   a.application_fee,
   a.amount as paid_amount,
   a.submitted_at,
@@ -121,10 +140,11 @@ SELECT
 FROM applications_new a
 LEFT JOIN application_grades ag ON a.id = ag.application_id
 LEFT JOIN grade12_subjects gs ON ag.subject_id = gs.id
-GROUP BY a.id, a.application_number, a.full_name, a.email, a.phone, 
+GROUP BY a.id, a.application_number, a.full_name, a.email, a.phone,
          a.program, a.intake, a.institution, a.status, a.payment_status,
-         a.application_fee, a.amount, a.submitted_at, a.created_at,
-         a.result_slip_url, a.extra_kyc_url, a.pop_url;
+         a.payment_verified_at, a.payment_verified_by, a.application_fee,
+         a.amount, a.submitted_at, a.created_at, a.result_slip_url,
+         a.extra_kyc_url, a.pop_url;
 
 -- Function to replace grades atomically
 CREATE OR REPLACE FUNCTION rpc_replace_grades(

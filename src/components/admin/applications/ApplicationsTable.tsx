@@ -12,6 +12,16 @@ interface ApplicationSummary {
   institution: string
   status: string
   payment_status: string
+  payment_verified_at: string | null
+  payment_verified_by: string | null
+  payment_verified_by_name: string | null
+  payment_verified_by_email: string | null
+  last_payment_audit_id: number | null
+  last_payment_audit_at: string | null
+  last_payment_audit_by_name: string | null
+  last_payment_audit_by_email: string | null
+  last_payment_audit_notes: string | null
+  last_payment_reference: string | null
   application_fee: number
   paid_amount: number
   submitted_at: string
@@ -29,11 +39,18 @@ interface ApplicationsTableProps {
   onPaymentStatusUpdate: (id: string, status: string) => void
 }
 
-export function ApplicationsTable({ 
-  applications, 
-  onStatusUpdate, 
-  onPaymentStatusUpdate 
+export function ApplicationsTable({
+  applications,
+  onStatusUpdate,
+  onPaymentStatusUpdate
 }: ApplicationsTableProps) {
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return null
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return null
+    return date.toLocaleString()
+  }
+
   const getStatusBadge = (status: string) => {
     const colors = {
       draft: 'bg-gray-100 text-gray-800',
@@ -145,6 +162,38 @@ export function ApplicationsTable({
                     <div className="text-xs text-gray-500">
                       K{app.paid_amount || 0} / K{app.application_fee}
                     </div>
+                    {app.payment_status === 'verified' && (() => {
+                      const verifiedAt = formatDateTime(app.payment_verified_at)
+                      const ledgerAt = formatDateTime(app.last_payment_audit_at)
+                      if (!verifiedAt && !ledgerAt) return null
+
+                      return (
+                        <div className="text-xs text-green-700 space-y-1">
+                          {verifiedAt && (
+                            <div>
+                              Verified {verifiedAt}
+                              {(app.payment_verified_by_name || app.payment_verified_by_email) && (
+                                <>
+                                  {' '}by{' '}
+                                  {app.payment_verified_by_name || app.payment_verified_by_email}
+                                </>
+                              )}
+                            </div>
+                          )}
+                          {ledgerAt && (
+                            <div className="text-xs text-gray-500">
+                              Ledger entry: {ledgerAt}
+                              {app.last_payment_reference && (
+                                <>
+                                  {' '}
+                                  <span className="text-gray-400">(Ref: {app.last_payment_reference})</span>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })()}
                     <select
                       value={app.payment_status}
                       onChange={(e) => onPaymentStatusUpdate(app.id, e.target.value)}
