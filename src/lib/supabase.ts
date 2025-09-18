@@ -24,9 +24,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       'x-client-info': 'mihas-app@1.0.0'
     },
     fetch: (url, options = {}) => {
-      // Add timeout and retry logic
+      // Longer timeout for auth requests
+      const isAuthRequest = url.includes('/auth/') || url.includes('/token')
+      const timeout = isAuthRequest ? 30000 : 8000
+      
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), timeout)
       
       return fetch(url, {
         ...options,
@@ -38,22 +41,75 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 })
 
+// Token refresh retry logic
+let refreshRetryCount = 0
+const MAX_REFRESH_RETRIES = 3
+
 // Enhanced session management with better error handling
 supabase.auth.onAuthStateChange(async (event, session) => {
   console.log('Auth event:', sanitizeForLog(event))
   
   if (event === 'TOKEN_REFRESHED') {
     console.log('Token refreshed successfully')
+    refreshRetryCount = 0 // Reset retry count on success
   }
   
   if (event === 'SIGNED_OUT') {
     console.log('User signed out')
+    localStorage.removeItem('mihas-auth-token')
   }
   
   if (event === 'SIGNED_IN' && session) {
     console.log('User signed in:', sanitizeForLog(session.user?.id || ''))
+    startSessionMonitoring()
   }
 })
+
+// Session monitoring with retry logic
+let sessionInterval: NodeJS.Timeout | null = null
+
+function startSessionMonitoring() {
+  if (sessionInterval) clearInterval(sessionInterval)
+  
+  sessionInterval = setInterval(async () => {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession()
+      
+      if (!session || error) return
+      
+      const timeUntilExpiry = (session.expires_at! * 1000) - Date.now()
+      const fiveMinutes = 5 * 60 * 1000
+      
+      if (timeUntilExpiry < fiveMinutes && timeUntilExpiry > 0) {
+        await retryTokenRefresh()
+      }
+    } catch (error) {
+      console.warn('Session check failed:', error)
+    }
+  }, 60000)
+}
+
+async function retryTokenRefresh() {
+  for (let i = 0; i < MAX_REFRESH_RETRIES; i++) {
+    try {
+      const { error } = await supabase.auth.refreshSession()
+      if (!error) {
+        console.log('Token refresh successful')
+        return
+      }
+      console.warn(`Token refresh attempt ${i + 1} failed:`, error.message)
+    } catch (error) {
+      console.warn(`Token refresh attempt ${i + 1} error:`, error)
+    }
+    
+    if (i < MAX_REFRESH_RETRIES - 1) {
+      await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1))) // Exponential backoff
+    }
+  }
+  console.error('All token refresh attempts failed')
+}
+
+export { startSessionMonitoring }
 
 // Database type definitions (keeping existing types)
 export interface UserProfile {
