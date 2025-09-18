@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog'
+import { exportUsersToPDF, type UserPDFFieldDefinition } from '@/lib/exportUtils'
 import { UserProfile } from '@/lib/supabase'
-import { Download, FileText, FileSpreadsheet, Filter, Calendar, Users, CheckSquare, Square } from 'lucide-react'
+import { Download, FileText, FileSpreadsheet, Filter, Users, CheckSquare, Square } from 'lucide-react'
 
 interface UserExportProps {
   users: UserProfile[]
@@ -10,9 +11,11 @@ interface UserExportProps {
   onClose: () => void
 }
 
+type ExportField = UserPDFFieldDefinition<UserProfile> & { description: string }
+
 interface ExportOptions {
   format: 'csv' | 'json' | 'pdf'
-  fields: string[]
+  fields: Array<keyof UserProfile & string>
   filters: {
     roles: string[]
     dateRange: {
@@ -23,7 +26,7 @@ interface ExportOptions {
   }
 }
 
-const AVAILABLE_FIELDS = [
+const AVAILABLE_FIELDS: ExportField[] = [
   { id: 'user_id', label: 'User ID', description: 'Unique user identifier' },
   { id: 'full_name', label: 'Full Name', description: 'User\'s full name' },
   { id: 'email', label: 'Email', description: 'Email address' },
@@ -213,20 +216,48 @@ export function UserExport({ users, isOpen, onClose }: UserExportProps) {
         return
       }
 
+      let exportCompleted = false
+
       switch (exportOptions.format) {
         case 'csv':
           exportToCSV(filteredUsers)
+          exportCompleted = true
           break
         case 'json':
           exportToJSON(filteredUsers)
+          exportCompleted = true
           break
-        case 'pdf':
-          // PDF export would require a library like jsPDF
-          alert('PDF export is not implemented yet.')
+        case 'pdf': {
+          const fieldLabels = exportOptions.fields
+            .map(fieldId => AVAILABLE_FIELDS.find(field => field.id === fieldId)?.label || fieldId)
+
+          const metadataLines: string[] = [
+            `Fields: ${fieldLabels.join(', ')}`,
+            `Total Users: ${filteredUsers.length}`
+          ]
+
+          if (exportOptions.filters.roles.length > 0) {
+            metadataLines.push(`Roles: ${exportOptions.filters.roles.map(role => role.replace(/_/g, ' ')).join(', ')}`)
+          }
+
+          if (exportOptions.filters.dateRange.start || exportOptions.filters.dateRange.end) {
+            metadataLines.push(
+              `Registered: ${exportOptions.filters.dateRange.start || 'Any'} to ${exportOptions.filters.dateRange.end || 'Any'}`
+            )
+          }
+
+          await exportUsersToPDF(filteredUsers, exportOptions.fields, AVAILABLE_FIELDS, {
+            filename: `users_export_${new Date().toISOString().split('T')[0]}.pdf`,
+            metadata: metadataLines
+          })
+          exportCompleted = true
           break
+        }
       }
 
-      onClose()
+      if (exportCompleted) {
+        onClose()
+      }
     } catch (error) {
       console.error('Export failed:', error)
       alert('Export failed. Please try again.')
@@ -255,7 +286,7 @@ export function UserExport({ users, isOpen, onClose }: UserExportProps) {
               {[
                 { value: 'csv', label: 'CSV', icon: <FileSpreadsheet className="h-5 w-5" />, description: 'Comma-separated values' },
                 { value: 'json', label: 'JSON', icon: <FileText className="h-5 w-5" />, description: 'JavaScript Object Notation' },
-                { value: 'pdf', label: 'PDF', icon: <FileText className="h-5 w-5" />, description: 'Portable Document Format (Coming Soon)' }
+                { value: 'pdf', label: 'PDF', icon: <FileText className="h-5 w-5" />, description: 'Portable Document Format' }
               ].map(format => (
                 <div
                   key={format.value}
@@ -263,8 +294,8 @@ export function UserExport({ users, isOpen, onClose }: UserExportProps) {
                     exportOptions.format === format.value
                       ? 'border-blue-500 bg-blue-50'
                       : 'border-gray-200 hover:border-gray-300'
-                  } ${format.value === 'pdf' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  onClick={() => format.value !== 'pdf' && setExportOptions({ ...exportOptions, format: format.value as any })}
+                  }`}
+                  onClick={() => setExportOptions({ ...exportOptions, format: format.value as typeof exportOptions.format })}
                 >
                   <div className="flex items-center space-x-3">
                     <div className={`${exportOptions.format === format.value ? 'text-blue-600' : 'text-gray-400'}`}>
