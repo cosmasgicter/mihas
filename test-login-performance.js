@@ -1,10 +1,8 @@
 #!/usr/bin/env node
 
-import { createClient } from '@supabase/supabase-js'
-import { performance } from 'perf_hooks'
-import dotenv from 'dotenv'
-
-dotenv.config()
+const { createClient } = require('@supabase/supabase-js')
+const { performance } = require('perf_hooks')
+require('dotenv').config()
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL
 const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY

@@ -3,8 +3,35 @@ const { supabaseAdminClient, requireUser } = require('../../_lib/supabaseClient'
 module.exports = async function handler(req, res) {
   try {
     const { user, isAdmin } = await requireUser(req, { requireAdmin: true })
+    const { id, action } = req.query
 
     if (req.method === 'GET') {
+      // Single user lookup
+      if (id) {
+        if (action === 'role') {
+          const { data, error } = await supabaseAdminClient
+            .from('user_roles')
+            .select('*')
+            .eq('user_id', id)
+            .eq('is_active', true)
+            .maybeSingle()
+
+          if (error && error.code !== 'PGRST116') throw error
+          return res.status(200).json(data)
+        }
+
+        // Get user profile
+        const { data, error } = await supabaseAdminClient
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', id)
+          .maybeSingle()
+
+        if (error && error.code !== 'PGRST116') throw error
+        return res.status(200).json(data)
+      }
+
+      // List all users
       const { data, error } = await supabaseAdminClient
         .from('user_profiles')
         .select('*')

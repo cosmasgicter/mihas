@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { GraduationCap, ArrowLeft } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { networkDiagnostics } from '@/lib/networkDiagnostics'
 
 const signInSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -21,6 +22,7 @@ export default function SignInPage() {
   const { signIn } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [networkStatus, setNetworkStatus] = useState<'checking' | 'online' | 'offline' | 'slow'>('online')
   
   const {
     register,
@@ -31,6 +33,24 @@ export default function SignInPage() {
   })
 
   const onSubmit = async (data: SignInForm) => {
+    console.log('Login attempt:', data.email)
+    setLoading(true)
+    setError('')
+    setNetworkStatus('checking')
+
+    // Quick network check
+    const connectionTest = await networkDiagnostics.testConnection()
+    setNetworkStatus(connectionTest.status)
+    
+    if (connectionTest.status === 'offline') {
+      setError('Network connection unavailable. Please check your internet connection.')
+      setLoading(false)
+      return
+    }
+    
+    if (connectionTest.status === 'slow') {
+      setError('Slow network detected. Login may take longer than usual...')
+    }
     console.log('Login attempt:', data.email)
     setLoading(true)
     setError('')

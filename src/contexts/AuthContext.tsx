@@ -42,9 +42,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true
     
     async function loadUser() {
-      try {
-        // Get current session first
-        const { data: { session } } = await supabase.auth.getSession()
+    try {
+      // Get current session first - this is fast
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!mounted) return
+      
+      if (session?.user) {
+        console.log('Session found on mount, user authenticated')
+        setUser(session.user)
+        setLoading(false) // Set loading to false immediately for faster UI
+        
+        // Load profile and role in background after UI is ready
+        setTimeout(() => {
+          if (mounted) {
+            Promise.all([
+              loadUserProfile(session.user.id),
+              loadUserRole(session.user.id)
+            ]).catch(error => {
+              console.warn('Background profile/role loading failed:', error)
+              // Don't block the UI for this
+            })
+          }
+        }, 50) // Very short delay to let UI render first
+      } else {
+        console.log('No session found on mount')
+        setUser(null)
+        setProfile(null)
+        setUserRole(null)
+        setLoading(false)
+      }
+      
+      setHasLoaded(true)
+    } catch (error) {
+      console.error('Error loading user:', error)
+      if (mounted) {
+        setUser(null)
+        setProfile(null)
+        setUserRole(null)
+        setLoading(false)
+        setHasLoaded(true)
+      }
+    }
+  } } = await supabase.auth.getSession()
         
         if (!mounted) return
         
@@ -166,30 +206,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function loadUserProfile(userId: string) {
     try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle()
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error loading user profile:', error)
-        setProfile(null)
-        return
+      const { data: session } = await supabase.auth.getSession()
+      const response = await fetch(`/api/admin/users?id=${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`
+        }
+      })
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.log('No profile found, creating new profile')
+          await createUserProfile(userId)
+          return
+        }
+        throw new Error(`Failed to load profile: ${response.statusText}`)
       }
-
-      if (data) {
-        const sanitizedProfile = Object.entries(data).reduce((acc, [key, value]) => {
-          acc[key] = typeof value === 'string' ? secureDisplay.text(value) : value
-          return acc
-        }, {} as UserProfile)
-        setProfile(sanitizedProfile)
-        console.log('Profile loaded successfully:', { hasProfile: true, fields: Object.keys(sanitizedProfile) })
-      } else {
-        console.log('No profile found, creating new profile')
-        // Create profile if it doesn't exist
-        await createUserProfile(userId)
-      }
+      
+      const data = await response.json()
+      const sanitizedProfile = Object.entries(data).reduce((acc, [key, value]) => {
+        acc[key] = typeof value === 'string' ? secureDisplay.text(value) : value
+        return acc
+      }, {} as UserProfile)
+      
+      setProfile(sanitizedProfile)
+      console.log('Profile loaded successfully:', { hasProfile: true, fields: Object.keys(sanitizedProfile) })
     } catch (error) {
       console.error('Error loading user profile:', error)
       setProfile(null)
@@ -266,27 +306,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function signIn(email: string, password: string) {
     try {
       console.log('Attempting sign in for:', sanitizeForLog(email))
-      const result = await supabase.auth.signInWithPassword({ 
-        email, 
-        password,
-        options: {
-          // Ensure session persists
-          shouldCreateUser: false
-        }
+      
+      // Use API endpoint instead of direct Supabase for better performance
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'signin', email, password })
       })
       
-      if (result.error) {
-        console.error('Sign in error:', sanitizeForLog(result.error.message))
-        return { error: result.error.message }
+      const result = await response.json()
+      
+      if (!response.ok || result.error) {
+        console.error('Sign in error:', sanitizeForLog(result.error || 'Login failed'))
+        return { error: result.error || 'Login failed' }
       }
       
-      if (result.data.session) {
+      if (result.session) {
         console.log('Sign in successful, session established')
-        // Ensure user state is set immediately
-        setUser(result.data.user)
+        // Set the session in Supabase client
+        await supabase.auth.setSession({
+          access_token: result.session.access_token,
+          refresh_token: result.session.refresh_token
+        })
+        setUser(result.user)
       }
       
-      return result.data
+      return result
     } catch (error) {
       console.error('Sign in exception:', error)
       return { error: error instanceof Error ? error.message : 'Login failed' }
@@ -338,17 +383,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .maybeSingle()
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error loading user role:', sanitizeForLog(error.message || 'Unknown error'))
+      const { data: session } = await supabase.auth.getSession()
+      const response = await fetch(`/api/admin/users?id=${userId}&action=role`, {
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`
+        }
+      })
+      
+      if (!response.ok) {
+        if (response.status !== 404) {
+          console.error('Error loading user role:', response.statusText)
+        }
+        setUserRole(null)
+        return
       }
-
+      
+      const data = await response.json()
       setUserRole(data || null)
     } catch (error) {
       console.error('Error loading user role:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))

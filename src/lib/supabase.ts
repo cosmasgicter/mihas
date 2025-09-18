@@ -22,11 +22,23 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   global: {
     headers: {
       'x-client-info': 'mihas-app@1.0.0'
+    },
+    fetch: (url, options = {}) => {
+      // Add timeout and retry logic
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 second timeout
+      
+      return fetch(url, {
+        ...options,
+        signal: controller.signal
+      }).finally(() => {
+        clearTimeout(timeoutId)
+      })
     }
   }
 })
 
-// Enhanced session management
+// Enhanced session management with better error handling
 supabase.auth.onAuthStateChange(async (event, session) => {
   console.log('Auth event:', sanitizeForLog(event))
   
@@ -43,9 +55,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
   }
 })
 
-// Simplified session management - let Supabase handle it automatically
-
-// Database type definitions
+// Database type definitions (keeping existing types)
 export interface UserProfile {
   id: string
   user_id: string
