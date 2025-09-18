@@ -74,6 +74,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.47.0",
+    "@testing-library/react": "^14.2.2",
     "@types/node": "^20.19.16",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
@@ -84,12 +85,14 @@
     "eslint": "^9.9.1",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.11",
+    "jsdom": "^27.0.0",
     "postcss": "^8.4.45",
     "tailwindcss": "^3.4.10",
     "terser": "^5.32.0",
     "typescript-eslint": "^8.44.0",
     "vercel": "^48.0.2",
     "vite": "^7.1.5",
-    "vite-plugin-pwa": "^1.0.3"
+    "vite-plugin-pwa": "^1.0.3",
+    "vitest": "^3.2.4"
   }
 }
