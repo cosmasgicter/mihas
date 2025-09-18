@@ -29,9 +29,7 @@ export function safeJsonParse<T>(json: string, fallback: T): T {
   }
 }
 
-export function generateSecureId(): string {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
-}
+export { getSecureId, getSecureId as generateSecureId } from './security';
 
 export function sanitizeEmail(email: string | null | undefined): string {
   if (!email) return '';
