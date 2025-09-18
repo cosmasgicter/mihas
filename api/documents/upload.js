@@ -51,6 +51,7 @@ module.exports = async function handler(req, res) {
         document_type: documentType,
         document_name: fileName,
         file_url: uploadData.path,
+        system_generated: false,
         verification_status: 'pending'
       })
       .select()

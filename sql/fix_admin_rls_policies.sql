@@ -103,6 +103,7 @@ CREATE TABLE IF NOT EXISTS application_documents (
   file_url VARCHAR(500) NOT NULL,
   file_size INTEGER,
   mime_type VARCHAR(100),
+  system_generated BOOLEAN NOT NULL DEFAULT FALSE,
   verification_status VARCHAR(20) DEFAULT 'pending' CHECK (verification_status IN ('pending', 'verified', 'rejected')),
   verified_by UUID REFERENCES auth.users(id),
   verified_at TIMESTAMPTZ,

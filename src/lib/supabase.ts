@@ -328,6 +328,7 @@ export interface ApplicationDocument {
   file_url: string
   file_size?: number
   mime_type?: string
+  system_generated: boolean
   verification_status: 'pending' | 'verified' | 'rejected'
   verified_by?: string
   verified_at?: string

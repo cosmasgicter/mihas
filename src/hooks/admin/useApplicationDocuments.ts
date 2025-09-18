@@ -6,6 +6,7 @@ interface DocumentInfo {
   document_type: string
   document_name: string
   file_url: string
+  system_generated: boolean
   verification_status: string
   verified_by?: string
   verified_at?: string

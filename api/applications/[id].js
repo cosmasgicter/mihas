@@ -44,7 +44,7 @@ async function handleGet(req, res, { user, isAdmin }, id) {
 
     const selectClauses = ['*']
     if (include.has('documents')) {
-      selectClauses.push(`documents:${DOCUMENTS_TABLE}(id, document_type, document_name, file_url, file_size, mime_type, verification_status, verified_by, verified_at, verification_notes)`)
+      selectClauses.push(`documents:${DOCUMENTS_TABLE}(id, document_type, document_name, file_url, file_size, mime_type, system_generated, verification_status, verified_by, verified_at, verification_notes)`)
     }
     if (include.has('grades')) {
       selectClauses.push('grades:application_grades(subject_id, grade, subject:grade12_subjects(name))')
@@ -89,7 +89,8 @@ async function handleGet(req, res, { user, isAdmin }, id) {
           document_type: 'result_slip',
           document_name: 'Grade 12 Result Slip',
           file_url: application.result_slip_url,
-          verification_status: 'pending'
+          verification_status: 'pending',
+          system_generated: false
         })
       }
       if (application.extra_kyc_url && !existingTypes.has('extra_kyc')) {
@@ -98,7 +99,8 @@ async function handleGet(req, res, { user, isAdmin }, id) {
           document_type: 'extra_kyc',
           document_name: 'Additional KYC Document',
           file_url: application.extra_kyc_url,
-          verification_status: 'pending'
+          verification_status: 'pending',
+          system_generated: false
         })
       }
       if (application.pop_url && !existingTypes.has('proof_of_payment')) {
@@ -107,7 +109,8 @@ async function handleGet(req, res, { user, isAdmin }, id) {
           document_type: 'proof_of_payment',
           document_name: 'Proof of Payment',
           file_url: application.pop_url,
-          verification_status: 'pending'
+          verification_status: 'pending',
+          system_generated: false
         })
       }
     }
