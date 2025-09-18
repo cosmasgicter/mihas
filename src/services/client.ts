@@ -5,6 +5,44 @@ import { getApiBaseUrl } from '@/lib/apiConfig'
 const API_BASE = getApiBaseUrl()
 
 class ApiClient {
+  private async parseJsonSafely(response: Response, service: string, endpoint: string) {
+    if (response.status === 204 || response.status === 205) {
+      return null
+    }
+
+    const contentLengthHeader = response.headers.get('content-length')
+    if (contentLengthHeader !== null) {
+      const contentLength = Number.parseInt(contentLengthHeader, 10)
+      if (!Number.isNaN(contentLength) && contentLength === 0) {
+        return null
+      }
+    }
+
+    const bodyText = await response.text()
+    const trimmedBody = bodyText.trim()
+
+    if (!trimmedBody) {
+      return null
+    }
+
+    const contentType = response.headers.get('content-type') ?? ''
+    const shouldParseJson =
+      contentType.includes('application/json') ||
+      trimmedBody.startsWith('{') ||
+      trimmedBody.startsWith('[')
+
+    if (!shouldParseJson) {
+      return bodyText
+    }
+
+    try {
+      return JSON.parse(bodyText)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(`Failed to parse JSON response from ${endpoint}: ${message}`)
+    }
+  }
+
   private normalizeHeaders(headers?: HeadersInit): Record<string, string> {
     if (!headers) {
       return {}
@@ -71,7 +109,7 @@ class ApiClient {
         throw new Error(`API Error: ${response.statusText}`)
       }
 
-      return response.json()
+      return this.parseJsonSafely(response, service, endpoint)
     } catch (error) {
       const duration = Date.now() - start
       monitoring.trackApiCall(service, endpoint, duration, false)
