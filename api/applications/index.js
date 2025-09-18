@@ -1,4 +1,4 @@
-import { supabaseAdminClient, getUserFromRequest } from '../_lib/supabaseClient'
+const { supabaseAdminClient, getUserFromRequest } = require('../_lib/supabaseClient')
 
 const DEFAULT_PAGE_SIZE = 15
 const ALLOWED_SORT_FIELDS = new Set(['date', 'name', 'status'])
@@ -19,7 +19,7 @@ function parseBoolean(value) {
   return Boolean(value)
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   const authContext = await getUserFromRequest(req)
   if (authContext.error) {
     return res.status(401).json({ error: authContext.error })

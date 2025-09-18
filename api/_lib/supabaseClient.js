@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+const { createClient } = require('@supabase/supabase-js')
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL
 const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY
@@ -19,14 +19,14 @@ const clientOptions = {
   }
 }
 
-export const supabaseAdminClient = createClient(supabaseUrl, supabaseServiceKey, clientOptions)
-export const supabaseAnonClient = supabaseAnonKey
+const supabaseAdminClient = createClient(supabaseUrl, supabaseServiceKey, clientOptions)
+const supabaseAnonClient = supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey, clientOptions)
   : null
 
 const ADMIN_ROLES = new Set(['admin', 'super_admin', 'admissions_officer'])
 
-export async function getUserFromRequest(req, { requireAdmin = false } = {}) {
+async function getUserFromRequest(req, { requireAdmin = false } = {}) {
   const authHeader = req.headers.authorization
   if (!authHeader) {
     return { error: 'No authorization header provided' }
@@ -64,10 +64,17 @@ export async function getUserFromRequest(req, { requireAdmin = false } = {}) {
   return { user, roles, isAdmin }
 }
 
-export async function requireUser(req, options) {
+async function requireUser(req, options) {
   const authContext = await getUserFromRequest(req, options)
   if (authContext.error) {
     throw new Error(authContext.error)
   }
   return authContext
+}
+
+module.exports = {
+  supabaseAdminClient,
+  supabaseAnonClient,
+  getUserFromRequest,
+  requireUser
 }
