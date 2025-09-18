@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { applicationService } from '@/services/apiClient'
+import { applicationService } from '@/services/applications'
 
 export function useApplicationActions() {
   const [updating, setUpdating] = useState<string | null>(null)

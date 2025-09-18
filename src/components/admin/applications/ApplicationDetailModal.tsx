@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/Button'
 import { formatDate } from '@/lib/utils'
 import { XCircle } from 'lucide-react'
-import { applicationService } from '@/services/apiClient'
+import { applicationService } from '@/services/applications'
 
 interface ApplicationWithDetails {
   id: string

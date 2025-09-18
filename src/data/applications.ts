@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { applicationService } from '@/services/apiClient'
+import { applicationService } from '@/services/applications'
 import { sanitizeForLog } from '@/lib/security'
 
 // Types
@@ -218,7 +218,7 @@ export const applicationsData = {
     
     return useMutation({
       mutationFn: ({ applicationIds, status }: { applicationIds: string[]; status: string }) => {
-        const { apiClient } = require('@/services/apiClient')
+        const { apiClient } = require('@/services/client')
         return apiClient.request('/api/applications/bulk', {
           method: 'POST',
           body: JSON.stringify({
@@ -239,7 +239,7 @@ export const applicationsData = {
     
     return useMutation({
       mutationFn: ({ applicationIds, paymentStatus }: { applicationIds: string[]; paymentStatus: string }) => {
-        const { apiClient } = require('@/services/apiClient')
+        const { apiClient } = require('@/services/client')
         return apiClient.request('/api/applications/bulk', {
           method: 'POST',
           body: JSON.stringify({
@@ -260,7 +260,7 @@ export const applicationsData = {
     
     return useMutation({
       mutationFn: (applicationIds: string[]) => {
-        const { apiClient } = require('@/services/apiClient')
+        const { apiClient } = require('@/services/client')
         return apiClient.request('/api/applications/bulk', {
           method: 'POST',
           body: JSON.stringify({

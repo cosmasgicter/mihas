@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { applicationService } from '@/services/apiClient'
+import { applicationService } from '@/services/applications'
 
 interface DocumentInfo {
   id: string

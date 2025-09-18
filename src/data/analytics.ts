@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { analyticsService, adminDashboardService } from '@/services/apiClient'
+import { analyticsService } from '@/services/analytics'
+import { adminDashboardService } from '@/services/admin/dashboard'
 import { supabase } from '@/lib/supabase'
 
 // Query Keys

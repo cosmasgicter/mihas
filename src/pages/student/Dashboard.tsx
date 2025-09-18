@@ -14,7 +14,8 @@ import { useDraftManager } from '@/hooks/useDraftManager'
 import { sanitizeForLog, safeJsonParse, sanitizeForDisplay } from '@/lib/sanitize'
 import { getUserMetadata, getBestValue, calculateProfileCompletion } from '@/hooks/useProfileAutoPopulation'
 import { ProfileCompletionBadge } from '@/components/ui/ProfileAutoPopulationIndicator'
-import { applicationService, catalogService } from '@/services/apiClient'
+import { applicationService } from '@/services/applications'
+import { catalogService } from '@/services/catalog'
 import { 
   User, 
   FileText, 

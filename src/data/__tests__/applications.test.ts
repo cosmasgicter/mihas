@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { applicationsData } from '../applications'
 
 // Mock the services
-vi.mock('@/services/apiClient', () => ({
+vi.mock('@/services/applications', () => ({
   applicationService: {
     list: vi.fn(),
     create: vi.fn(),
