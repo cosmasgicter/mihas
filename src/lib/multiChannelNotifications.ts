@@ -201,11 +201,33 @@ export class MultiChannelNotificationService {
 
   private async sendEmail(userId: string, subject: string, content: string): Promise<boolean> {
     try {
-      const { data: user } = await supabase.auth.getUser()
-      if (!user.user?.email) return false
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('email')
+        .eq('user_id', userId)
+        .single()
+
+      if (error) {
+        console.error('Email lookup failed:', {
+          userId: sanitizeForLog(userId),
+          error: sanitizeForLog(error.message || 'Unknown error')
+        })
+        return false
+      }
+
+      const recipientEmail = data?.email?.trim()
+
+      if (!recipientEmail) {
+        console.warn('Email notification skipped: missing email address for user', sanitizeForLog(userId))
+        return false
+      }
 
       // In production, integrate with email service (SendGrid, AWS SES, etc.)
-      console.log('Email sent:', { to: sanitizeForLog(user.user.email || ''), subject: sanitizeForLog(subject), content: sanitizeForLog(content) })
+      console.log('Email sent:', {
+        to: sanitizeForLog(recipientEmail),
+        subject: sanitizeForLog(subject),
+        content: sanitizeForLog(content)
+      })
       return true
     } catch (error) {
       const sanitizedError = error instanceof Error ? error.message : 'Unknown error'

@@ -128,6 +128,42 @@ ORDER BY sent_at DESC;
 - ✅ Graceful error messages in console
 - ✅ User can still complete their workflow
 
+### 6. Admin-triggered student notification regression
+
+**Purpose:** Ensure admin-initiated notifications are routed to the intended student account.
+
+**Steps:**
+1. Sign in with an administrator account that has access to the admin dashboard.
+2. Navigate to the **Admin Dashboard → Notifications** page and locate the **Test Notification System** card.
+3. Click **Send Test In-App Notification** to trigger the admin helper that targets the first available student.
+4. In the Supabase SQL editor (or psql), run the following query to capture the most recent admin-triggered notification and its recipient:
+   ```sql
+   SELECT user_id, title, created_at
+   FROM in_app_notifications
+   WHERE title = '🧪 Test Notification'
+   ORDER BY created_at DESC
+   LIMIT 1;
+   ```
+5. Using the returned `user_id`, look up the student's email to confirm the resolved address:
+   ```sql
+   SELECT email
+   FROM user_profiles
+   WHERE user_id = '<USER_ID_FROM_STEP_4>';
+   ```
+6. Verify the email queue entry references the same address by checking the latest record in `email_notifications` (if email sending is enabled locally):
+   ```sql
+   SELECT recipient_email, subject, status
+   FROM email_notifications
+   ORDER BY created_at DESC
+   LIMIT 5;
+   ```
+7. (Optional) Sign in as the identified student and confirm the new notification appears in the notification bell and is marked unread.
+
+**Expected Results:**
+- ✅ The notification log references the targeted student's `user_id`.
+- ✅ The associated email in `user_profiles` matches the queued email notification (when email queueing is active).
+- ✅ The student account displays the admin-triggered notification and can mark it as read.
+
 ## Troubleshooting
 
 ### Common Issues
