@@ -531,7 +531,10 @@ export default function ApplicationWizard() {
           setUploadedFiles(prev => ({ ...prev, extra_kyc: true }))
         }
         
-        await syncGrades.mutateAsync({ id: applicationId, grades: selectedGrades })
+        // Save grades first, then update application
+        if (selectedGrades.length > 0) {
+          await syncGrades.mutateAsync({ id: applicationId, grades: selectedGrades })
+        }
 
         await updateApplication.mutateAsync({ 
           id: applicationId, 
@@ -551,6 +554,12 @@ export default function ApplicationWizard() {
     }
     
     if (currentStep === 3) {
+      // Validate payment info before proceeding
+      const formData = watch()
+      if (!formData.payment_method) {
+        setError('Payment method is required')
+        return
+      }
       setCurrentStep(4)
     }
   }
@@ -593,7 +602,7 @@ export default function ApplicationWizard() {
       const popUrl = await uploadFileWithProgress(popFile, 'proof_of_payment')
       setUploadedFiles(prev => ({ ...prev, proof_of_payment: true }))
       
-      // Update application with payment info and submit
+      // Update application with payment info and submit - ensure we stay on step 4
       const updatedApp = await updateApplication.mutateAsync({
         id: applicationId,
         data: {
