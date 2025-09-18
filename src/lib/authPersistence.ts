@@ -15,17 +15,22 @@ class AuthPersistence {
 
   // Initialize session persistence
   init() {
+    // Only run in browser environment
+    if (typeof window === 'undefined') return
+
     // Check session every 5 minutes
     this.sessionCheckInterval = setInterval(() => {
       this.checkAndRefreshSession()
     }, 5 * 60 * 1000)
 
     // Check session on visibility change
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        this.checkAndRefreshSession()
-      }
-    })
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          this.checkAndRefreshSession()
+        }
+      })
+    }
 
     // Initial session check
     setTimeout(() => this.checkAndRefreshSession(), 1000)
