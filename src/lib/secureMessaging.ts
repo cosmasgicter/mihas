@@ -6,8 +6,12 @@ const ALLOWED_ORIGINS = [
   'https://www.mihas-katc.com',
   'https://katc.edu.zm',
   'https://mihas.edu.zm',
-  'http://localhost:3000',
-  'http://localhost:5173'
+  'https://application.mihas.edu.zm',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176',
+  'http://localhost:5177'
 ]
 
 export const setupSecureMessageListener = (callback: (data: any) => void) => {

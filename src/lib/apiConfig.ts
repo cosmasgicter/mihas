@@ -13,5 +13,5 @@ export function getApiBaseUrl(): string {
   }
 
   // SSR fallback - should not happen in practice with Vite
-  return 'http://localhost:3000'
+  return 'https://application.mihas.edu.zm'
 }
