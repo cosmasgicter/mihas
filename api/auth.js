@@ -1,6 +1,6 @@
-import { supabaseAnonClient } from './_lib/supabaseClient'
+const { supabaseAnonClient } = require('./_lib/supabaseClient')
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }

@@ -1,6 +1,6 @@
-import { supabaseAdminClient, requireUser } from '../../_lib/supabaseClient.js'
+const { supabaseAdminClient, requireUser } = require('../../_lib/supabaseClient')
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   try {
     const { user, isAdmin } = await requireUser(req, { requireAdmin: true })
     const { id } = req.query

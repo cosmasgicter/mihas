@@ -1,6 +1,6 @@
-import { supabaseAdminClient, getUserFromRequest } from './_lib/supabaseClient'
+const { supabaseAdminClient, getUserFromRequest } = require('./_lib/supabaseClient')
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   const { resource } = req.query
   
   if (!resource || !['subjects', 'programs', 'intakes'].includes(resource)) {
