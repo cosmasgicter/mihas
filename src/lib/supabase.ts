@@ -299,7 +299,9 @@ export interface Application {
   momo_ref?: string
   pop_url?: string
   payment_status: 'pending_review' | 'verified' | 'rejected'
-  
+  payment_verified_at?: string | null
+  payment_verified_by?: string | null
+
   // Step 4: Status tracking
   status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected'
   submitted_at?: string

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { applicationService } from '@/services/applications'
 
 interface ApplicationSummary {
   id: string
@@ -12,6 +13,16 @@ interface ApplicationSummary {
   institution: string
   status: string
   payment_status: string
+  payment_verified_at: string | null
+  payment_verified_by: string | null
+  payment_verified_by_name: string | null
+  payment_verified_by_email: string | null
+  last_payment_audit_id: number | null
+  last_payment_audit_at: string | null
+  last_payment_audit_by_name: string | null
+  last_payment_audit_by_email: string | null
+  last_payment_audit_notes: string | null
+  last_payment_reference: string | null
   application_fee: number
   paid_amount: number
   submitted_at: string
@@ -60,22 +71,12 @@ export function useApplicationsData() {
   }
 
   const updateStatus = async (applicationId: string, newStatus: string) => {
-    const { error } = await supabase
-      .from('applications_new')
-      .update({ status: newStatus })
-      .eq('id', applicationId)
-
-    if (error) throw error
+    await applicationService.updateStatus(applicationId, newStatus)
     await loadApplications()
   }
 
-  const updatePaymentStatus = async (applicationId: string, newPaymentStatus: string) => {
-    const { error } = await supabase
-      .from('applications_new')
-      .update({ payment_status: newPaymentStatus })
-      .eq('id', applicationId)
-
-    if (error) throw error
+  const updatePaymentStatus = async (applicationId: string, newPaymentStatus: string, verificationNotes?: string) => {
+    await applicationService.updatePaymentStatus(applicationId, newPaymentStatus, verificationNotes)
     await loadApplications()
   }
 

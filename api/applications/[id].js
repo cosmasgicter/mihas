@@ -312,23 +312,34 @@ async function updateApplicationStatus(req, res, { user, isAdmin }, id) {
   }
 }
 
-async function updatePaymentStatus(req, res, { isAdmin }, id) {
+async function updatePaymentStatus(req, res, { user, isAdmin }, id) {
   if (!isAdmin) {
     return res.status(403).json({ error: 'Access denied' })
   }
 
-  const { paymentStatus } = req.body || {}
+  const { paymentStatus, verificationNotes } = req.body || {}
   if (!paymentStatus) {
     return res.status(400).json({ error: 'Payment status is required' })
   }
 
   try {
+    const now = new Date().toISOString()
+    const updateData = {
+      payment_status: paymentStatus,
+      updated_at: now
+    }
+
+    if (paymentStatus === 'verified') {
+      updateData.payment_verified_at = now
+      updateData.payment_verified_by = user.id
+    } else {
+      updateData.payment_verified_at = null
+      updateData.payment_verified_by = null
+    }
+
     const { data, error } = await supabaseAdminClient
       .from('applications_new')
-      .update({
-        payment_status: paymentStatus,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single()
@@ -337,7 +348,45 @@ async function updatePaymentStatus(req, res, { isAdmin }, id) {
       return res.status(400).json({ error: error.message })
     }
 
-    return res.status(200).json(data)
+    let verifierProfile = null
+    if (paymentStatus === 'verified') {
+      const { data: profileData } = await supabaseAdminClient
+        .from('user_profiles')
+        .select('full_name, email')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      verifierProfile = profileData || null
+
+      const { error: auditError } = await supabaseAdminClient
+        .from('payment_audit_log')
+        .insert({
+          application_id: id,
+          action: 'payment_verified',
+          amount: data?.amount ?? null,
+          payment_method: data?.payment_method ?? null,
+          reference: data?.momo_ref ?? null,
+          notes: verificationNotes || null,
+          recorded_by: user.id,
+          recorded_by_email: verifierProfile?.email || null,
+          recorded_by_name: verifierProfile?.full_name || null,
+          recorded_at: now
+        })
+
+      if (auditError) {
+        console.error('Payment audit log error', auditError)
+        return res.status(500).json({ error: 'Failed to record payment audit entry' })
+      }
+    }
+
+    return res.status(200).json({
+      ...data,
+      payment_verified_at: updateData.payment_verified_at,
+      payment_verified_by: updateData.payment_verified_by,
+      payment_verified_by_name: verifierProfile?.full_name || null,
+      payment_verified_by_email: verifierProfile?.email || null
+    })
+
   } catch (error) {
     console.error('Payment status update error', error)
     return res.status(500).json({ error: 'Internal server error' })

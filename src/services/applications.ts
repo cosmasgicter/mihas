@@ -38,10 +38,14 @@ export const applicationService = {
       body: JSON.stringify({ action: 'update_status', status, notes })
     }),
 
-  updatePaymentStatus: (id: string, paymentStatus: string) =>
+  updatePaymentStatus: (id: string, paymentStatus: string, verificationNotes?: string) =>
     apiClient.request(`/api/applications/${id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ action: 'update_payment_status', paymentStatus })
+      body: JSON.stringify({
+        action: 'update_payment_status',
+        paymentStatus,
+        ...(verificationNotes ? { verificationNotes } : {})
+      })
     }),
 
   verifyDocument: (
