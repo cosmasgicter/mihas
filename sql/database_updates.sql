@@ -116,21 +116,23 @@ CREATE TABLE IF NOT EXISTS application_status_history (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create public application tracking view
 CREATE OR REPLACE VIEW public_application_status AS
-SELECT 
+SELECT
   a.public_tracking_code,
   a.application_number,
   a.status,
+  a.payment_status,
   a.submitted_at,
   a.updated_at,
-  p.name as program_name,
-  i.name as intake_name,
+  a.program AS program_name,
+  a.intake AS intake_name,
+  a.institution,
+  a.full_name,
+  a.email,
+  a.phone,
   a.admin_feedback,
   a.admin_feedback_date
-FROM applications a
-LEFT JOIN programs p ON a.program_id = p.id
-LEFT JOIN intakes i ON a.intake_id = i.id
+FROM applications_new a
 WHERE a.public_tracking_code IS NOT NULL;
 
 -- Function to generate tracking code
