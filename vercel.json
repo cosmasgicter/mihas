@@ -1,4 +1,11 @@
 {
-  "buildCommand": "npm install && npm run build",
-  "installCommand": "npm install --registry=https://registry.npmjs.org/"
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ]
 }

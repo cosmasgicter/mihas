@@ -7,7 +7,7 @@ export function cspPlugin() {
         const csp = [
           "default-src 'self' 'unsafe-inline' 'unsafe-eval'",
           "img-src 'self' data: blob: https: http: *", // Allow all image sources
-          "connect-src 'self' https: wss: ws:",
+          "connect-src 'self' https: wss: ws: http://localhost:3000 http://localhost:*",
           "style-src 'self' 'unsafe-inline' https:",
           "font-src 'self' https: data:",
           "media-src 'self' blob: https:",
