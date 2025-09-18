@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { TrendingUp, Brain, Clock, AlertTriangle, Target, Zap, RefreshCw, Users, FileText, CheckCircle } from 'lucide-react'
 import { predictiveAnalytics } from '@/lib/predictiveAnalytics'
@@ -7,6 +7,7 @@ import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
 import { useRoleQuery, isAdminRole } from '@/hooks/auth/useRoleQuery'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { fetchPredictiveDashboardMetrics } from '@/lib/predictiveDashboardApi'
 
 interface PredictiveMetrics {
   avgAdmissionProbability: number
@@ -21,9 +22,10 @@ interface PredictiveMetrics {
 }
 
 export function PredictiveDashboard() {
-  const { profile } = useProfileQuery()
-  const { isAdmin: hasAdminRole } = useRoleQuery()
+  const { profile, isLoading: profileLoading } = useProfileQuery()
+  const { isAdmin: hasAdminRole, isLoading: roleLoading } = useRoleQuery()
   const isAdmin = hasAdminRole || isAdminRole(profile?.role)
+  const isAuthLoading = profileLoading || roleLoading
   const [metrics, setMetrics] = useState<PredictiveMetrics>({
     avgAdmissionProbability: 0,
     processingBottlenecks: [],
@@ -35,81 +37,229 @@ export function PredictiveDashboard() {
     avgProcessingTime: 0,
     workflowStats: null
   })
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
+  const [hasRequestedInitialLoad, setHasRequestedInitialLoad] = useState(false)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const loadInProgressRef = useRef(false)
+
+  const mapTrendDirection = useCallback((trend?: string | null): PredictiveMetrics['trendDirection'] => {
+    if (!trend) return 'stable'
+    const normalized = trend.toLowerCase()
+    if (normalized === 'increasing' || normalized === 'up' || normalized === 'positive') {
+      return 'up'
+    }
+    if (normalized === 'decreasing' || normalized === 'down' || normalized === 'negative') {
+      return 'down'
+    }
+    return 'stable'
+  }, [])
+
+  const normalizeProbability = useCallback((value?: number | null) => {
+    if (value === null || value === undefined) {
+      return 78
+    }
+
+    if (value <= 1) {
+      return Math.round(value * 100)
+    }
+
+    return Math.round(value)
+  }, [])
+
+  const normalizeEfficiency = useCallback((value?: number | null) => {
+    if (value === null || value === undefined) {
+      return 0
+    }
+
+    return value > 1 && value <= 100 ? value : Math.round(value * 100)
+  }, [])
+
+  const loadPredictiveMetrics = useCallback(async ({ background = false }: { background?: boolean } = {}) => {
+    if (!isAdmin || isAuthLoading) {
+      return
+    }
+
+    if (loadInProgressRef.current) {
+      return
+    }
+
+    loadInProgressRef.current = true
+
+    if (!background) {
+      setLoading(true)
+      setRefreshing(true)
+    }
+
+    try {
+      const aggregated = await fetchPredictiveDashboardMetrics()
+
+      if (aggregated?.predictive) {
+        const predictiveData = aggregated.predictive
+        const workflowData = aggregated.workflow ?? null
+
+        const totalApplications = predictiveData.totalApplications ?? 0
+        const efficiency = normalizeEfficiency(predictiveData.efficiency)
+
+        setMetrics({
+          avgAdmissionProbability: normalizeProbability(predictiveData.avgAdmissionProbability),
+          processingBottlenecks: predictiveData.bottlenecks ?? [],
+          peakApplicationTimes: predictiveData.peakTimes ?? [],
+          riskApplications: Math.floor(totalApplications * 0.15),
+          efficiencyScore: efficiency,
+          trendDirection: mapTrendDirection(predictiveData.applicationTrend || undefined),
+          totalApplications,
+          avgProcessingTime: predictiveData.avgProcessingTime ?? 0,
+          workflowStats: workflowData
+        })
+
+        const generatedAt = predictiveData.generatedAt || aggregated.generatedAt
+        setLastUpdated(generatedAt ? new Date(generatedAt) : new Date())
+        setHasLoadedOnce(true)
+        return
+      }
+
+      const [trends, workflowStats] = await Promise.all([
+        predictiveAnalytics.analyzeTrends(),
+        workflowAutomation.getWorkflowStats()
+      ])
+
+      const riskApplications = Math.floor(trends.totalApplications * 0.15)
+
+      setMetrics({
+        avgAdmissionProbability: 78,
+        processingBottlenecks: trends.bottlenecks,
+        peakApplicationTimes: trends.peakTimes,
+        riskApplications,
+        efficiencyScore: trends.efficiency,
+        trendDirection: mapTrendDirection(trends.applicationTrend),
+        totalApplications: trends.totalApplications,
+        avgProcessingTime: trends.avgProcessingTime,
+        workflowStats
+      })
+
+      setLastUpdated(new Date())
+      setHasLoadedOnce(true)
+    } catch (error) {
+      console.error('Failed to load predictive metrics:', error)
+    } finally {
+      if (!background) {
+        setLoading(false)
+        setRefreshing(false)
+      }
+      loadInProgressRef.current = false
+    }
+  }, [isAdmin, isAuthLoading, mapTrendDirection, normalizeEfficiency, normalizeProbability])
 
   useEffect(() => {
-    if (isAdmin) {
-      loadPredictiveMetrics()
-
-      // Auto-refresh every 5 minutes
-      const interval = setInterval(loadPredictiveMetrics, 5 * 60 * 1000)
-      return () => clearInterval(interval)
+    if (!isAdmin || isAuthLoading || hasRequestedInitialLoad) {
+      return
     }
-  }, [isAdmin])
+
+    const target = containerRef.current
+    if (!target) {
+      return
+    }
+
+    const observer = new IntersectionObserver(entries => {
+      const entry = entries[0]
+      if (entry?.isIntersecting) {
+        setHasRequestedInitialLoad(true)
+        loadPredictiveMetrics()
+        observer.disconnect()
+      }
+    }, { threshold: 0.25 })
+
+    observer.observe(target)
+
+    return () => observer.disconnect()
+  }, [isAdmin, isAuthLoading, hasRequestedInitialLoad, loadPredictiveMetrics])
+
+  useEffect(() => {
+    if (!isAdmin || isAuthLoading || !hasLoadedOnce) {
+      return
+    }
+
+    refreshIntervalRef.current = setInterval(() => {
+      loadPredictiveMetrics({ background: true })
+    }, 5 * 60 * 1000)
+
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current)
+        refreshIntervalRef.current = null
+      }
+    }
+  }, [isAdmin, isAuthLoading, hasLoadedOnce, loadPredictiveMetrics])
+
+  useEffect(() => {
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current)
+        refreshIntervalRef.current = null
+      }
+    }
+  }, [])
 
   // Don't render for non-admin users
   if (!isAdmin) {
     return null
   }
 
-  const loadPredictiveMetrics = async () => {
-    try {
-      setLoading(true)
-      setRefreshing(true)
-      
-      const [trends, workflowStats] = await Promise.all([
-        predictiveAnalytics.analyzeTrends(),
-        workflowAutomation.getWorkflowStats()
-      ])
-      
-      // Calculate risk applications based on trends
-      const riskApplications = Math.floor(trends.totalApplications * 0.15) // Estimate 15% as high-risk
-      
-      setMetrics({
-        avgAdmissionProbability: 78, // Realistic average
-        processingBottlenecks: trends.bottlenecks,
-        peakApplicationTimes: trends.peakTimes,
-        riskApplications,
-        efficiencyScore: trends.efficiency,
-        trendDirection: trends.applicationTrend === 'increasing' ? 'up' : 
-                       trends.applicationTrend === 'decreasing' ? 'down' : 'stable',
-        totalApplications: trends.totalApplications,
-        avgProcessingTime: trends.avgProcessingTime,
-        workflowStats
-      })
-      
-      setLastUpdated(new Date())
-    } catch (error) {
-      console.error('Failed to load predictive metrics:', error)
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }
-
   const handleRefresh = async () => {
-    if (!refreshing) {
+    if (!refreshing && hasLoadedOnce) {
       await loadPredictiveMetrics()
     }
   }
 
-  if (loading && !metrics.totalApplications) {
+  if (!hasLoadedOnce) {
     return (
-      <div className="animate-pulse space-y-6">
-        <div className="h-40 bg-gray-200 rounded-2xl"></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="h-64 bg-gray-200 rounded-lg"></div>
-          <div className="h-64 bg-gray-200 rounded-lg"></div>
-        </div>
-        <div className="h-80 bg-gray-200 rounded-lg"></div>
+      <div ref={containerRef} className="space-y-6">
+        {loading ? (
+          <div className="animate-pulse space-y-6">
+            <div className="h-40 bg-gray-200 rounded-2xl"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="h-64 bg-gray-200 rounded-lg"></div>
+              <div className="h-64 bg-gray-200 rounded-lg"></div>
+            </div>
+            <div className="h-80 bg-gray-200 rounded-lg"></div>
+          </div>
+        ) : (
+          <Card className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">AI Predictive Dashboard</h2>
+                <p className="text-sm text-gray-600">
+                  Predictive insights will load once the dashboard is ready.
+                </p>
+              </div>
+              <Button
+                onClick={() => {
+                  if (!hasRequestedInitialLoad) {
+                    setHasRequestedInitialLoad(true)
+                  }
+                  loadPredictiveMetrics()
+                }}
+                disabled={refreshing}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                Load insights
+              </Button>
+            </div>
+          </Card>
+        )}
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div ref={containerRef} className="space-y-6">
       {/* Header with refresh */}
       <div className="flex items-center justify-between">
         <div>
@@ -125,7 +275,7 @@ export function PredictiveDashboard() {
         </div>
         <Button
           onClick={handleRefresh}
-          disabled={refreshing}
+          disabled={refreshing || !hasLoadedOnce}
           variant="outline"
           size="sm"
           className="flex items-center gap-2"
