@@ -3,6 +3,8 @@
  * Helps diagnose and handle network connectivity issues
  */
 
+import { supabase } from './supabase'
+
 export class NetworkDiagnostics {
   private static instance: NetworkDiagnostics
   private connectionStatus: 'online' | 'offline' | 'slow' = 'online'
@@ -21,7 +23,8 @@ export class NetworkDiagnostics {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 5000)
       
-      const response = await fetch('https://mylgegkqoddcrxtwcclb.supabase.co/rest/v1/', {
+      // Use a simple HTTP endpoint instead of Supabase REST API
+      const response = await fetch('https://httpbin.org/status/200', {
         method: 'HEAD',
         signal: controller.signal
       })
@@ -44,6 +47,20 @@ export class NetworkDiagnostics {
   
   getConnectionStatus() {
     return this.connectionStatus
+  }
+  
+  async testSupabaseConnection(): Promise<{ status: 'online' | 'offline' | 'error', error?: string }> {
+    try {
+      const { data, error } = await supabase.from('institutions').select('count').limit(1)
+      
+      if (error) {
+        return { status: 'error', error: error.message }
+      }
+      
+      return { status: 'online' }
+    } catch (error) {
+      return { status: 'offline', error: error instanceof Error ? error.message : 'Unknown error' }
+    }
   }
   
   async waitForConnection(maxWait = 10000): Promise<boolean> {
