@@ -9,11 +9,11 @@ import { formatDate, getStatusColor } from '@/lib/utils'
 
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { sanitizeForDisplay } from '@/lib/sanitize'
-import { 
-  Search, 
-  CheckCircle, 
-  Clock, 
-  XCircle, 
+import {
+  Search,
+  CheckCircle,
+  Clock,
+  XCircle,
   AlertCircle,
   FileText,
   Calendar,
@@ -35,19 +35,25 @@ import {
   Share2,
   Copy,
   ExternalLink,
-  GraduationCap
+  GraduationCap,
+  CreditCard
 } from 'lucide-react'
 
 interface PublicApplicationStatus {
   public_tracking_code: string
   application_number: string
   status: string
-  submitted_at: string
-  updated_at: string
-  program_name: string
-  intake_name: string
-  admin_feedback?: string
-  admin_feedback_date?: string
+  payment_status: string | null
+  submitted_at: string | null
+  updated_at: string | null
+  program_name: string | null
+  intake_name: string | null
+  institution: string | null
+  full_name: string | null
+  email: string | null
+  phone: string | null
+  admin_feedback?: string | null
+  admin_feedback_date?: string | null
 }
 
 export default function PublicApplicationTracker() {
@@ -95,7 +101,9 @@ export default function PublicApplicationTracker() {
       // Search by application number or tracking code using exact match
       const { data, error: searchError } = await supabase
         .from('public_application_status')
-        .select('*')
+        .select(
+          'public_tracking_code, application_number, status, payment_status, submitted_at, updated_at, program_name, intake_name, institution, full_name, email, phone, admin_feedback, admin_feedback_date'
+        )
         .or(`application_number.eq.${trimmedTerm},public_tracking_code.eq.${trimmedTerm}`)
         .maybeSingle()
 
@@ -109,7 +117,10 @@ export default function PublicApplicationTracker() {
         return
       }
 
-      setApplication(data)
+      setApplication({
+        ...(data as PublicApplicationStatus),
+        payment_status: (data as PublicApplicationStatus)?.payment_status ?? 'pending_review'
+      })
       setSearched(true)
     } catch (error: any) {
       console.error('Error searching application:', error)
@@ -161,6 +172,55 @@ export default function PublicApplicationTracker() {
         return 'We appreciate your interest in our program. Unfortunately, your application was not successful this time. Don\'t give up - you may apply for future intakes with improved qualifications.'
       default:
         return 'Your application status is being updated. Please check back soon for the latest information.'
+    }
+  }
+
+  const formatDisplayDate = (value?: string | null) => {
+    if (!value) return 'Not available'
+
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) {
+      return 'Not available'
+    }
+
+    return formatDate(parsed)
+  }
+
+  const displayValue = (value?: string | null, fallback = 'Not available') => {
+    if (!value) return fallback
+    const trimmed = value.trim()
+    return trimmed.length > 0 ? trimmed : fallback
+  }
+
+  const formatPaymentStatus = (status?: string | null) => {
+    if (!status) return 'Pending Review'
+    return status
+      .split('_')
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ')
+  }
+
+  const getPaymentStatusStyles = (status?: string | null) => {
+    switch (status) {
+      case 'verified':
+        return 'bg-emerald-100 text-emerald-800 border-emerald-200'
+      case 'rejected':
+        return 'bg-rose-100 text-rose-800 border-rose-200'
+      case 'pending_review':
+      default:
+        return 'bg-amber-100 text-amber-800 border-amber-200'
+    }
+  }
+
+  const getPaymentStatusDescription = (status?: string | null) => {
+    switch (status) {
+      case 'verified':
+        return 'Payment verified — you are all set.'
+      case 'rejected':
+        return 'Payment issue detected — please contact support.'
+      case 'pending_review':
+      default:
+        return 'Payment submitted — awaiting verification by admissions.'
     }
   }
 
@@ -478,7 +538,7 @@ export default function PublicApplicationTracker() {
                         
                         <p className="text-white/85 text-sm sm:text-lg font-medium flex items-center justify-center lg:justify-end space-x-2">
                           <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
-                          <span className="text-xs sm:text-base">Updated: {formatDate(application.updated_at)}</span>
+                          <span className="text-xs sm:text-base">Updated: {formatDisplayDate(application.updated_at)}</span>
                         </p>
                         
                         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 justify-center lg:justify-end">
@@ -595,7 +655,7 @@ export default function PublicApplicationTracker() {
                         <span>Details</span>
                       </h4>
                       
-                      <div className="space-y-3 sm:space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <AnimatedCard className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200" hover3d>
                           <div className="flex items-center space-x-3 sm:space-x-4">
                             <div className="p-2 sm:p-3 bg-blue-500 rounded-lg sm:rounded-xl flex-shrink-0">
@@ -607,7 +667,19 @@ export default function PublicApplicationTracker() {
                             </div>
                           </div>
                         </AnimatedCard>
-                        
+
+                        <AnimatedCard className="bg-gradient-to-r from-slate-50 to-sky-50 border border-sky-200" hover3d delay={0.05}>
+                          <div className="flex items-center space-x-3 sm:space-x-4">
+                            <div className="p-2 sm:p-3 bg-sky-500 rounded-lg sm:rounded-xl flex-shrink-0">
+                              <User className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-secondary text-sm sm:text-base lg:text-lg">Applicant</p>
+                              <p className="text-secondary text-base sm:text-lg lg:text-xl break-words">{displayValue(application.full_name)}</p>
+                            </div>
+                          </div>
+                        </AnimatedCard>
+
                         <AnimatedCard className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200" hover3d delay={0.1}>
                           <div className="flex items-center space-x-3 sm:space-x-4">
                             <div className="p-2 sm:p-3 bg-purple-500 rounded-lg sm:rounded-xl flex-shrink-0">
@@ -615,31 +687,83 @@ export default function PublicApplicationTracker() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-bold text-secondary text-sm sm:text-base lg:text-lg">Program</p>
-                              <p className="text-secondary text-base sm:text-lg lg:text-xl break-words">{application.program_name}</p>
+                              <p className="text-secondary text-base sm:text-lg lg:text-xl break-words">{displayValue(application.program_name, 'Program unavailable')}</p>
                             </div>
                           </div>
                         </AnimatedCard>
-                        
-                        <AnimatedCard className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200" hover3d delay={0.2}>
+
+                        <AnimatedCard className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200" hover3d delay={0.15}>
                           <div className="flex items-center space-x-3 sm:space-x-4">
                             <div className="p-2 sm:p-3 bg-green-500 rounded-lg sm:rounded-xl flex-shrink-0">
                               <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-bold text-secondary text-sm sm:text-base lg:text-lg">Intake Period</p>
-                              <p className="text-secondary text-base sm:text-lg lg:text-xl break-words">{application.intake_name}</p>
+                              <p className="text-secondary text-base sm:text-lg lg:text-xl break-words">{displayValue(application.intake_name, 'Intake unavailable')}</p>
                             </div>
                           </div>
                         </AnimatedCard>
-                        
-                        <AnimatedCard className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200" hover3d delay={0.3}>
+
+                        <AnimatedCard className="bg-gradient-to-r from-amber-50 to-orange-50 border border-orange-200" hover3d delay={0.2}>
                           <div className="flex items-center space-x-3 sm:space-x-4">
                             <div className="p-2 sm:p-3 bg-orange-500 rounded-lg sm:rounded-xl flex-shrink-0">
                               <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-bold text-secondary text-sm sm:text-base lg:text-lg">Submitted On</p>
-                              <p className="text-secondary text-base sm:text-lg lg:text-xl">{formatDate(application.submitted_at)}</p>
+                              <p className="text-secondary text-base sm:text-lg lg:text-xl">{application.submitted_at ? formatDisplayDate(application.submitted_at) : 'Not submitted yet'}</p>
+                            </div>
+                          </div>
+                        </AnimatedCard>
+
+                        <AnimatedCard className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200" hover3d delay={0.25}>
+                          <div className="flex items-center space-x-3 sm:space-x-4">
+                            <div className="p-2 sm:p-3 bg-indigo-500 rounded-lg sm:rounded-xl flex-shrink-0">
+                              <MapPin className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-secondary text-sm sm:text-base lg:text-lg">Institution</p>
+                              <p className="text-secondary text-base sm:text-lg lg:text-xl break-words">{displayValue(application.institution, 'Not specified')}</p>
+                            </div>
+                          </div>
+                        </AnimatedCard>
+
+                        <AnimatedCard className="bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200" hover3d delay={0.3}>
+                          <div className="flex items-center space-x-3 sm:space-x-4">
+                            <div className="p-2 sm:p-3 bg-rose-500 rounded-lg sm:rounded-xl flex-shrink-0">
+                              <Mail className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-secondary text-sm sm:text-base lg:text-lg">Email</p>
+                              {application.email ? (
+                                <a
+                                  href={`mailto:${application.email}`}
+                                  className="text-primary text-base sm:text-lg lg:text-xl break-all hover:underline"
+                                >
+                                  {application.email}
+                                </a>
+                              ) : (
+                                <p className="text-secondary text-base sm:text-lg lg:text-xl">{displayValue(application.email)}</p>
+                              )}
+                            </div>
+                          </div>
+                        </AnimatedCard>
+
+                        <AnimatedCard className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200" hover3d delay={0.35}>
+                          <div className="flex items-center space-x-3 sm:space-x-4">
+                            <div className="p-2 sm:p-3 bg-emerald-500 rounded-lg sm:rounded-xl flex-shrink-0">
+                              <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-secondary text-sm sm:text-base lg:text-lg">Payment Status</p>
+                              <span
+                                className={`inline-flex items-center px-3 py-1 mt-1 rounded-full text-xs sm:text-sm font-bold border ${getPaymentStatusStyles(application.payment_status)}`}
+                              >
+                                {formatPaymentStatus(application.payment_status)}
+                              </span>
+                              <p className="text-secondary/70 text-xs sm:text-sm mt-2">
+                                {getPaymentStatusDescription(application.payment_status)}
+                              </p>
                             </div>
                           </div>
                         </AnimatedCard>
