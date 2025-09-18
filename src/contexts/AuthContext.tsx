@@ -287,13 +287,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: result.error || 'Login failed' }
       }
       
-      if (result.session) {
+      if (result.session && result.user) {
         console.log('Sign in successful, session established')
         // Set the session in Supabase client
-        await supabase.auth.setSession({
+        const { error: sessionError } = await supabase.auth.setSession({
           access_token: result.session.access_token,
           refresh_token: result.session.refresh_token
         })
+        
+        if (sessionError) {
+          console.error('Session setup error:', sessionError)
+          return { error: 'Failed to establish session' }
+        }
+        
         setUser(result.user)
       }
       

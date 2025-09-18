@@ -38,24 +38,20 @@ export default function SignInPage() {
     setError('')
     setNetworkStatus('checking')
 
-    // Quick network check
-    const connectionTest = await networkDiagnostics.testConnection()
-    setNetworkStatus(connectionTest.status)
-    
-    if (connectionTest.status === 'offline') {
-      setError('Network connection unavailable. Please check your internet connection.')
-      setLoading(false)
-      return
-    }
-    
-    if (connectionTest.status === 'slow') {
-      setError('Slow network detected. Login may take longer than usual...')
-    }
-    console.log('Login attempt:', data.email)
-    setLoading(true)
-    setError('')
-
     try {
+      // Quick network check
+      const connectionTest = await networkDiagnostics.testConnection()
+      setNetworkStatus(connectionTest.status)
+      
+      if (connectionTest.status === 'offline') {
+        setError('Network connection unavailable. Please check your internet connection.')
+        return
+      }
+      
+      if (connectionTest.status === 'slow') {
+        setError('Slow network detected. Login may take longer than usual...')
+      }
+
       const result = await signIn(data.email, data.password)
       console.log('Sign in result:', result)
       
