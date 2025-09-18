@@ -271,9 +271,6 @@ export function AIAssistant({ applicationData, currentStep, onSuggestionApply, o
 
   const generateResponse = async (userMessage: string): Promise<string> => {
     try {
-      // Use local AI processing (100% free)
-      await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1200))
-      
       // Generate intelligent response using local AI
       return localAI.generateResponse(userMessage, {
         applicationData,
