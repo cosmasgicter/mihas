@@ -125,6 +125,17 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 VITE_API_BASE_URL=http://localhost:5173
 VITE_APP_BASE_URL=http://localhost:5173
 
+# Email Delivery
+EMAIL_PROVIDER=resend # or smtp
+EMAIL_FROM=admissions@mihas.edu.zm
+RESEND_API_KEY=your_resend_api_key
+RESEND_FROM_EMAIL="MIHAS Admissions <admissions@mihas.edu.zm>"
+SMTP_HOST=your_smtp_host
+SMTP_PORT=587
+SMTP_USERNAME=your_smtp_username
+SMTP_PASSWORD=your_smtp_password
+SMTP_SECURE=true
+
 # Cloudflare Turnstile (Test keys)
 VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA
 
@@ -151,6 +162,15 @@ npm run dev
 ```
 
 The `vercel dev` command automatically loads environment variables and provides the same runtime as production.
+
+#### Supabase Edge Functions
+
+Deploy the Supabase Edge functions after updating environment variables:
+
+```bash
+supabase functions deploy mcp-operations
+supabase functions deploy send-email
+```
 
 ## 🧪 Testing
 

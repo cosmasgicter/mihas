@@ -4,7 +4,7 @@
 
 ### API Consolidation Status
 - [x] **12 Vercel Functions** (within Hobby plan limit)
-- [x] **1 Supabase Edge Function** (mcp-operations)
+- [x] **2 Supabase Edge Functions** (mcp-operations, send-email)
 - [x] **Frontend Updated** to use consolidated endpoints
 - [x] **No Breaking Changes** - all functionality preserved
 
@@ -53,9 +53,10 @@ npm run build:prod
 vercel --prod
 ```
 
-### 4. Deploy Supabase Edge Function
+### 4. Deploy Supabase Edge Functions
 ```bash
 supabase functions deploy mcp-operations
+supabase functions deploy send-email
 ```
 
 ## 🧪 Post-Deployment Testing
@@ -104,12 +105,32 @@ curl "https://your-project.supabase.co/functions/v1/mcp-operations?action=schema
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
+#### send-email Edge Function
+```bash
+curl -X POST "https://your-project.supabase.co/functions/v1/send-email" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_SERVICE_ROLE_TOKEN" \
+  -d '{
+        "to": "applicant@example.com",
+        "subject": "Application Receipt",
+        "template": "application-receipt",
+        "data": {
+          "applicationNumber": "MIHAS123456",
+          "trackingCode": "TRKABC123",
+          "programName": "Diploma in Nursing",
+          "submissionDate": "2024-09-21",
+          "paymentStatus": "Pending"
+        }
+      }'
+```
+
 ### Frontend Integration Tests
 1. **Application Wizard** - Test complete flow
 2. **Admin Dashboard** - Test all admin functions
 3. **Authentication** - Test login/register/logout
 4. **File Uploads** - Test document uploads
 5. **Notifications** - Test in-app notifications
+6. **Email Receipts** - Submit an application and confirm the confirmation email is delivered
 
 ## 📊 Monitoring & Verification
 
@@ -177,4 +198,4 @@ If issues occur:
 
 **Status**: ✅ Ready for Production Deployment  
 **Last Updated**: $(date)  
-**API Functions**: 12 Vercel + 1 Supabase Edge Function
+**API Functions**: 12 Vercel + 2 Supabase Edge Functions
