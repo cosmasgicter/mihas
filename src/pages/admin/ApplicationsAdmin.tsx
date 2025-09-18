@@ -131,7 +131,7 @@ export default function ApplicationsAdmin() {
     }
   }
 
-  const handleExport = (format: 'csv' | 'excel') => {
+  const handleExport = async (format: 'csv' | 'excel') => {
     const dataToExport = filteredApplications.map(app => ({
       ...app,
       submitted_at: app.submitted_at || app.created_at,
@@ -140,11 +140,13 @@ export default function ApplicationsAdmin() {
       age: app.age || 0,
       days_since_submission: app.days_since_submission || 0
     }))
-    
+
+    const filenameBase = `applications_${new Date().toISOString().split('T')[0]}`
+
     if (format === 'csv') {
-      exportToCSV(dataToExport, `applications_${new Date().toISOString().split('T')[0]}.csv`)
+      await exportToCSV(dataToExport, `${filenameBase}.csv`)
     } else {
-      exportToExcel(dataToExport, `applications_${new Date().toISOString().split('T')[0]}.xlsx`)
+      await exportToExcel(dataToExport, `${filenameBase}.xlsx`)
     }
   }
 

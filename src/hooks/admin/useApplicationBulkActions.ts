@@ -58,7 +58,7 @@ export function useApplicationBulkActions() {
     }
   }
 
-  const exportApplications = (applications: ApplicationSummary[], format: 'csv' | 'excel') => {
+  const exportApplications = async (applications: ApplicationSummary[], format: 'csv' | 'excel') => {
     const dataToExport = applications.map(app => ({
       ...app,
       submitted_at: app.submitted_at || app.created_at,
@@ -67,13 +67,13 @@ export function useApplicationBulkActions() {
       age: app.age || 0,
       days_since_submission: app.days_since_submission || 0
     }))
-    
+
     const filename = `applications_${new Date().toISOString().split('T')[0]}`
-    
+
     if (format === 'csv') {
-      exportToCSV(dataToExport, `${filename}.csv`)
+      await exportToCSV(dataToExport, `${filename}.csv`)
     } else {
-      exportToExcel(dataToExport, `${filename}.xlsx`)
+      await exportToExcel(dataToExport, `${filename}.xlsx`)
     }
   }
 
