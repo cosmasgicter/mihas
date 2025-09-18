@@ -154,6 +154,20 @@ export default defineConfig(({ mode }) => {
         }
       } : undefined
     },
+    test: {
+      environment: 'jsdom',
+      setupFiles: './tests/setupTests.ts',
+      include: ['**/*.test.ts', '**/*.test.tsx'],
+      exclude: [
+        'tests/e2e/**',
+        'tests/**/*.spec.ts',
+        'tests/**/*.spec.tsx',
+        'tests/integration/**',
+        'tests/vite.config.test.ts',
+        'node_modules/**',
+        'dist/**'
+      ]
+    },
     server: {
       port: 5173,
       host: true
