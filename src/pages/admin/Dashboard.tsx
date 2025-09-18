@@ -41,6 +41,7 @@ import { workflowAutomation } from '@/lib/workflowAutomation'
 import { sanitizeForDisplay } from '@/lib/sanitize'
 import OfflineAdminDashboard from '@/components/admin/OfflineAdminDashboard'
 import { AdminDebug } from '@/components/AdminDebug'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
 
 interface DashboardStats {
   totalApplications: number
@@ -68,7 +69,8 @@ interface RecentActivity {
 
 export default function AdminDashboard() {
   const isMobile = useIsMobile()
-  const { user, profile, signOut } = useAuth()
+  const { user } = useAuth()
+  const { profile } = useProfileQuery()
   const { trackPageView } = useAnalytics()
   const [stats, setStats] = useState<DashboardStats>({
     totalApplications: 0,

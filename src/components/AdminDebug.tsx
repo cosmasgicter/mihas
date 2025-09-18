@@ -1,8 +1,13 @@
 import React from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
+import { useRoleQuery, isAdminRole } from '@/hooks/auth/useRoleQuery'
 
 export function AdminDebug() {
-  const { user, profile, userRole, isAdmin } = useAuth()
+  const { user } = useAuth()
+  const { profile } = useProfileQuery()
+  const { userRole, isAdmin: hasAdminRole } = useRoleQuery()
+  const isAdmin = hasAdminRole || isAdminRole(profile?.role)
 
   if (!import.meta.env.DEV) {
     return null
@@ -14,7 +19,7 @@ export function AdminDebug() {
       <div>Email: {user?.email || 'None'}</div>
       <div>Profile Role: {profile?.role || 'None'}</div>
       <div>User Role: {userRole?.role || 'None'}</div>
-      <div>Is Admin: {isAdmin() ? '✅' : '❌'}</div>
+      <div>Is Admin: {isAdmin ? '✅' : '❌'}</div>
       <div>Dev Mode: {import.meta.env.DEV ? '✅' : '❌'}</div>
     </div>
   )

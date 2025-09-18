@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
+import { useRoleQuery } from '@/hooks/auth/useRoleQuery'
 
 export function AuthDebug() {
-  const { user, profile, userRole, loading } = useAuth()
+  const { user, loading } = useAuth()
+  const { profile } = useProfileQuery()
+  const { userRole } = useRoleQuery()
   const [debugInfo, setDebugInfo] = useState<any>({})
 
   useEffect(() => {

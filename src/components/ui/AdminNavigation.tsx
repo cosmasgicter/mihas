@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import * as NavigationMenu from '@radix-ui/react-navigation-menu'
 import { Button } from './Button'
 import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
+import { useRoleQuery } from '@/hooks/auth/useRoleQuery'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { 
   Settings, 
@@ -26,7 +28,9 @@ interface AdminNavigationProps {
 }
 
 export function AdminNavigation({ className }: AdminNavigationProps) {
-  const { profile, userRole, signOut } = useAuth()
+  const { signOut } = useAuth()
+  const { profile } = useProfileQuery()
+  const { userRole } = useRoleQuery()
   const isMobile = useIsMobile()
   const navigate = useNavigate()
   const location = useLocation()

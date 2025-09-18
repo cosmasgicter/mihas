@@ -1,5 +1,5 @@
 import React from 'react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
 import { AdminNavigation } from '@/components/ui/AdminNavigation'
 import { Button } from '@/components/ui/Button'
 import { 
@@ -18,7 +18,7 @@ import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 
 export default function OfflineAdminDashboard() {
-  const { user, profile } = useAuth()
+  const { profile } = useProfileQuery()
 
   // Mock data for offline mode
   const stats = {

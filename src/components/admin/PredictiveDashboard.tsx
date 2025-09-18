@@ -3,7 +3,8 @@ import { motion } from 'framer-motion'
 import { TrendingUp, Brain, Clock, AlertTriangle, Target, Zap, RefreshCw, Users, FileText, CheckCircle } from 'lucide-react'
 import { predictiveAnalytics } from '@/lib/predictiveAnalytics'
 import { workflowAutomation } from '@/lib/workflowAutomation'
-import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
+import { useRoleQuery, isAdminRole } from '@/hooks/auth/useRoleQuery'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
@@ -20,7 +21,9 @@ interface PredictiveMetrics {
 }
 
 export function PredictiveDashboard() {
-  const { isAdmin } = useAuth()
+  const { profile } = useProfileQuery()
+  const { isAdmin: hasAdminRole } = useRoleQuery()
+  const isAdmin = hasAdminRole || isAdminRole(profile?.role)
   const [metrics, setMetrics] = useState<PredictiveMetrics>({
     avgAdmissionProbability: 0,
     processingBottlenecks: [],
@@ -37,9 +40,9 @@ export function PredictiveDashboard() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   useEffect(() => {
-    if (isAdmin()) {
+    if (isAdmin) {
       loadPredictiveMetrics()
-      
+
       // Auto-refresh every 5 minutes
       const interval = setInterval(loadPredictiveMetrics, 5 * 60 * 1000)
       return () => clearInterval(interval)
@@ -47,7 +50,7 @@ export function PredictiveDashboard() {
   }, [isAdmin])
 
   // Don't render for non-admin users
-  if (!isAdmin()) {
+  if (!isAdmin) {
     return null
   }
 

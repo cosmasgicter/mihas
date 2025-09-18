@@ -3,6 +3,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
+import { useRoleQuery } from '@/hooks/auth/useRoleQuery'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { AdminSearchBar } from '@/components/admin/AdminSearchBar'
 import { RealTimeNotifications } from '@/components/admin/RealTimeNotifications'
@@ -26,7 +28,9 @@ import {
 } from 'lucide-react'
 
 export function EnhancedAdminNavigation() {
-  const { profile, userRole, signOut } = useAuth()
+  const { signOut } = useAuth()
+  const { profile } = useProfileQuery()
+  const { userRole } = useRoleQuery()
   const isMobile = useIsMobile()
   const navigate = useNavigate()
   const location = useLocation()

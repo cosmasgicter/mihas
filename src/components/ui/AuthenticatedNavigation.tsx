@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import * as NavigationMenu from '@radix-ui/react-navigation-menu'
 import { Button } from './Button'
 import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { NotificationBell } from '@/components/student/NotificationBell'
 import { 
@@ -24,7 +25,8 @@ interface AuthenticatedNavigationProps {
 }
 
 export function AuthenticatedNavigation({ className }: AuthenticatedNavigationProps) {
-  const { user, profile, signOut } = useAuth()
+  const { signOut } = useAuth()
+  const { profile } = useProfileQuery()
   const isMobile = useIsMobile()
   const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false)

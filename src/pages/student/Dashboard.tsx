@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
 import type { Application, Program, Intake } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
@@ -28,7 +29,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 export default function StudentDashboard() {
   const isMobile = useIsMobile()
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
+  const { profile } = useProfileQuery()
   const { deleteDraft, clearAllDrafts } = useDraftManager()
   const [applications, setApplications] = useState<Application[]>([])
   const [programs, setPrograms] = useState<Program[]>([])

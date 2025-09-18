@@ -21,6 +21,7 @@ import {
 import { Button } from '@/components/ui/Button'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
 import { sanitizeForLog } from '@/lib/sanitize'
 
 interface DashboardMetrics {
@@ -42,7 +43,8 @@ interface RecentActivity {
 }
 
 export function FixedAdminDashboard() {
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
+  const { profile } = useProfileQuery()
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     totalApplications: 0,
     todayApplications: 0,
