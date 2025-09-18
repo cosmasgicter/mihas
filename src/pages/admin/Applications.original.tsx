@@ -21,7 +21,7 @@ import { ApplicationsFilters } from '@/components/admin/applications/Application
 import { ApplicationsTable } from '@/components/admin/applications/ApplicationsTable'
 import { ApplicationsCards } from '@/components/admin/applications/ApplicationsCards'
 import { ApplicationDetailModal } from '@/components/admin/applications/ApplicationDetailModal'
-import { documentService } from '@/services/documents'
+import { applicationService } from '@/services/applications'
 
 // Modals and other components would be imported here
 // For brevity, keeping the existing modal components inline for now
@@ -171,11 +171,21 @@ export default function AdminApplications() {
   ) => {
     try {
       if (type === 'acceptance') {
-        await documentService.generateAcceptanceLetter(application.id)
-        showSuccess('Acceptance letter generated', `A letter has been generated for ${application.full_name}.`)
+        const document = await applicationService.generateAcceptanceLetter(application.id)
+        showSuccess(
+          'Acceptance letter generated',
+          document?.document_name
+            ? `Generated ${document.document_name} for ${application.full_name}.`
+            : `A letter has been generated for ${application.full_name}.`
+        )
       } else {
-        await documentService.generateFinanceReceipt(application.id)
-        showSuccess('Finance receipt generated', `A receipt has been generated for ${application.full_name}.`)
+        const document = await applicationService.generateFinanceReceipt(application.id)
+        showSuccess(
+          'Finance receipt generated',
+          document?.document_name
+            ? `Generated ${document.document_name} for ${application.full_name}.`
+            : `A receipt has been generated for ${application.full_name}.`
+        )
       }
 
       await fetchDocuments(application.id)
