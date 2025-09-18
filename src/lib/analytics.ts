@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { ReportExportData, ReportFormat } from './reportExports'
 
 export interface AnalyticsEvent {
   user_id?: string
@@ -46,9 +47,10 @@ export interface AutomatedReport {
   id?: string
   reportType: string
   reportName: string
-  reportData: any
+  reportData: ReportExportData
   generatedBy?: string
   createdAt?: string
+  format?: ReportFormat
 }
 
 export class AnalyticsService {
@@ -299,20 +301,39 @@ export class AnalyticsService {
   // Automated Reports CRUD
   static async createAutomatedReport(report: Omit<AutomatedReport, 'id' | 'createdAt'>) {
     const { data: { user } } = await supabase.auth.getUser()
-    
+
+    const preparedReportData = report.reportData
+      ? {
+          ...report.reportData,
+          metadata: {
+            ...(report.reportData.metadata || {}),
+            ...(report.format ? { exportFormat: report.format } : {})
+          }
+        }
+      : report.reportData
+
     const { data, error } = await supabase
       .from('automated_reports')
       .insert({
         report_type: report.reportType,
         report_name: report.reportName,
-        report_data: report.reportData,
+        report_data: preparedReportData,
         generated_by: user?.id
       })
       .select()
       .single()
 
     if (error) throw error
-    return data
+
+    return {
+      id: data.id,
+      reportType: data.report_type,
+      reportName: data.report_name,
+      reportData: (data.report_data || {}) as ReportExportData,
+      generatedBy: data.generated_by,
+      createdAt: data.created_at,
+      format: data.report_format || data.report_data?.metadata?.exportFormat || report.format
+    }
   }
 
   static async getAutomatedReports(limit?: number): Promise<AutomatedReport[]> {
@@ -332,9 +353,10 @@ export class AnalyticsService {
       id: item.id,
       reportType: item.report_type,
       reportName: item.report_name,
-      reportData: item.report_data,
+      reportData: (item.report_data || {}) as ReportExportData,
       generatedBy: item.generated_by,
-      createdAt: item.created_at
+      createdAt: item.created_at,
+      format: item.report_format || item.report_data?.metadata?.exportFormat
     })) || []
   }
 
@@ -362,7 +384,7 @@ export class AnalyticsService {
   }
 
   // Enhanced Daily Report Generation
-  static async generateDailyReport() {
+  static async generateDailyReport(format: ReportFormat = 'pdf') {
     const today = new Date().toISOString().split('T')[0]
     
     const { data: applications, error: appsError } = await supabase
@@ -385,11 +407,30 @@ export class AnalyticsService {
     // Create application statistics record
     await this.createApplicationStats(stats)
 
+    const reportName = `Daily Report - ${today}`
+    const decisionCount = stats.approvedApplications + stats.rejectedApplications
+    const approvalRate = decisionCount > 0
+      ? ((stats.approvedApplications / decisionCount) * 100).toFixed(2)
+      : '0'
+
+    const reportData = {
+      period: today,
+      generatedAt: new Date().toISOString(),
+      statistics: stats,
+      approvalRate,
+      metadata: {
+        reportType: 'daily',
+        exportFormat: format,
+        reportTitle: reportName
+      }
+    }
+
     // Create automated report
     const report = await this.createAutomatedReport({
       reportType: 'daily',
-      reportName: `Daily Report - ${today}`,
-      reportData: stats
+      reportName,
+      reportData,
+      format
     })
 
     return { stats, report }
