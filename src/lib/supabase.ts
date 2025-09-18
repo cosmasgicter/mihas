@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient, type SupportedStorage } from '@supabase/supabase-js'
 import { sanitizeForLog } from './security'
 
 // Supabase project configuration from environment variables
@@ -9,79 +9,151 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-    flowType: 'pkce',
-    storage: window.localStorage,
-    storageKey: 'mihas-auth-token',
-    debug: false
-  },
-  global: {
-    headers: {
-      'x-client-info': 'mihas-app@1.0.0'
-    },
-    fetch: (url, options = {}) => {
-      // Longer timeout for auth requests
-      const isAuthRequest = url.includes('/auth/') || url.includes('/token')
-      const timeout = isAuthRequest ? 30000 : 8000
-      
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), timeout)
-      
-      return fetch(url, {
-        ...options,
-        signal: controller.signal
-      }).finally(() => {
-        clearTimeout(timeoutId)
-      })
-    }
-  }
-})
+const AUTH_STORAGE_KEY = 'mihas-auth-token'
 
-// Token refresh retry logic
+type SupabaseFactoryOptions = {
+  storage?: SupportedStorage
+}
+
+let supabaseClient: SupabaseClient | null = null
+let usingServerStorage = false
+let authHandlersInitialized = false
+let sessionInterval: NodeJS.Timeout | null = null
 let refreshRetryCount = 0
+
 const MAX_REFRESH_RETRIES = 3
 
-// Enhanced session management with better error handling
-supabase.auth.onAuthStateChange(async (event, session) => {
-  console.log('Auth event:', sanitizeForLog(event))
-  
-  if (event === 'TOKEN_REFRESHED') {
-    console.log('Token refreshed successfully')
-    refreshRetryCount = 0 // Reset retry count on success
+function createMemoryStorage(): SupportedStorage {
+  const store = new Map<string, string>()
+
+  return {
+    getItem: key => store.get(key) ?? null,
+    setItem: (key, value) => {
+      store.set(key, value)
+    },
+    removeItem: key => {
+      store.delete(key)
+    },
+    isServer: true
   }
-  
-  if (event === 'SIGNED_OUT') {
-    console.log('User signed out')
-    localStorage.removeItem('mihas-auth-token')
+}
+
+function resolveStorage(adapter?: SupportedStorage) {
+  if (adapter) {
+    return { storage: adapter, isServerStorage: adapter.isServer === true }
   }
-  
-  if (event === 'SIGNED_IN' && session) {
-    console.log('User signed in:', sanitizeForLog(session.user?.id || ''))
-    startSessionMonitoring()
+
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return { storage: window.localStorage, isServerStorage: false }
   }
-})
+
+  const memoryStorage = createMemoryStorage()
+  return { storage: memoryStorage, isServerStorage: true }
+}
+
+export function createSupabaseClient(options: SupabaseFactoryOptions = {}): SupabaseClient {
+  const { storage, isServerStorage } = resolveStorage(options.storage)
+  const shouldRecreateClient =
+    !supabaseClient || (!isServerStorage && usingServerStorage)
+
+  if (shouldRecreateClient) {
+    if (sessionInterval) {
+      clearInterval(sessionInterval)
+      sessionInterval = null
+    }
+
+    supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false,
+        flowType: 'pkce',
+        storage,
+        storageKey: AUTH_STORAGE_KEY,
+        debug: false
+      },
+      global: {
+        headers: {
+          'x-client-info': 'mihas-app@1.0.0'
+        },
+        fetch: (url, options = {}) => {
+          // Longer timeout for auth requests
+          const isAuthRequest = url.includes('/auth/') || url.includes('/token')
+          const timeout = isAuthRequest ? 30000 : 8000
+
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+          return fetch(url, {
+            ...options,
+            signal: controller.signal
+          }).finally(() => {
+            clearTimeout(timeoutId)
+          })
+        }
+      }
+    })
+
+    usingServerStorage = isServerStorage
+    authHandlersInitialized = false
+    refreshRetryCount = 0
+  }
+
+  if (typeof window !== 'undefined' && supabaseClient && !authHandlersInitialized) {
+    initializeBrowserAuthHandlers(supabaseClient, storage)
+  }
+
+  return supabaseClient!
+}
+
+export const getSupabaseClient = createSupabaseClient
+
+function initializeBrowserAuthHandlers(client: SupabaseClient, storage: SupportedStorage) {
+  if (authHandlersInitialized || typeof window === 'undefined') {
+    return
+  }
+
+  client.auth.onAuthStateChange(async (event, session) => {
+    console.log('Auth event:', sanitizeForLog(event))
+
+    if (event === 'TOKEN_REFRESHED') {
+      console.log('Token refreshed successfully')
+      refreshRetryCount = 0
+    }
+
+    if (event === 'SIGNED_OUT') {
+      console.log('User signed out')
+      await Promise.resolve(storage.removeItem(AUTH_STORAGE_KEY))
+    }
+
+    if (event === 'SIGNED_IN' && session) {
+      console.log('User signed in:', sanitizeForLog(session.user?.id || ''))
+      startSessionMonitoring(client)
+    }
+  })
+
+  authHandlersInitialized = true
+}
 
 // Session monitoring with retry logic
-let sessionInterval: NodeJS.Timeout | null = null
+function startSessionMonitoring(client: SupabaseClient) {
+  if (typeof window === 'undefined') {
+    return
+  }
 
-function startSessionMonitoring() {
   if (sessionInterval) clearInterval(sessionInterval)
-  
+
   sessionInterval = setInterval(async () => {
     try {
-      const { data: { session }, error } = await supabase.auth.getSession()
-      
+      const { data: { session }, error } = await client.auth.getSession()
+
       if (!session || error) return
-      
+
       const timeUntilExpiry = (session.expires_at! * 1000) - Date.now()
       const fiveMinutes = 5 * 60 * 1000
-      
+
       if (timeUntilExpiry < fiveMinutes && timeUntilExpiry > 0) {
-        await retryTokenRefresh()
+        await retryTokenRefresh(client)
       }
     } catch (error) {
       console.warn('Session check failed:', error)
@@ -89,10 +161,10 @@ function startSessionMonitoring() {
   }, 60000)
 }
 
-async function retryTokenRefresh() {
+async function retryTokenRefresh(client: SupabaseClient) {
   for (let i = 0; i < MAX_REFRESH_RETRIES; i++) {
     try {
-      const { error } = await supabase.auth.refreshSession()
+      const { error } = await client.auth.refreshSession()
       if (!error) {
         console.log('Token refresh successful')
         return
@@ -101,7 +173,7 @@ async function retryTokenRefresh() {
     } catch (error) {
       console.warn(`Token refresh attempt ${i + 1} error:`, error)
     }
-    
+
     if (i < MAX_REFRESH_RETRIES - 1) {
       await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1))) // Exponential backoff
     }
@@ -109,7 +181,21 @@ async function retryTokenRefresh() {
   console.error('All token refresh attempts failed')
 }
 
-export { startSessionMonitoring }
+export const supabase = new Proxy({}, {
+  get(_target, prop) {
+    const client = createSupabaseClient()
+    const value = (client as any)[prop]
+    if (typeof value === 'function') {
+      return value.bind(client)
+    }
+    return value
+  },
+  set(_target, prop, value) {
+    const client = createSupabaseClient()
+    (client as any)[prop] = value
+    return true
+  }
+}) as SupabaseClient
 
 // Database type definitions (keeping existing types)
 export interface UserProfile {
