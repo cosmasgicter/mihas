@@ -22,6 +22,7 @@ const AdminAnalytics = React.lazy(() => import('@/pages/admin/Analytics'))
 const AIInsights = React.lazy(() => import('@/pages/admin/AIInsights'))
 const WorkflowAutomation = React.lazy(() => import('@/pages/admin/WorkflowAutomation'))
 const PublicApplicationTracker = React.lazy(() => import('@/pages/PublicApplicationTracker'))
+const AdminTest = React.lazy(() => import('@/pages/AdminTest'))
 const NotFoundPage = React.lazy(() => import('@/pages/NotFoundPage'))
 
 // Special components that don't need lazy loading
@@ -59,6 +60,7 @@ export const routes: RouteConfig[] = [
   
   // Admin routes
   { path: '/admin', element: AdminDashboard, guard: 'admin', lazy: true },
+  { path: '/admin-test', element: AdminTest, guard: 'auth', lazy: true },
   { path: '/admin/applications', element: AdminApplications, guard: 'admin', lazy: true },
   { path: '/admin/applications-new', element: ApplicationsAdmin, guard: 'admin', lazy: true },
   { path: '/admin/programs', element: AdminPrograms, guard: 'admin', lazy: true },

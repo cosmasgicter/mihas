@@ -8,7 +8,7 @@ interface AdminRouteProps {
 }
 
 export function AdminRoute({ children }: AdminRouteProps) {
-  const { user, loading, isAdmin } = useAuth()
+  const { user, loading, isAdmin, profile } = useAuth()
 
   if (loading) {
     return (
@@ -27,7 +27,15 @@ export function AdminRoute({ children }: AdminRouteProps) {
     return <>{children}</>
   }
 
+  // Development mode - allow any authenticated user to access admin
+  if (import.meta.env.DEV) {
+    console.log('🔧 Development mode: Allowing admin access for user:', user.email)
+    return <>{children}</>
+  }
+
+  // Production mode - check admin role
   if (!isAdmin()) {
+    console.log('❌ Admin access denied for user:', user.email, 'Role:', profile?.role)
     return <Navigate to="/student/dashboard" replace />
   }
 

@@ -40,6 +40,7 @@ import { PredictiveDashboard } from '@/components/admin/PredictiveDashboard'
 import { workflowAutomation } from '@/lib/workflowAutomation'
 import { sanitizeForDisplay } from '@/lib/sanitize'
 import OfflineAdminDashboard from '@/components/admin/OfflineAdminDashboard'
+import { AdminDebug } from '@/components/AdminDebug'
 
 interface DashboardStats {
   totalApplications: number
@@ -455,6 +456,8 @@ export default function AdminDashboard() {
         </motion.div>
 
       </main>
+      
+      <AdminDebug />
     </div>
   )
 }
