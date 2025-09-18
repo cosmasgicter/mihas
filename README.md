@@ -125,6 +125,11 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 VITE_API_BASE_URL=http://localhost:5173
 VITE_APP_BASE_URL=http://localhost:5173
 
+# Analytics (Umami share link)
+VITE_ANALYTICS_BASE_URL=https://analytics.your-domain.com
+VITE_ANALYTICS_SITE_ID=your_umami_site_id
+VITE_ANALYTICS_SHARE_TOKEN=your_umami_share_token
+
 # Email Delivery
 EMAIL_PROVIDER=resend # or smtp
 EMAIL_FROM=admissions@mihas.edu.zm
@@ -144,6 +149,8 @@ NODE_ENV=development
 ```
 
 > ⚠️ **Security Note**: The `SUPABASE_SERVICE_ROLE_KEY` is required for API routes with elevated privileges. Keep it secure and never expose it in client-side code.
+
+> 📈 **Analytics Setup**: Create a [share link in Umami](https://umami.is/docs/share-dashboard) for your production domain, enable the **Share URL**, and record the generated **Site ID** and **Share Token**. Those values populate `VITE_ANALYTICS_SITE_ID` and `VITE_ANALYTICS_SHARE_TOKEN`, while `VITE_ANALYTICS_BASE_URL` should point to your Umami deployment.
 
 ### Local Development with API
 

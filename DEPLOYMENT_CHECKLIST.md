@@ -41,6 +41,9 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 VITE_API_BASE_URL=https://your-vercel-app.vercel.app
 VITE_APP_BASE_URL=https://your-domain.com
+VITE_ANALYTICS_BASE_URL=https://analytics.your-domain.com
+VITE_ANALYTICS_SITE_ID=your_umami_site_id
+VITE_ANALYTICS_SHARE_TOKEN=your_umami_share_token
 ```
 
 ### 2. Build Verification
@@ -96,6 +99,17 @@ curl -X POST "https://your-app.vercel.app/api/notifications?action=send" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{"userId":"user-id","title":"Test","message":"Test message"}'
+```
+
+### Analytics Share Endpoint
+```bash
+# Validate Umami share token and site configuration
+curl -H "x-umami-share-token: $VITE_ANALYTICS_SHARE_TOKEN" \
+  "$VITE_ANALYTICS_BASE_URL/api/share/$VITE_ANALYTICS_SITE_ID/active"
+
+# Optional: Fetch page views for the last 7 days
+curl -H "x-umami-share-token: $VITE_ANALYTICS_SHARE_TOKEN" \
+  "$VITE_ANALYTICS_BASE_URL/api/share/$VITE_ANALYTICS_SITE_ID/pageviews?startAt=$(($(date +%s%3N)-604800000))&endAt=$(date +%s%3N)&unit=day"
 ```
 
 #### MCP Edge Function

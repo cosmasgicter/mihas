@@ -1,16 +1,17 @@
-import React from 'react'
 import { motion } from 'framer-motion'
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  BarChart3, 
-  PieChart, 
+import {
+  TrendingUp,
+  TrendingDown,
+  BarChart3,
+  PieChart,
   Calendar,
   Users,
   CheckCircle,
   XCircle,
   Clock
 } from 'lucide-react'
+
+import { analyticsData } from '@/data/analytics'
 
 interface AnalyticsData {
   applications: {
@@ -33,13 +34,30 @@ interface AnalyticsChartsProps {
 }
 
 export function AnalyticsCharts({ data }: AnalyticsChartsProps) {
-  const approvalRate = data.applications.total > 0 
+  const {
+    activeUsers,
+    dailyCounts,
+    isLoading: isAnalyticsLoading,
+    isError: isAnalyticsError
+  } = analyticsData.useTrafficOverview()
+
+  const approvalRate = data.applications.total > 0
     ? Math.round((data.applications.approved / (data.applications.approved + data.applications.rejected)) * 100)
     : 0
 
   const weeklyGrowth = data.applications.lastWeek > 0
     ? Math.round(((data.applications.thisWeek - data.applications.lastWeek) / data.applications.lastWeek) * 100)
     : 0
+
+  const maxDailyCount = dailyCounts.reduce((max, day) => Math.max(max, day.count), 0)
+  const fallbackMessage = isAnalyticsError ? 'Analytics data is currently unavailable.' : 'Loading analytics data...'
+  const activeUsersDisplay = isAnalyticsError ? '—' : isAnalyticsLoading ? '...' : activeUsers.toLocaleString()
+  const activeUsersStatus = isAnalyticsError
+    ? 'Analytics unavailable'
+    : isAnalyticsLoading
+      ? 'Fetching latest data'
+      : 'Online now'
+  const activeUsersStatusClass = isAnalyticsError ? 'text-red-600' : 'text-indigo-600'
 
   const chartData = [
     { label: 'Approved', value: data.applications.approved, color: 'bg-green-500', percentage: Math.round((data.applications.approved / data.applications.total) * 100) },
@@ -119,7 +137,7 @@ export function AnalyticsCharts({ data }: AnalyticsChartsProps) {
           </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
@@ -128,10 +146,10 @@ export function AnalyticsCharts({ data }: AnalyticsChartsProps) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Active Users</p>
-              <p className="text-2xl font-bold text-indigo-600">{Math.floor(Math.random() * 50) + 20}</p>
+              <p className="text-2xl font-bold text-indigo-600">{activeUsersDisplay}</p>
               <div className="flex items-center mt-2 text-xs">
-                <Users className="h-3 w-3 text-indigo-500 mr-1" />
-                <span className="text-indigo-600">Online now</span>
+                <Users className={`h-3 w-3 mr-1 ${isAnalyticsError ? 'text-red-500' : 'text-indigo-500'}`} />
+                <span className={activeUsersStatusClass}>{activeUsersStatus}</span>
               </div>
             </div>
             <Users className="h-8 w-8 text-indigo-500" />
@@ -243,30 +261,50 @@ export function AnalyticsCharts({ data }: AnalyticsChartsProps) {
         </div>
         
         <div className="p-6">
-          <div className="grid grid-cols-7 gap-2 mb-4">
-            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
-              <div key={day} className="text-center">
-                <div className="text-xs text-gray-500 mb-2">{day}</div>
-                <motion.div 
-                  className="bg-gradient-to-t from-primary to-secondary rounded-lg mx-auto"
-                  style={{ 
-                    height: `${Math.floor(Math.random() * 60) + 20}px`,
-                    width: '100%'
-                  }}
-                  initial={{ height: 0 }}
-                  animate={{ height: `${Math.floor(Math.random() * 60) + 20}px` }}
-                  transition={{ delay: index * 0.1, duration: 0.5 }}
-                ></motion.div>
-                <div className="text-xs font-semibold text-gray-700 mt-2">
-                  {Math.floor(Math.random() * 20) + 5}
+          {isAnalyticsLoading ? (
+            <div className="grid grid-cols-7 gap-2 mb-4">
+              {Array.from({ length: 7 }).map((_, index) => (
+                <div key={index} className="text-center">
+                  <div className="text-xs text-gray-300 mb-2">---</div>
+                  <div className="h-16 w-full rounded-lg bg-gray-200 animate-pulse mx-auto"></div>
+                  <div className="text-xs font-semibold text-gray-300 mt-2">--</div>
                 </div>
+              ))}
+            </div>
+          ) : isAnalyticsError || dailyCounts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-sm text-gray-500">
+              <XCircle className="h-6 w-6 text-red-400 mb-2" />
+              <p>{fallbackMessage}</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-7 gap-2 mb-4">
+                {dailyCounts.map((day, index) => {
+                  const height = maxDailyCount > 0 ? Math.max(12, Math.round((day.count / maxDailyCount) * 80)) : 12
+
+                  return (
+                    <div key={day.date} className="text-center">
+                      <div className="text-xs text-gray-500 mb-2">{day.label}</div>
+                      <motion.div
+                        className="bg-gradient-to-t from-primary to-secondary rounded-lg mx-auto"
+                        style={{ width: '100%' }}
+                        initial={{ height: 0 }}
+                        animate={{ height: `${height}px` }}
+                        transition={{ delay: index * 0.1, duration: 0.5 }}
+                      ></motion.div>
+                      <div className="text-xs font-semibold text-gray-700 mt-2">
+                        {day.count.toLocaleString()}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            ))}
-          </div>
-          
-          <div className="text-center text-sm text-gray-600">
-            Applications received per day this week
-          </div>
+
+              <div className="text-center text-sm text-gray-600">
+                Page views for the last 7 days
+              </div>
+            </>
+          )}
         </div>
       </motion.div>
     </div>
