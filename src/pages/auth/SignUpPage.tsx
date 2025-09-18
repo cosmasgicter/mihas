@@ -222,11 +222,12 @@ setSuccess('Account created successfully! Redirecting to sign in...')
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">
+                <label htmlFor="sex" className="block text-sm font-medium text-secondary mb-1">
                   Sex <span className="text-red-500">*</span>
                 </label>
                 <select
                   {...register('sex')}
+                  id="sex"
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 >
                   <option value="">Select Sex</option>

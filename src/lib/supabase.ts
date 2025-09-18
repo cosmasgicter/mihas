@@ -13,8 +13,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false, // Disable for faster loading
-    flowType: 'pkce'
+    detectSessionInUrl: false,
+    flowType: 'pkce',
+    storage: window.localStorage,
+    storageKey: 'mihas-auth-token',
+    debug: false
   },
   global: {
     headers: {

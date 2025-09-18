@@ -4,7 +4,7 @@ import { supabase, UserProfile } from '@/lib/supabase'
 import { sanitizeForLog } from '@/lib/security'
 import { sanitizeForDisplay } from '@/lib/sanitize'
 import { secureDisplay } from '@/lib/secureDisplay'
-import { sessionManager } from '@/lib/sessionManager'
+import { authPersistence } from '@/lib/authPersistence'
 
 interface UserRole {
   id: string
@@ -43,22 +43,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     async function loadUser() {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        // Get current session first
+        const { data: { session } } = await supabase.auth.getSession()
         
         if (!mounted) return
         
-        setUser(user)
-        setLoading(false)
-        
-        // Load profile and role in background after initial render
-        if (user) {
+        if (session?.user) {
+          console.log('Session found on mount, user authenticated')
+          setUser(session.user)
+          
+          // Load profile and role in background
           setTimeout(() => {
             if (mounted) {
-              loadUserProfile(user.id)
-              loadUserRole(user.id)
+              loadUserProfile(session.user.id)
+              loadUserRole(session.user.id)
             }
           }, 100)
+        } else {
+          console.log('No session found on mount')
+          setUser(null)
+          setProfile(null)
+          setUserRole(null)
         }
+        
+        setLoading(false)
+        setHasLoaded(true)
       } catch (error) {
         console.error('Error loading user:', error)
         if (mounted) {
@@ -66,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfile(null)
           setUserRole(null)
           setLoading(false)
+          setHasLoaded(true)
         }
       }
     }
@@ -79,42 +89,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         console.log('AuthContext: Auth state change:', sanitizeForLog(event))
         
-        // Don't reset user on token refresh or signed in events
-        if ((event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') && session?.user) {
-          console.log('Token refreshed or signed in, maintaining session')
+        // Handle token refresh - maintain current state
+        if (event === 'TOKEN_REFRESHED' && session?.user) {
+          console.log('Token refreshed successfully, maintaining session')
           setUser(session.user)
+          setLoading(false)
           return
         }
         
-        // Handle sign out
-        if (event === 'SIGNED_OUT' || !session) {
-          console.log('User signed out or session expired')
-          setUser(null)
-          setProfile(null)
-          setUserRole(null)
-          if (mounted && !hasLoaded) {
-            setLoading(false)
-            setHasLoaded(true)
-          }
-          return
-        }
-        
-        // Handle sign in or session recovery
-        if (session?.user) {
+        // Handle sign in
+        if (event === 'SIGNED_IN' && session?.user) {
+          console.log('User signed in successfully')
           setUser(session.user)
-          try {
-            // Load profile and role with a small delay to ensure user is set
-            setTimeout(async () => {
+          // Load profile and role
+          setTimeout(async () => {
+            if (mounted) {
               await Promise.all([
                 loadUserProfile(session.user.id),
                 loadUserRole(session.user.id)
               ])
-            }, 100)
-          } catch (error) {
-            console.error('Error loading profile after auth change:', sanitizeForLog(error instanceof Error ? error.message : 'Unknown error'))
-          }
+            }
+          }, 100)
+          setLoading(false)
+          return
         }
         
+        // Handle sign out
+        if (event === 'SIGNED_OUT') {
+          console.log('User signed out')
+          setUser(null)
+          setProfile(null)
+          setUserRole(null)
+          setLoading(false)
+          return
+        }
+        
+        // Handle initial session or session recovery
+        if (event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
+          if (session?.user) {
+            console.log('Session recovered or user updated')
+            setUser(session.user)
+            setTimeout(async () => {
+              if (mounted) {
+                await Promise.all([
+                  loadUserProfile(session.user.id),
+                  loadUserRole(session.user.id)
+                ])
+              }
+            }, 100)
+          } else {
+            setUser(null)
+            setProfile(null)
+            setUserRole(null)
+          }
+          setLoading(false)
+          return
+        }
+        
+        // Default case - set loading to false
         if (mounted && !hasLoaded) {
           setLoading(false)
           setHasLoaded(true)
@@ -122,12 +154,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     )
 
-    // Disable session timeout to prevent auto-logout
-    const cleanupTimeout = () => {}
+    // Initialize auth persistence
+    authPersistence.init()
 
     return () => {
       mounted = false
       subscription.unsubscribe()
+      authPersistence.cleanup()
     }
   }, [])
 
@@ -233,14 +266,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function signIn(email: string, password: string) {
     try {
       console.log('Attempting sign in for:', sanitizeForLog(email))
-      const result = await supabase.auth.signInWithPassword({ email, password })
+      const result = await supabase.auth.signInWithPassword({ 
+        email, 
+        password,
+        options: {
+          // Ensure session persists
+          shouldCreateUser: false
+        }
+      })
       
       if (result.error) {
         console.error('Sign in error:', sanitizeForLog(result.error.message))
         return { error: result.error.message }
       }
       
-      console.log('Sign in successful')
+      if (result.data.session) {
+        console.log('Sign in successful, session established')
+        // Ensure user state is set immediately
+        setUser(result.data.user)
+      }
+      
       return result.data
     } catch (error) {
       console.error('Sign in exception:', error)

@@ -991,11 +991,12 @@ export default function ApplicationWizard() {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="sex" className="block text-sm font-medium text-gray-700 mb-1">
                       Sex <span className="text-red-500">*</span>
                     </label>
                     <select
                       {...register('sex')}
+                      id="sex"
                       className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="">Select sex</option>
@@ -1052,11 +1053,12 @@ export default function ApplicationWizard() {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="program" className="block text-sm font-medium text-gray-700 mb-1">
                       Program <span className="text-red-500">*</span>
                     </label>
                     <select
                       {...register('program')}
+                      id="program"
                       className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="">Select program</option>
@@ -1070,11 +1072,12 @@ export default function ApplicationWizard() {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="intake" className="block text-sm font-medium text-gray-700 mb-1">
                       Intake <span className="text-red-500">*</span>
                     </label>
                     <select
                       {...register('intake')}
+                      id="intake"
                       className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="">Select intake</option>
@@ -1511,11 +1514,12 @@ export default function ApplicationWizard() {
                   
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="payment_method" className="block text-sm font-medium text-gray-700 mb-1">
                         Payment Method <span className="text-red-500">*</span>
                       </label>
                       <select
                         {...register('payment_method')}
+                        id="payment_method"
                         className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         defaultValue="MTN Money"
                       >

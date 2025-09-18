@@ -289,8 +289,9 @@ export default function Analytics() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Quick Range</label>
+              <label htmlFor="quick_range" className="block text-sm font-medium text-gray-700 mb-2">Quick Range</label>
               <select
+                id="quick_range"
                 onChange={(e) => {
                   const days = parseInt(e.target.value)
                   if (days > 0) {
@@ -310,8 +311,8 @@ export default function Analytics() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Export Format</label>
-              <select className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-green-500 focus:ring-2 focus:ring-green-500/20">
+              <label htmlFor="export_format" className="block text-sm font-medium text-gray-700 mb-2">Export Format</label>
+              <select id="export_format" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 focus:border-green-500 focus:ring-2 focus:ring-green-500/20">
                 <option value="json">JSON</option>
                 <option value="csv">CSV</option>
                 <option value="pdf">PDF</option>

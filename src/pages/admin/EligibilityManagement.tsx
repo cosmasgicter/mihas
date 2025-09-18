@@ -314,10 +314,11 @@ export default function EligibilityManagement() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="program" className="block text-sm font-medium text-gray-700 mb-1">
                     Program
                   </label>
                   <select
+                    id="program"
                     value={ruleForm.program_id}
                     onChange={(e) => setRuleForm({ ...ruleForm, program_id: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -338,10 +339,11 @@ export default function EligibilityManagement() {
                 />
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="rule_type" className="block text-sm font-medium text-gray-700 mb-1">
                     Rule Type
                   </label>
                   <select
+                    id="rule_type"
                     value={ruleForm.rule_type}
                     onChange={(e) => setRuleForm({ ...ruleForm, rule_type: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
