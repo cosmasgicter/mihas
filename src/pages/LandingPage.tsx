@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import '@/styles/accreditation.css'
 import { Button } from '@/components/ui/Button'
@@ -19,9 +19,12 @@ const GeometricPatterns = lazy(() => import('@/components/ui/FloatingElements').
 
 export default function LandingPageNew() {
   const isMobile = useIsMobile()
+  const shouldReduceMotion = useReducedMotion()
   const [heroRef, heroInView] = useInView({ threshold: 0.3, triggerOnce: true })
   const [statsRef, statsInView] = useInView({ threshold: 0.3, triggerOnce: true })
   const [showAnimations, setShowAnimations] = useState(false)
+  const animationHelpersEnabled = showAnimations && !shouldReduceMotion
+  const maybeMotion = <T,>(value: T) => (shouldReduceMotion ? undefined : value)
   
   useEffect(() => {
     // Defer animations to improve LCP
@@ -106,9 +109,9 @@ export default function LandingPageNew() {
       {/* Enhanced Header */}
       <motion.header
         className="fixed top-0 left-0 right-0 z-50 glass-effect border-b border-white/20"
-        initial={{ y: -100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: [0.25, 0.25, 0, 1] }}
+        initial={maybeMotion({ y: -100, opacity: 0 })}
+        animate={maybeMotion({ y: 0, opacity: 1 })}
+        transition={maybeMotion({ duration: 0.6, ease: [0.25, 0.25, 0, 1] })}
       >
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <MobileNavigation />
@@ -120,7 +123,7 @@ export default function LandingPageNew() {
         {/* Animated Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-accent opacity-95" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-black/10" />
-        {showAnimations && (
+        {animationHelpersEnabled && (
           <Suspense fallback={null}>
             <FloatingElements count={30} />
             <GeometricPatterns />
@@ -130,12 +133,12 @@ export default function LandingPageNew() {
         <motion.div
           ref={heroRef}
           className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white"
-          variants={containerVariants}
-          initial="hidden"
-          animate={heroInView ? "visible" : "hidden"}
+          variants={shouldReduceMotion ? undefined : containerVariants}
+          initial={shouldReduceMotion ? undefined : 'hidden'}
+          animate={shouldReduceMotion ? undefined : (heroInView ? 'visible' : 'hidden')}
         >
-          <motion.div variants={itemVariants} className="mb-6">
-            {showAnimations ? (
+          <motion.div variants={shouldReduceMotion ? undefined : itemVariants} className="mb-6">
+            {animationHelpersEnabled ? (
               <Suspense fallback={<h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold mb-6 px-4 text-center">Your Future Starts Here</h1>}>
                 <TypewriterText
                   text="Your Future Starts Here"
@@ -150,14 +153,14 @@ export default function LandingPageNew() {
           </motion.div>
           
           <motion.p
-            variants={itemVariants}
+            variants={shouldReduceMotion ? undefined : itemVariants}
             className="text-lg sm:text-xl md:text-2xl lg:text-3xl mb-8 max-w-4xl mx-auto leading-relaxed text-white/95 font-medium px-4"
           >
             Launch Your Healthcare Career in Zambia & Beyond – Apply for Accredited Health Sciences Programs with 92% Job Placement Success
           </motion.p>
           
           <motion.div
-            variants={itemVariants}
+            variants={shouldReduceMotion ? undefined : itemVariants}
             className={`flex ${isMobile ? 'flex-col px-4' : 'flex-col sm:flex-row'} gap-4 sm:gap-6 justify-center items-center`}
           >
             <Link to="/auth/signup">
@@ -181,15 +184,15 @@ export default function LandingPageNew() {
         {/* Scroll Indicator */}
         <motion.div
           className="absolute bottom-8 left-1/2 transform -translate-x-1/2 cursor-pointer"
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 2, repeat: Infinity }}
+          animate={maybeMotion({ y: [0, 10, 0] })}
+          transition={maybeMotion({ duration: 2, repeat: Infinity })}
           onClick={() => document.getElementById('stats')?.scrollIntoView({ behavior: 'smooth' })}
         >
           <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center hover:border-gray-200 transition-colors">
             <motion.div
               className="w-1 h-3 bg-white rounded-full mt-2"
-              animate={{ y: [0, 12, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
+              animate={maybeMotion({ y: [0, 12, 0] })}
+              transition={maybeMotion({ duration: 2, repeat: Infinity })}
             />
           </div>
         </motion.div>
@@ -197,7 +200,7 @@ export default function LandingPageNew() {
 
       {/* Stats Section */}
       <section id="stats" className="py-20 bg-gray-50 relative">
-        {showAnimations && (
+        {animationHelpersEnabled && (
           <Suspense fallback={null}>
             <FloatingElements count={10} className="opacity-30" />
           </Suspense>
@@ -205,23 +208,23 @@ export default function LandingPageNew() {
         <motion.div
           ref={statsRef}
           className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
-          variants={containerVariants}
-          initial="hidden"
-          animate={statsInView ? "visible" : "hidden"}
+          variants={shouldReduceMotion ? undefined : containerVariants}
+          initial={shouldReduceMotion ? undefined : 'hidden'}
+          animate={shouldReduceMotion ? undefined : (statsInView ? 'visible' : 'hidden')}
         >
           <div className={`grid ${isMobile ? 'grid-cols-1 gap-6 px-4' : 'grid-cols-2 md:grid-cols-4 gap-8'}`}>
             {stats.map((stat, index) => (
               <motion.div
                 key={index}
-                variants={itemVariants}
+                variants={shouldReduceMotion ? undefined : itemVariants}
                 className="text-center"
                 style={{ transitionDelay: `${stat.delay}s` }}
               >
                 <motion.div
                   className="text-3xl sm:text-4xl md:text-5xl font-bold gradient-text mb-2"
-                  initial={{ scale: 0 }}
-                  animate={statsInView ? { scale: 1 } : { scale: 0 }}
-                  transition={{ duration: 0.8, delay: stat.delay, type: "spring" }}
+                  initial={maybeMotion({ scale: 0 })}
+                  animate={maybeMotion(statsInView ? { scale: 1 } : { scale: 0 })}
+                  transition={maybeMotion({ duration: 0.8, delay: stat.delay, type: "spring" })}
                 >
                   {stat.number}
                 </motion.div>
@@ -234,7 +237,7 @@ export default function LandingPageNew() {
 
       {/* Enhanced Features Section */}
       <section id="features" className="py-20 bg-white relative">
-        {showAnimations && (
+        {animationHelpersEnabled && (
           <Suspense fallback={null}>
             <GeometricPatterns />
           </Suspense>
@@ -242,10 +245,10 @@ export default function LandingPageNew() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             className="text-center mb-16"
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
+            initial={maybeMotion({ opacity: 0, y: 50 })}
+            whileInView={maybeMotion({ opacity: 1, y: 0 })}
+            viewport={shouldReduceMotion ? undefined : { once: true }}
+            transition={maybeMotion({ duration: 0.8 })}
           >
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold gradient-text mb-6 px-4">
               Why Choose MIHAS-KATC for Your Healthcare Career?
@@ -257,7 +260,7 @@ export default function LandingPageNew() {
           
           <div className={`grid ${isMobile ? 'grid-cols-1 gap-6 px-4' : 'md:grid-cols-3 gap-8'}`}>
             {features.map((feature, index) => (
-              showAnimations ? (
+              animationHelpersEnabled ? (
                 <AnimatedCard
                   key={index}
                   delay={index * 0.2}
@@ -268,8 +271,8 @@ export default function LandingPageNew() {
                 >
                   <motion.div
                     className={`bg-gradient-to-br ${feature.gradient} w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg`}
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    transition={{ type: "spring", stiffness: 300 }}
+                    whileHover={maybeMotion({ scale: 1.1, rotate: 5 })}
+                    transition={maybeMotion({ type: "spring", stiffness: 300 })}
                   >
                     <feature.icon className="h-10 w-10 text-white" />
                   </motion.div>
@@ -299,10 +302,10 @@ export default function LandingPageNew() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             className="text-center mb-12"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+            initial={maybeMotion({ opacity: 0, y: 30 })}
+            whileInView={maybeMotion({ opacity: 1, y: 0 })}
+            viewport={shouldReduceMotion ? undefined : { once: true }}
+            transition={maybeMotion({ duration: 0.6 })}
           >
             <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold gradient-text mb-4 px-4">
               Qualifications Recognized by Employers Across Zambia & Beyond
@@ -315,11 +318,11 @@ export default function LandingPageNew() {
           <div className={`grid ${isMobile ? 'grid-cols-1 gap-6 px-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8'} items-stretch`}>
             <motion.div
               className="bg-white rounded-lg shadow-lg p-6 text-center border border-gray-100 h-full flex flex-col justify-between"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
+              initial={maybeMotion({ opacity: 0, y: 30 })}
+              whileInView={maybeMotion({ opacity: 1, y: 0 })}
+              viewport={shouldReduceMotion ? undefined : { once: true }}
+              transition={maybeMotion({ duration: 0.6, delay: 0.1 })}
+              whileHover={maybeMotion({ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" })}
             >
               <div className="flex-1 flex flex-col items-center">
                 <div className="h-16 w-16 mb-4 flex items-center justify-center bg-gray-50 rounded-lg p-2">
@@ -342,11 +345,11 @@ export default function LandingPageNew() {
             
             <motion.div
               className="bg-white rounded-lg shadow-lg p-6 text-center border border-gray-100 h-full flex flex-col justify-between"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
+              initial={maybeMotion({ opacity: 0, y: 30 })}
+              whileInView={maybeMotion({ opacity: 1, y: 0 })}
+              viewport={shouldReduceMotion ? undefined : { once: true }}
+              transition={maybeMotion({ duration: 0.6, delay: 0.2 })}
+              whileHover={maybeMotion({ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" })}
             >
               <div className="flex-1 flex flex-col items-center">
                 <div className="h-16 w-16 mb-4 flex items-center justify-center bg-gray-50 rounded-lg p-2">
@@ -369,11 +372,11 @@ export default function LandingPageNew() {
             
             <motion.div
               className="bg-white rounded-lg shadow-lg p-6 text-center border border-gray-100 h-full flex flex-col justify-between"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
+              initial={maybeMotion({ opacity: 0, y: 30 })}
+              whileInView={maybeMotion({ opacity: 1, y: 0 })}
+              viewport={shouldReduceMotion ? undefined : { once: true }}
+              transition={maybeMotion({ duration: 0.6, delay: 0.3 })}
+              whileHover={maybeMotion({ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" })}
             >
               <div className="flex-1 flex flex-col items-center">
                 <div className="h-16 w-16 mb-4 flex items-center justify-center bg-gray-50 rounded-lg p-2">
@@ -396,11 +399,11 @@ export default function LandingPageNew() {
             
             <motion.div
               className="bg-white rounded-lg shadow-lg p-6 text-center border border-gray-100 h-full flex flex-col justify-between"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              whileHover={{ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" }}
+              initial={maybeMotion({ opacity: 0, y: 30 })}
+              whileInView={maybeMotion({ opacity: 1, y: 0 })}
+              viewport={shouldReduceMotion ? undefined : { once: true }}
+              transition={maybeMotion({ duration: 0.6, delay: 0.4 })}
+              whileHover={maybeMotion({ y: -5, shadow: "0 20px 40px rgba(0,0,0,0.1)" })}
             >
               <div className="flex-1 flex flex-col items-center">
                 <div className="h-16 w-16 mb-4 flex items-center justify-center bg-gray-50 rounded-lg p-2">
@@ -426,7 +429,7 @@ export default function LandingPageNew() {
 
       {/* Enhanced Programs Section */}
       <section className="py-20 bg-gray-50 relative">
-        {showAnimations && (
+        {animationHelpersEnabled && (
           <Suspense fallback={null}>
             <FloatingElements count={15} />
           </Suspense>
@@ -434,10 +437,10 @@ export default function LandingPageNew() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             className="text-center mb-16"
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
+            initial={maybeMotion({ opacity: 0, y: 50 })}
+            whileInView={maybeMotion({ opacity: 1, y: 0 })}
+            viewport={shouldReduceMotion ? undefined : { once: true }}
+            transition={maybeMotion({ duration: 0.8 })}
           >
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold gradient-text mb-6 px-4">
               High-Demand Healthcare Jobs Training Programs
@@ -449,7 +452,7 @@ export default function LandingPageNew() {
           
           <div className={`grid ${isMobile ? 'grid-cols-1 gap-8 px-4' : 'md:grid-cols-2 gap-12'}`}>
             {programs.map((program, index) => (
-              showAnimations ? (
+              animationHelpersEnabled ? (
                 <AnimatedCard
                   key={index}
                   delay={index * 0.3}
@@ -465,19 +468,19 @@ export default function LandingPageNew() {
                         loading="lazy"
                         width="400"
                         height="192"
-                        whileHover={{ scale: 1.05 }}
-                        transition={{ duration: 0.3 }}
+                        whileHover={maybeMotion({ scale: 1.05 })}
+                        transition={maybeMotion({ duration: 0.3 })}
                       />
                       <div className="absolute top-4 right-4 space-y-2">
                         <motion.div
                           className="bg-gradient-to-r from-primary to-secondary text-white px-3 py-1 rounded-full text-xs font-semibold"
-                          whileHover={{ scale: 1.1 }}
+                          whileHover={maybeMotion({ scale: 1.1 })}
                         >
                           {program.highlight}
                         </motion.div>
                         <motion.div
                           className="bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold"
-                          whileHover={{ scale: 1.1 }}
+                          whileHover={maybeMotion({ scale: 1.1 })}
                         >
                           {program.accreditation}
                         </motion.div>
@@ -491,10 +494,10 @@ export default function LandingPageNew() {
                         <motion.div
                           key={courseIndex}
                           className="flex items-center space-x-3"
-                          initial={{ opacity: 0, x: -20 }}
-                          whileInView={{ opacity: 1, x: 0 }}
-                          viewport={{ once: true }}
-                          transition={{ delay: courseIndex * 0.1 }}
+                          initial={maybeMotion({ opacity: 0, x: -20 })}
+                          whileInView={maybeMotion({ opacity: 1, x: 0 })}
+                          viewport={shouldReduceMotion ? undefined : { once: true }}
+                          transition={maybeMotion({ delay: courseIndex * 0.1 })}
                         >
                           <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
                           <span className="text-sm sm:text-base text-gray-800 font-medium">{course}</span>
@@ -544,37 +547,37 @@ export default function LandingPageNew() {
       <section className="relative py-20 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-accent" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/20" />
-        {showAnimations && (
+        {animationHelpersEnabled && (
           <Suspense fallback={null}>
             <FloatingElements count={25} />
             <GeometricPatterns />
           </Suspense>
         )}
-        
+
         <motion.div
           className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white"
-          initial={{ opacity: 0, scale: 0.9 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
+          initial={maybeMotion({ opacity: 0, scale: 0.9 })}
+          whileInView={maybeMotion({ opacity: 1, scale: 1 })}
+          viewport={shouldReduceMotion ? undefined : { once: true }}
+          transition={maybeMotion({ duration: 0.8 })}
         >
           <motion.h2
             className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-6 px-4"
-            animate={{ y: [0, -5, 0] }}
-            transition={{ duration: 4, repeat: Infinity }}
+            animate={maybeMotion({ y: [0, -5, 0] })}
+            transition={maybeMotion({ duration: 4, repeat: Infinity })}
           >
             Ready to Secure Your Healthcare Job in Zambia?
           </motion.h2>
           <motion.p
             className="text-lg sm:text-xl md:text-2xl mb-8 max-w-3xl mx-auto px-4"
-            animate={{ y: [0, 5, 0] }}
-            transition={{ duration: 4, repeat: Infinity, delay: 0.5 }}
+            animate={maybeMotion({ y: [0, 5, 0] })}
+            transition={maybeMotion({ duration: 4, repeat: Infinity, delay: 0.5 })}
           >
             Applications open now! Join 300+ graduates working in hospitals, clinics, and health organizations across Zambia and beyond
           </motion.p>
           <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={maybeMotion({ scale: 1.05 })}
+            whileTap={maybeMotion({ scale: 0.95 })}
           >
             <Link to="/auth/signup">
               <Button variant="outline" size="xl" className="border-2 border-white text-white hover:bg-white hover:text-primary" magnetic>
@@ -588,7 +591,7 @@ export default function LandingPageNew() {
 
       {/* Enhanced Footer */}
       <footer className="bg-gray-900 text-white py-16 relative">
-        {showAnimations && (
+        {animationHelpersEnabled && (
           <Suspense fallback={null}>
             <FloatingElements count={8} className="opacity-20" />
           </Suspense>
@@ -596,15 +599,15 @@ export default function LandingPageNew() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             className="grid md:grid-cols-3 gap-12"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
+            variants={shouldReduceMotion ? undefined : containerVariants}
+            initial={shouldReduceMotion ? undefined : 'hidden'}
+            whileInView={shouldReduceMotion ? undefined : 'visible'}
+            viewport={shouldReduceMotion ? undefined : { once: true }}
           >
-            <motion.div variants={itemVariants}>
+            <motion.div variants={shouldReduceMotion ? undefined : itemVariants}>
               <motion.div
                 className="flex items-center space-x-2 mb-6"
-                whileHover={{ scale: 1.05 }}
+                whileHover={maybeMotion({ scale: 1.05 })}
               >
                 <GraduationCap className="h-8 w-8 text-primary" />
                 <span className="text-2xl font-bold gradient-text">MIHAS-KATC</span>
@@ -620,7 +623,7 @@ export default function LandingPageNew() {
               </div>
             </motion.div>
             
-            <motion.div variants={itemVariants}>
+            <motion.div variants={shouldReduceMotion ? undefined : itemVariants}>
               <h3 className="text-xl font-semibold mb-6">Quick Links</h3>
               <ul className="space-y-3">
                 {[
@@ -631,10 +634,10 @@ export default function LandingPageNew() {
                 ].map((link, index) => (
                   <motion.li
                     key={link.name}
-                    initial={{ opacity: 0, x: -20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.1 }}
+                    initial={maybeMotion({ opacity: 0, x: -20 })}
+                    whileInView={maybeMotion({ opacity: 1, x: 0 })}
+                    viewport={shouldReduceMotion ? undefined : { once: true }}
+                    transition={maybeMotion({ delay: index * 0.1 })}
                   >
                     <Link to={link.href} className="text-gray-300 hover:text-primary transition-colors duration-300 flex items-center group">
                       <ArrowRight className="w-4 h-4 mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -645,7 +648,7 @@ export default function LandingPageNew() {
               </ul>
             </motion.div>
             
-            <motion.div variants={itemVariants}>
+            <motion.div variants={shouldReduceMotion ? undefined : itemVariants}>
               <h3 className="text-xl font-semibold mb-6">Follow Us</h3>
               <div className="flex space-x-4">
                 {['Facebook', 'Twitter', 'LinkedIn'].map((social, index) => (
@@ -653,12 +656,12 @@ export default function LandingPageNew() {
                     key={social}
                     href="#"
                     className="text-gray-300 hover:text-primary transition-colors duration-300 px-4 py-2 rounded-lg hover:bg-primary/10"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.1 }}
+                    whileHover={maybeMotion({ scale: 1.1 })}
+                    whileTap={maybeMotion({ scale: 0.9 })}
+                    initial={maybeMotion({ opacity: 0, y: 20 })}
+                    whileInView={maybeMotion({ opacity: 1, y: 0 })}
+                    viewport={shouldReduceMotion ? undefined : { once: true }}
+                    transition={maybeMotion({ delay: index * 0.1 })}
                   >
                     {social}
                   </motion.a>
@@ -669,9 +672,9 @@ export default function LandingPageNew() {
           
           <motion.div
             className="border-t border-gray-700 mt-12 pt-8 text-center"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            initial={maybeMotion({ opacity: 0, y: 20 })}
+            whileInView={maybeMotion({ opacity: 1, y: 0 })}
+            viewport={shouldReduceMotion ? undefined : { once: true }}
           >
             <p className="text-gray-300 mb-2">&copy; 2025 MIHAS-KATC. All rights reserved.</p>
             <p className="text-gray-400">
@@ -679,7 +682,7 @@ export default function LandingPageNew() {
               <motion.a
                 href="https://beanola.com"
                 className="gradient-text font-semibold"
-                whileHover={{ scale: 1.05 }}
+                whileHover={maybeMotion({ scale: 1.05 })}
               >
                 Beanola Technologies
               </motion.a>

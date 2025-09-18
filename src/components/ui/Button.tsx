@@ -1,5 +1,5 @@
 import React from 'react'
-import { motion, type HTMLMotionProps } from 'framer-motion'
+import { motion, type HTMLMotionProps, useReducedMotion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 interface ButtonProps extends HTMLMotionProps<'button'> {
@@ -23,6 +23,7 @@ export function Button({
   onClick,
   ...props
 }: ButtonProps) {
+  const prefersReducedMotion = useReducedMotion()
   const baseClasses = cn(
     'relative inline-flex items-center justify-center rounded-xl font-semibold',
     'transition-all duration-300 focus-visible:outline-none focus-visible:ring-2',
@@ -73,19 +74,21 @@ export function Button({
   }
 
   const [ripples, setRipples] = React.useState<Array<{ id: number; x: number; y: number }>>([])
-  
+
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    
-    const newRipple = { id: Date.now(), x, y }
-    setRipples(prev => [...prev, newRipple])
-    
-    setTimeout(() => {
-      setRipples(prev => prev.filter(ripple => ripple.id !== newRipple.id))
-    }, 600)
-    
+    if (!prefersReducedMotion) {
+      const rect = e.currentTarget.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+
+      const newRipple = { id: Date.now(), x, y }
+      setRipples(prev => [...prev, newRipple])
+
+      setTimeout(() => {
+        setRipples(prev => prev.filter(ripple => ripple.id !== newRipple.id))
+      }, 600)
+    }
+
     if (onClick) {
       onClick(e)
     }
@@ -95,16 +98,23 @@ export function Button({
     <>
       {/* Animated background for gradient variant */}
       {variant === 'gradient' && (
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-accent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-          animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-          style={{ backgroundSize: '200% 200%' }}
-        />
+        prefersReducedMotion ? (
+          <div
+            className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-accent opacity-80"
+            style={{ backgroundSize: '200% 200%' }}
+          />
+        ) : (
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-accent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            style={{ backgroundSize: '200% 200%' }}
+          />
+        )
       )}
-      
+
       {/* Ripple effects */}
-      {ripples.map(ripple => (
+      {!prefersReducedMotion && ripples.map(ripple => (
         <motion.span
           key={ripple.id}
           className="absolute bg-white rounded-full pointer-events-none"
@@ -119,18 +129,22 @@ export function Button({
           animate="animate"
         />
       ))}
-      
+
       {/* Shine effect */}
       <div className="absolute inset-0 shine-effect rounded-xl" />
-      
+
       {/* Content */}
       <div className="relative z-10 flex items-center justify-center">
         {loading && (
-          <motion.div
-            className="mr-2 h-4 w-4 rounded-full border-2 border-current border-t-transparent"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          />
+          prefersReducedMotion ? (
+            <div className="mr-2 h-4 w-4 rounded-full border-2 border-current border-t-transparent" />
+          ) : (
+            <motion.div
+              className="mr-2 h-4 w-4 rounded-full border-2 border-current border-t-transparent"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            />
+          )
         )}
         {children}
       </div>
@@ -147,10 +161,12 @@ export function Button({
         glow && 'glow-effect',
         className
       )}
-      variants={buttonVariants}
-      initial="initial"
-      whileHover="hover"
-      whileTap="tap"
+      {...(!prefersReducedMotion ? {
+        variants: buttonVariants,
+        initial: 'initial' as const,
+        whileHover: 'hover' as const,
+        whileTap: 'tap' as const
+      } : {})}
       disabled={disabled || loading}
       onClick={handleClick}
       {...props}

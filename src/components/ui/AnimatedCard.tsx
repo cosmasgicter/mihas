@@ -1,5 +1,5 @@
 import React from 'react'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { cn } from '@/lib/utils'
 
@@ -22,6 +22,7 @@ function AnimatedCard({
   glassEffect = false,
   gradient = false
 }: AnimatedCardProps) {
+  const prefersReducedMotion = useReducedMotion()
   const [ref, inView] = useInView({
     triggerOnce: true,
     threshold: 0.1,
@@ -80,6 +81,39 @@ function AnimatedCard({
   const gradientClasses = gradient ? "bg-gradient-to-br from-white via-white to-primary/5" : ""
   const shadowClasses = "shadow-lg hover:shadow-2xl"
 
+  if (prefersReducedMotion) {
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          baseClasses,
+          glassClasses,
+          gradientClasses,
+          shadowClasses,
+          hover3d && "perspective-1000",
+          className
+        )}
+        style={{
+          transformStyle: hover3d ? 'preserve-3d' : 'flat'
+        }}
+      >
+        <div
+          className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-accent rounded-xl"
+          style={{ padding: '2px', opacity: 0.4 }}
+        >
+          <div className={cn(
+            "h-full w-full rounded-xl",
+            glassEffect ? "glass-effect" : "bg-white"
+          )} />
+        </div>
+
+        <div className="relative z-10 p-6">
+          {children}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <motion.div
       ref={ref}
@@ -106,19 +140,19 @@ function AnimatedCard({
       }}
     >
       {/* Gradient border animation */}
-      <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-accent opacity-0 hover:opacity-100 transition-opacity duration-300 rounded-xl" 
+      <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-accent opacity-0 hover:opacity-100 transition-opacity duration-300 rounded-xl"
            style={{ padding: '2px' }}>
         <div className={cn(
           "h-full w-full rounded-xl",
           glassEffect ? "glass-effect" : "bg-white"
         )} />
       </div>
-      
+
       {/* Content */}
       <div className="relative z-10 p-6">
         {children}
       </div>
-      
+
       {/* Floating particles */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="particle" style={{ top: '20%', animationDelay: '0s' }} />
