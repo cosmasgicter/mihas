@@ -4,6 +4,9 @@ import { User } from '@supabase/supabase-js'
 import { useAuth } from '@/contexts/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
 import { sanitizeForLog } from '@/lib/security'
+import { isAdminRole } from '@/lib/auth/roles'
+
+export { ADMIN_ROLES, isAdminRole, isReportManagerRole, REPORT_MANAGER_ROLES } from '@/lib/auth/roles'
 
 export interface AuthUserRole {
   id: string
@@ -17,22 +20,6 @@ export interface AuthUserRole {
 export interface UseRoleQueryOptions {
   user?: User | null
   enabled?: boolean
-}
-
-export const ADMIN_ROLES = [
-  'admin',
-  'super_admin',
-  'admissions_officer',
-  'registrar',
-  'finance_officer',
-  'academic_head'
-] as const
-
-type AdminRole = typeof ADMIN_ROLES[number]
-
-export function isAdminRole(role?: string | null): role is AdminRole {
-  if (!role) return false
-  return ADMIN_ROLES.includes(role as AdminRole)
 }
 
 type RoleQueryResult = {
