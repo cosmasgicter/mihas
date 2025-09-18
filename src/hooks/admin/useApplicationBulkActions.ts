@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useBulkOperations } from '@/hooks/useBulkOperations'
-import { applicationService } from '@/services/apiClient'
 import { exportToCSV, exportToExcel } from '@/lib/exportUtils'
 
 interface ApplicationSummary {

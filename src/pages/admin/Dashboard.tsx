@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { adminDashboardService } from '@/services/apiClient'
+import { adminDashboardService } from '@/services/admin/dashboard'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Button } from '@/components/ui/Button'
 import { AdminNavigation } from '@/components/ui/AdminNavigation'

@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
-import { applicationService, documentService, analyticsService, userService } from '@/services/apiClient'
+import { applicationService } from '@/services/applications'
+import { documentService } from '@/services/documents'
+import { analyticsService } from '@/services/analytics'
+import { userService } from '@/services/admin/users'
 
 // Auth hooks
 export const useLogin = () => {

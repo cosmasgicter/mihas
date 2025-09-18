@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { formatDate, getStatusColor } from '@/lib/utils'
 import { motion } from 'framer-motion'
-import { applicationService } from '@/services/apiClient'
+import { applicationService } from '@/services/applications'
 import { 
   ArrowLeft, 
   FileText, 

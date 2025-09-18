@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { catalogService, programService, intakeService } from '@/services/apiClient'
+import { catalogService, programService, intakeService } from '@/services/catalog'
 
 // Query Keys
 const QUERY_KEYS = {
