@@ -311,3 +311,476 @@ export async function exportToPDF(
 
   doc.save(filename)
 }
+
+export interface UserPDFFieldDefinition<TRecord extends Record<string, unknown> = Record<string, unknown>> {
+  id: keyof TRecord & string
+  label: string
+  formatter?: (value: TRecord[keyof TRecord], record: TRecord) => string
+}
+
+export interface ExportUsersPDFOptions {
+  filename?: string
+  title?: string
+  generatedAt?: Date
+  metadata?: string[]
+  orientation?: 'portrait' | 'landscape'
+  download?: boolean
+}
+
+export interface ExportUsersPDFResult {
+  bytes: Uint8Array
+  blob: Blob
+  filename: string
+  pageCount: number
+  columnLabels: string[]
+  rowCount: number
+}
+
+const sanitizeUserPdfText = (value: string) => {
+  const normalized = value.replace(/\r?\n+/g, ' ').replace(/\s{2,}/g, ' ').trim()
+  if (normalized.length <= 200) {
+    return normalized
+  }
+  return `${normalized.slice(0, 197)}…`
+}
+
+const inferDateLikeValue = (rawValue: unknown, fieldId: string) => {
+  if (!rawValue) return ''
+
+  if (rawValue instanceof Date) {
+    return rawValue.toLocaleDateString()
+  }
+
+  if (typeof rawValue === 'string') {
+    const trimmed = rawValue.trim()
+    if (!trimmed) return ''
+    if (/date/i.test(fieldId) || /_at$/.test(fieldId)) {
+      const parsed = new Date(trimmed)
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toLocaleDateString()
+      }
+    }
+  }
+
+  return ''
+}
+
+export async function exportUsersToPDF<TRecord extends Record<string, unknown>>(
+  records: TRecord[],
+  selectedFieldIds: Array<UserPDFFieldDefinition<TRecord>['id']>,
+  fieldDefinitions: Array<UserPDFFieldDefinition<TRecord>>,
+  options: ExportUsersPDFOptions = {}
+): Promise<ExportUsersPDFResult> {
+  if (!selectedFieldIds.length) {
+    throw new Error('At least one field must be selected to export users to PDF')
+  }
+
+  const pdfLib = await import('pdf-lib')
+  const { PDFDocument, StandardFonts, rgb } = pdfLib
+
+  const pdfDoc = await PDFDocument.create()
+  const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica)
+  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+
+  const orientation = options.orientation ?? 'landscape'
+  const pageSize: [number, number] =
+    orientation === 'portrait'
+      ? [595.28, 841.89]
+      : [841.89, 595.28]
+
+  const margins = { top: 56, right: 40, bottom: 50, left: 40 }
+  const headerFontSize = 11
+  const bodyFontSize = 9
+  const bodyLineHeight = bodyFontSize + 4
+  const cellPadding = 4
+  const headerHeight = 24
+  const maxLinesPerCell = 4
+
+  const selectedFields = selectedFieldIds.map(fieldId => {
+    const definition = fieldDefinitions.find(field => field.id === fieldId)
+    if (!definition) {
+      throw new Error(`Field definition for "${fieldId}" was not provided`)
+    }
+    return definition
+  })
+
+  const columnLabels = selectedFields.map(field => field.label || String(field.id))
+
+  const formatFieldValue = (field: UserPDFFieldDefinition<TRecord>, record: TRecord) => {
+    const rawValue = record[field.id]
+
+    if (field.formatter) {
+      try {
+        const formatted = field.formatter(rawValue, record)
+        return sanitizeUserPdfText(String(formatted ?? ''))
+      } catch (error) {
+        console.warn(`Formatter for field "${String(field.id)}" failed`, error)
+      }
+    }
+
+    if (rawValue === null || rawValue === undefined) {
+      return ''
+    }
+
+    const inferredDate = inferDateLikeValue(rawValue, String(field.id))
+    if (inferredDate) {
+      return inferredDate
+    }
+
+    if (typeof rawValue === 'number') {
+      return rawValue.toLocaleString()
+    }
+
+    if (rawValue instanceof Date) {
+      return rawValue.toLocaleDateString()
+    }
+
+    return sanitizeUserPdfText(String(rawValue))
+  }
+
+  const wrapCellText = (
+    text: string,
+    font: typeof regularFont,
+    fontSize: number,
+    maxWidth: number
+  ) => {
+    if (maxWidth <= 0) {
+      return [text]
+    }
+
+    const words = text.split(/\s+/).filter(Boolean)
+    const lines: string[] = []
+    let currentLine = ''
+
+    const pushCurrentLine = () => {
+      if (currentLine) {
+        lines.push(currentLine)
+        currentLine = ''
+      }
+    }
+
+    if (!words.length) {
+      return ['']
+    }
+
+    for (const word of words) {
+      const candidate = currentLine ? `${currentLine} ${word}` : word
+      const candidateWidth = font.widthOfTextAtSize(candidate, fontSize)
+
+      if (candidateWidth <= maxWidth) {
+        currentLine = candidate
+        continue
+      }
+
+      if (currentLine) {
+        pushCurrentLine()
+      }
+
+      if (font.widthOfTextAtSize(word, fontSize) <= maxWidth) {
+        currentLine = word
+        continue
+      }
+
+      let chunk = ''
+      for (const char of word) {
+        const tentative = chunk + char
+        if (font.widthOfTextAtSize(tentative, fontSize) <= maxWidth) {
+          chunk = tentative
+        } else {
+          if (chunk) {
+            lines.push(chunk)
+            chunk = char
+          } else {
+            lines.push(char)
+          }
+        }
+      }
+
+      currentLine = chunk
+    }
+
+    pushCurrentLine()
+
+    if (!lines.length) {
+      return ['']
+    }
+
+    if (lines.length > maxLinesPerCell) {
+      const truncated = lines.slice(0, maxLinesPerCell)
+      const last = truncated[maxLinesPerCell - 1]
+      truncated[maxLinesPerCell - 1] = last.length >= 1 ? `${last.replace(/\.?$/, '')}…` : '…'
+      return truncated
+    }
+
+    return lines
+  }
+
+  const drawTableHeader = (page: import('pdf-lib').PDFPage, startY: number) => {
+    const { width } = page.getSize()
+    const tableWidth = width - margins.left - margins.right
+    const headerTop = startY
+    const headerBottom = startY - headerHeight
+    const borderColor = rgb(226 / 255, 232 / 255, 240 / 255)
+
+    page.drawRectangle({
+      x: margins.left,
+      y: headerBottom,
+      width: tableWidth,
+      height: headerHeight,
+      color: rgb(37 / 255, 99 / 255, 235 / 255)
+    })
+
+    page.drawLine({
+      start: { x: margins.left, y: headerTop },
+      end: { x: margins.left + tableWidth, y: headerTop },
+      thickness: 0.5,
+      color: borderColor
+    })
+
+    page.drawLine({
+      start: { x: margins.left, y: headerBottom },
+      end: { x: margins.left + tableWidth, y: headerBottom },
+      thickness: 0.5,
+      color: borderColor
+    })
+
+    page.drawLine({
+      start: { x: margins.left, y: headerTop },
+      end: { x: margins.left, y: headerBottom },
+      thickness: 0.5,
+      color: borderColor
+    })
+
+    const columnWidth = tableWidth / selectedFields.length
+
+    let columnX = margins.left
+    selectedFields.forEach((field, index) => {
+      const textX = columnX + cellPadding
+      const textY = headerBottom + (headerHeight - headerFontSize) / 2
+
+      page.drawText(columnLabels[index], {
+        x: textX,
+        y: textY,
+        size: headerFontSize,
+        font: boldFont,
+        color: rgb(1, 1, 1)
+      })
+
+      if (index < selectedFields.length - 1) {
+        const nextX = columnX + columnWidth
+        page.drawLine({
+          start: { x: nextX, y: headerTop },
+          end: { x: nextX, y: headerBottom },
+          thickness: 0.5,
+          color: borderColor
+        })
+      } else {
+        page.drawLine({
+          start: { x: margins.left + tableWidth, y: headerTop },
+          end: { x: margins.left + tableWidth, y: headerBottom },
+          thickness: 0.5,
+          color: borderColor
+        })
+      }
+
+      columnX += columnWidth
+    })
+
+    return headerBottom
+  }
+
+  const renderPage = (isFirstPage: boolean) => {
+    const page = pdfDoc.addPage(pageSize)
+    const { width, height } = page.getSize()
+    let cursorY = height - margins.top
+    const tableWidth = width - margins.left - margins.right
+
+    const title = options.title ?? 'Users Export'
+    const generatedAt = (options.generatedAt ?? new Date()).toLocaleString()
+    const metadataLines = (options.metadata ?? []).filter(Boolean)
+
+    page.drawText(title, {
+      x: margins.left,
+      y: cursorY,
+      size: 16,
+      font: boldFont,
+      color: rgb(30 / 255, 41 / 255, 59 / 255)
+    })
+
+    cursorY -= 18
+
+    page.drawText(`Generated: ${generatedAt}`, {
+      x: margins.left,
+      y: cursorY,
+      size: 10,
+      font: regularFont,
+      color: rgb(71 / 255, 85 / 255, 105 / 255)
+    })
+
+    cursorY -= 16
+
+    if (isFirstPage && metadataLines.length > 0) {
+      metadataLines.forEach(line => {
+        page.drawText(line, {
+          x: margins.left,
+          y: cursorY,
+          size: 9,
+          font: regularFont,
+          color: rgb(71 / 255, 85 / 255, 105 / 255)
+        })
+        cursorY -= 14
+      })
+    }
+
+    cursorY -= 6
+
+    const headerBottom = drawTableHeader(page, cursorY)
+    cursorY = headerBottom
+
+    const columnWidth = tableWidth / selectedFields.length
+
+    const drawRow = (record: TRecord, rowIndex: number, startY: number) => {
+      const values = selectedFields.map(field => formatFieldValue(field, record))
+      const wrapped = values.map(value => wrapCellText(value, regularFont, bodyFontSize, columnWidth - cellPadding * 2))
+      const maxLines = Math.max(...wrapped.map(lines => lines.length))
+      const rowHeight = maxLines * bodyLineHeight + cellPadding * 2
+
+      if (startY - rowHeight <= margins.bottom) {
+        return null
+      }
+
+      const rowTop = startY
+      const rowBottom = startY - rowHeight
+      const borderColor = rgb(226 / 255, 232 / 255, 240 / 255)
+
+      if (rowIndex % 2 === 1) {
+        page.drawRectangle({
+          x: margins.left,
+          y: rowBottom,
+          width: tableWidth,
+          height: rowHeight,
+          color: rgb(248 / 255, 250 / 255, 252 / 255)
+        })
+      }
+
+      page.drawLine({
+        start: { x: margins.left, y: rowTop },
+        end: { x: margins.left + tableWidth, y: rowTop },
+        thickness: 0.5,
+        color: borderColor
+      })
+
+      page.drawLine({
+        start: { x: margins.left, y: rowBottom },
+        end: { x: margins.left + tableWidth, y: rowBottom },
+        thickness: 0.5,
+        color: borderColor
+      })
+
+      page.drawLine({
+        start: { x: margins.left, y: rowTop },
+        end: { x: margins.left, y: rowBottom },
+        thickness: 0.5,
+        color: borderColor
+      })
+
+      let cellX = margins.left
+      wrapped.forEach((lines, index) => {
+        if (index > 0) {
+          page.drawLine({
+            start: { x: cellX, y: rowTop },
+            end: { x: cellX, y: rowBottom },
+            thickness: 0.5,
+            color: borderColor
+          })
+        }
+
+        let textY = rowTop - cellPadding - bodyFontSize
+        lines.forEach(line => {
+          page.drawText(line, {
+            x: cellX + cellPadding,
+            y: textY,
+            size: bodyFontSize,
+            font: regularFont,
+            color: rgb(30 / 255, 41 / 255, 59 / 255)
+          })
+          textY -= bodyLineHeight
+        })
+
+        cellX += columnWidth
+      })
+
+      page.drawLine({
+        start: { x: margins.left + tableWidth, y: rowTop },
+        end: { x: margins.left + tableWidth, y: rowBottom },
+        thickness: 0.5,
+        color: borderColor
+      })
+
+      return rowBottom
+    }
+
+    return { page, cursorY, columnWidth, drawRow }
+  }
+
+  let currentPage = renderPage(true)
+  let currentRow = 0
+
+  for (const record of records) {
+    const nextCursor = currentPage.drawRow(record, currentRow, currentPage.cursorY)
+
+    if (nextCursor === null) {
+      currentPage = renderPage(false)
+      const retryCursor = currentPage.drawRow(record, currentRow, currentPage.cursorY)
+      if (retryCursor === null) {
+        throw new Error('Unable to render row due to insufficient space on the page')
+      }
+      currentPage.cursorY = retryCursor
+    } else {
+      currentPage.cursorY = nextCursor
+    }
+
+    currentRow += 1
+  }
+
+  const pages = pdfDoc.getPages()
+  const totalPages = pages.length
+
+  pages.forEach((page, index) => {
+    const { width } = page.getSize()
+    const footerText = `Page ${index + 1} of ${totalPages}`
+    const textWidth = regularFont.widthOfTextAtSize(footerText, 9)
+    page.drawText(footerText, {
+      x: (width - textWidth) / 2,
+      y: margins.bottom / 2,
+      size: 9,
+      font: regularFont,
+      color: rgb(100 / 255, 116 / 255, 139 / 255)
+    })
+  })
+
+  const pdfBytes = await pdfDoc.save()
+  const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+  const filename = options.filename ?? 'users-export.pdf'
+
+  if (typeof document !== 'undefined' && options.download !== false) {
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.href = url
+    link.download = filename
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  return {
+    bytes: pdfBytes,
+    blob,
+    filename,
+    pageCount: totalPages,
+    columnLabels,
+    rowCount: records.length
+  }
+}
