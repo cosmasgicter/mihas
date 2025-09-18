@@ -1,10 +1,15 @@
 import React from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
+import { useRoleQuery, isAdminRole } from '@/hooks/auth/useRoleQuery'
 import { Button } from '@/components/ui/Button'
 import { Link } from 'react-router-dom'
 
 export default function AdminTest() {
-  const { user, profile, userRole, isAdmin, signOut } = useAuth()
+  const { user, signOut } = useAuth()
+  const { profile } = useProfileQuery()
+  const { userRole, isAdmin: hasAdminRole } = useRoleQuery()
+  const isAdmin = hasAdminRole || isAdminRole(profile?.role)
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -49,7 +54,7 @@ export default function AdminTest() {
             <div className="space-y-4">
               <h2 className="text-xl font-semibold">🔐 Access Check</h2>
               <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                <div><strong>Is Admin:</strong> {isAdmin() ? '✅ Yes' : '❌ No'}</div>
+                <div><strong>Is Admin:</strong> {isAdmin ? '✅ Yes' : '❌ No'}</div>
                 <div><strong>Dev Mode:</strong> {import.meta.env.DEV ? '✅ Yes' : '❌ No'}</div>
                 <div><strong>Super Admin:</strong> {user?.email === 'cosmas@beanola.com' ? '✅ Yes' : '❌ No'}</div>
               </div>

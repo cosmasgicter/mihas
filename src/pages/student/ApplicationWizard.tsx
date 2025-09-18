@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -66,7 +67,8 @@ interface SubjectGrade {
 export default function ApplicationWizard() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, profile, loading: authLoading } = useAuth()
+  const { user, loading: authLoading } = useAuth()
+  const { profile } = useProfileQuery()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')

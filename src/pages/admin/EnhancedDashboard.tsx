@@ -5,6 +5,7 @@ import { EnhancedDashboard } from '@/components/admin/EnhancedDashboard'
 import { QuickActionsPanel } from '@/components/admin/QuickActionsPanel'
 import { SystemMonitoring } from '@/components/admin/SystemMonitoring'
 import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Button } from '@/components/ui/Button'
 import { applicationsData, catalogData, usersData } from '@/data'
@@ -21,7 +22,8 @@ import {
 } from 'lucide-react'
 
 export default function EnhancedAdminDashboard() {
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
+  const { profile } = useProfileQuery()
   const [activeTab, setActiveTab] = useState<'overview' | 'monitoring' | 'analytics'>('overview')
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showNotifications, setShowNotifications] = useState(true)

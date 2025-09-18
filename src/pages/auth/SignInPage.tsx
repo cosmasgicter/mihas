@@ -7,7 +7,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { GraduationCap, ArrowLeft } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
 import { networkDiagnostics } from '@/lib/networkDiagnostics'
 
 const signInSchema = z.object({

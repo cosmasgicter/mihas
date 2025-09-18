@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
 import { applicationSessionManager } from '@/lib/applicationSession'
 import { formatDate } from '@/lib/utils'
 import { FileText, Clock, AlertTriangle, Trash2, RefreshCw } from 'lucide-react'
@@ -15,7 +16,8 @@ interface DraftInfo {
 }
 
 export function ContinueApplication() {
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
+  const { profile } = useProfileQuery()
   const [draftInfo, setDraftInfo] = useState<DraftInfo>({ exists: false })
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)

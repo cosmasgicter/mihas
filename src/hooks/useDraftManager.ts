@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
 import { applicationSessionManager } from '@/lib/applicationSession'
 import { draftManager } from '@/lib/draftManager'
 import { useToast } from '@/components/ui/Toast'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 export const useDraftManager = () => {
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
+  const { profile } = useProfileQuery()
   const { showSuccess, showError } = useToast()
   const [isDeleting, setIsDeleting] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<{

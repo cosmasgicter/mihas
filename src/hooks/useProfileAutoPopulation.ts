@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
 
 // Helper function to safely get user metadata
 export const getUserMetadata = (user: any) => {
@@ -65,7 +66,8 @@ export const calculateProfileCompletion = (profile: any, metadata: any) => {
 
 // Hook for auto-populating form fields
 export const useProfileAutoPopulation = (setValue?: any) => {
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
+  const { profile } = useProfileQuery()
   const metadata = getUserMetadata(user)
   const completionPercentage = calculateProfileCompletion(profile, metadata)
   

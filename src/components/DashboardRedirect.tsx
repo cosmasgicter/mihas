@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
+import { useRoleQuery, isAdminRole } from '@/hooks/auth/useRoleQuery'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 export function DashboardRedirect() {
-  const { user, profile, userRole, loading, isAdmin } = useAuth()
+  const { user, loading } = useAuth()
+  const { profile } = useProfileQuery()
+  const { isAdmin: hasAdminRole } = useRoleQuery()
   const [profileTimeout, setProfileTimeout] = useState(false)
   const [redirectPath, setRedirectPath] = useState<string | null>(null)
 
@@ -38,14 +42,14 @@ export function DashboardRedirect() {
     }
 
     // Check if user has admin role
-    if (isAdmin()) {
+    if (hasAdminRole || isAdminRole(profile?.role)) {
       setRedirectPath('/admin')
       return
     }
 
     // Default to student dashboard
     setRedirectPath('/student/dashboard')
-  }, [loading, user, profile, profileTimeout, isAdmin, redirectPath])
+  }, [loading, user, profile, profileTimeout, hasAdminRole, redirectPath])
 
   if (loading || !redirectPath) {
     return (

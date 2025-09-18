@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Brain, Zap, FileText, TrendingUp, AlertTriangle, Settings, RefreshCw } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
+import { useRoleQuery, isAdminRole } from '@/hooks/auth/useRoleQuery'
 import { PredictiveDashboard } from '@/components/admin/PredictiveDashboard'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -16,7 +17,9 @@ interface AIInsightsStats {
 }
 
 export default function AIInsights() {
-  const { isAdmin } = useAuth()
+  const { profile } = useProfileQuery()
+  const { isAdmin: hasAdminRole } = useRoleQuery()
+  const isAdmin = hasAdminRole || isAdminRole(profile?.role)
   const [stats, setStats] = useState<AIInsightsStats>({
     totalPredictions: 0,
     automationRuns: 0,
@@ -27,7 +30,7 @@ export default function AIInsights() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'automation' | 'notifications'>('dashboard')
 
   useEffect(() => {
-    if (isAdmin()) {
+    if (isAdmin) {
       loadAIStats()
     }
   }, [isAdmin])
@@ -62,7 +65,7 @@ export default function AIInsights() {
     }
   }
 
-  if (!isAdmin()) {
+  if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

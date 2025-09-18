@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/Input'
 import { TextArea } from '@/components/ui/TextArea'
 import { Turnstile } from '@/components/ui/Turnstile'
 import { GraduationCap, ArrowLeft } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
 
 const signUpSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -88,10 +87,14 @@ export default function SignUpPage() {
 
     try {
       // Proceed with sign up
-      const { confirmPassword, ...userData } = data
-      await signUp(data.email, data.password, userData)
-      
-setSuccess('Account created successfully! Redirecting to sign in...')
+      const { confirmPassword: _confirmPassword, ...userData } = data
+      const result = await signUp(data.email, data.password, userData)
+
+      if (result?.error) {
+        throw new Error(result.error)
+      }
+
+      setSuccess('Account created successfully! Redirecting to sign in...')
     } catch (error) {
       console.error('Sign up error:', error)
       setError(error instanceof Error ? error.message : 'Failed to create account. Please try again.')

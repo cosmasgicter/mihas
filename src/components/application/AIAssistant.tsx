@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { MessageCircle, Send, Bot, User, X, Lightbulb, FileText, HelpCircle, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
 import { supabase } from '@/lib/supabase'
 import { predictiveAnalytics } from '@/lib/predictiveAnalytics'
 import { documentAI } from '@/lib/documentAI'
@@ -26,7 +27,8 @@ interface AIAssistantProps {
 }
 
 export function AIAssistant({ applicationData, currentStep, onSuggestionApply, onDataUpdate }: AIAssistantProps) {
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
+  const { profile } = useProfileQuery()
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Zap, Play, Pause, Settings, AlertTriangle, CheckCircle, Clock, TrendingUp } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
+import { useRoleQuery, isAdminRole } from '@/hooks/auth/useRoleQuery'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { workflowAutomation, WorkflowRule } from '@/lib/workflowAutomation'
@@ -14,7 +15,9 @@ interface WorkflowStats {
 }
 
 export default function WorkflowAutomation() {
-  const { isAdmin } = useAuth()
+  const { profile } = useProfileQuery()
+  const { isAdmin: hasAdminRole } = useRoleQuery()
+  const isAdmin = hasAdminRole || isAdminRole(profile?.role)
   const [rules, setRules] = useState<WorkflowRule[]>([])
   const [stats, setStats] = useState<WorkflowStats>({
     totalRules: 0,
@@ -26,7 +29,7 @@ export default function WorkflowAutomation() {
   const [processingRule, setProcessingRule] = useState<string | null>(null)
 
   useEffect(() => {
-    if (isAdmin()) {
+    if (isAdmin) {
       loadWorkflowData()
     }
   }, [isAdmin])
@@ -103,7 +106,7 @@ export default function WorkflowAutomation() {
     }
   }
 
-  if (!isAdmin()) {
+  if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

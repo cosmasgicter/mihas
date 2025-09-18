@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuth } from '@/contexts/AuthContext'
+import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
@@ -30,7 +31,8 @@ const profileSchema = z.object({
 type ProfileForm = z.infer<typeof profileSchema>
 
 export default function StudentSettings() {
-  const { profile, updateProfile, user } = useAuth()
+  const { user } = useAuth()
+  const { profile, updateProfile } = useProfileQuery()
   const { metadata } = useProfileAutoPopulation()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
