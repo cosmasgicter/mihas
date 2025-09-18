@@ -54,6 +54,8 @@ interface ApplicationDetailModalProps {
   onViewDocuments: () => void
   onViewHistory: () => void
   onUpdateStatus: (id: string, status: string) => void
+  onGenerateAcceptanceLetter: () => Promise<void>
+  onGenerateFinanceReceipt: () => Promise<void>
 }
 
 function GradesDisplay({ applicationId }: { applicationId: string }) {
@@ -114,9 +116,41 @@ export function ApplicationDetailModal({
   onSendNotification,
   onViewDocuments,
   onViewHistory,
-  onUpdateStatus
+  onUpdateStatus,
+  onGenerateAcceptanceLetter,
+  onGenerateFinanceReceipt
 }: ApplicationDetailModalProps) {
+  const [isGeneratingAcceptance, setIsGeneratingAcceptance] = useState(false)
+  const [isGeneratingFinanceReceipt, setIsGeneratingFinanceReceipt] = useState(false)
+
+  useEffect(() => {
+    setIsGeneratingAcceptance(false)
+    setIsGeneratingFinanceReceipt(false)
+  }, [application?.id, show])
+
   if (!show || !application) return null
+
+  const handleGenerateAcceptance = async () => {
+    try {
+      setIsGeneratingAcceptance(true)
+      await onGenerateAcceptanceLetter()
+    } catch (error) {
+      console.error('Failed to generate acceptance letter:', error)
+    } finally {
+      setIsGeneratingAcceptance(false)
+    }
+  }
+
+  const handleGenerateFinanceReceipt = async () => {
+    try {
+      setIsGeneratingFinanceReceipt(true)
+      await onGenerateFinanceReceipt()
+    } catch (error) {
+      console.error('Failed to generate finance receipt:', error)
+    } finally {
+      setIsGeneratingFinanceReceipt(false)
+    }
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -300,6 +334,24 @@ export function ApplicationDetailModal({
                 className="text-red-600 border-red-300 hover:bg-red-50"
               >
                 Reject
+              </Button>
+            </>
+          )}
+          {application.status === 'approved' && (
+            <>
+              <Button
+                variant="outline"
+                loading={isGeneratingAcceptance}
+                onClick={() => { void handleGenerateAcceptance() }}
+              >
+                Generate Acceptance Letter
+              </Button>
+              <Button
+                variant="outline"
+                loading={isGeneratingFinanceReceipt}
+                onClick={() => { void handleGenerateFinanceReceipt() }}
+              >
+                Generate Finance Receipt
               </Button>
             </>
           )}

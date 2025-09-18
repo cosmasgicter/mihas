@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/Button'
+import { useToast } from '@/components/ui/Toast'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { AnimatedCard } from '@/components/ui/AnimatedCard'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -20,6 +21,7 @@ import { ApplicationsFilters } from '@/components/admin/applications/Application
 import { ApplicationsTable } from '@/components/admin/applications/ApplicationsTable'
 import { ApplicationsCards } from '@/components/admin/applications/ApplicationsCards'
 import { ApplicationDetailModal } from '@/components/admin/applications/ApplicationDetailModal'
+import { documentService } from '@/services/documents'
 
 // Modals and other components would be imported here
 // For brevity, keeping the existing modal components inline for now
@@ -58,6 +60,8 @@ interface ApplicationWithDetails {
 
 export default function AdminApplications() {
   const { user } = useAuth()
+
+  const { showSuccess, showError } = useToast()
   
   // State management
   const [searchTerm, setSearchTerm] = useState('')
@@ -158,6 +162,35 @@ export default function AdminApplications() {
       setShowBulkActions(false)
     } catch (error) {
       console.error('Bulk action failed:', error)
+    }
+  }
+
+  const handleGenerateDocument = async (
+    type: 'acceptance' | 'finance',
+    application: ApplicationWithDetails
+  ) => {
+    try {
+      if (type === 'acceptance') {
+        await documentService.generateAcceptanceLetter(application.id)
+        showSuccess('Acceptance letter generated', `A letter has been generated for ${application.full_name}.`)
+      } else {
+        await documentService.generateFinanceReceipt(application.id)
+        showSuccess('Finance receipt generated', `A receipt has been generated for ${application.full_name}.`)
+      }
+
+      await fetchDocuments(application.id)
+    } catch (error) {
+      console.error('Error generating document:', error)
+      const defaultMessage = 'Please try again in a moment.'
+      const errorMessage = error instanceof Error ? error.message : defaultMessage
+
+      if (type === 'acceptance') {
+        showError('Failed to generate acceptance letter', errorMessage)
+      } else {
+        showError('Failed to generate finance receipt', errorMessage)
+      }
+
+      throw error
     }
   }
 
@@ -471,6 +504,16 @@ export default function AdminApplications() {
           handleViewHistory(selectedApplication!)
         }}
         onUpdateStatus={updateStatus}
+        onGenerateAcceptanceLetter={() =>
+          selectedApplication
+            ? handleGenerateDocument('acceptance', selectedApplication)
+            : Promise.resolve()
+        }
+        onGenerateFinanceReceipt={() =>
+          selectedApplication
+            ? handleGenerateDocument('finance', selectedApplication)
+            : Promise.resolve()
+        }
       />
 
       {/* Other modals would be added here */}
