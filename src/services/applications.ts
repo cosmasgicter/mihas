@@ -67,5 +67,17 @@ export const applicationService = {
     apiClient.request(`/api/applications/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ action: 'send_notification', ...notification })
+    }),
+
+  generateAcceptanceLetter: (id: string) =>
+    apiClient.request(`/api/applications/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'generate_acceptance_letter' })
+    }),
+
+  generateFinanceReceipt: (id: string) =>
+    apiClient.request(`/api/applications/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'generate_finance_receipt' })
     })
 }
