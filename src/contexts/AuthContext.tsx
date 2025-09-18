@@ -273,37 +273,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('Attempting sign in for:', sanitizeForLog(email))
       
-      // Use API endpoint instead of direct Supabase for better performance
-      const response = await fetch('/api/auth?action=signin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+      // Use direct Supabase login for all users (especially admins)
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
       })
       
-      const result = await response.json()
-      
-      if (!response.ok || result.error) {
-        console.error('Sign in error:', sanitizeForLog(result.error || 'Login failed'))
-        return { error: result.error || 'Login failed' }
+      if (error) {
+        console.error('Sign in error:', sanitizeForLog(error.message))
+        return { error: error.message }
       }
       
-      if (result.session && result.user) {
+      if (data.session && data.user) {
         console.log('Sign in successful, session established')
-        // Set the session in Supabase client
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: result.session.access_token,
-          refresh_token: result.session.refresh_token
-        })
-        
-        if (sessionError) {
-          console.error('Session setup error:', sessionError)
-          return { error: 'Failed to establish session' }
-        }
-        
-        setUser(result.user)
+        setUser(data.user)
+        return { session: data.session, user: data.user }
       }
       
-      return result
+      return { error: 'Login failed' }
     } catch (error) {
       console.error('Sign in exception:', error)
       return { error: error instanceof Error ? error.message : 'Login failed' }
