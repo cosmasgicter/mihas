@@ -3,7 +3,7 @@ import { apiClient } from '../client'
 export const userService = {
   list: () => apiClient.request('/api/admin/users'),
   getById: (id: string) => apiClient.request(`/api/admin/users/${id}`),
-  getRole: (id: string) => apiClient.request(`/api/admin/users?id=${id}&action=role`),
+  getRole: (id: string) => apiClient.request(`/api/admin/users/${id}?action=role`),
   create: (data: { email: string; password: string; full_name: string; phone?: string; role: string }) =>
     apiClient.request('/api/admin/users', {
       method: 'POST',
