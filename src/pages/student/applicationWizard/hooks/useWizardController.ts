@@ -19,7 +19,13 @@ import { safeJsonParse } from '@/lib/utils'
 
 import useApplicationSlip, { SubmittedApplicationSummary } from './useApplicationSlip'
 import useApplicationFileUploads from './useApplicationFileUploads'
-import { createWizardSchema, type SubjectGrade, type WizardFormData, type WizardProgram } from '../types'
+import {
+  createWizardSchema,
+  type SubjectGrade,
+  type WizardFormData,
+  type WizardProgram,
+  type WizardIntake
+} from '../types'
 import { getStepIndexById, wizardSteps } from '../steps/config'
 
 interface UseWizardControllerResult {
@@ -41,6 +47,7 @@ interface UseWizardControllerResult {
   eligibilityCheck: ReturnType<typeof checkEligibility> | null
   recommendedSubjects: string[]
   programs: WizardProgram[]
+  intakes: WizardIntake[]
   subjects: Array<{ id: string; name: string; code: string }>
   hasAutoPopulatedData: boolean
   completionPercentage: number
@@ -93,12 +100,14 @@ const useWizardController = (): UseWizardControllerResult => {
   const [restoringDraft, setRestoringDraft] = useState(false)
   const [confirmSubmission, setConfirmSubmission] = useState(false)
   const [programs, setPrograms] = useState<WizardProgram[]>([])
+  const [intakes, setIntakes] = useState<WizardIntake[]>([])
 
   const totalSteps = wizardSteps.length
   const currentStepConfig = wizardSteps[currentStepIndex] ?? wizardSteps[0]
   const isLastStep = currentStepConfig.key === 'submit'
 
   const { data: programsData } = catalogData.usePrograms()
+  const { data: intakesData } = catalogData.useIntakes()
   const { data: subjectsData } = catalogData.useSubjects()
   const subjects = subjectsData?.subjects || []
   const createApplication = applicationsData.useCreate()
@@ -112,8 +121,34 @@ const useWizardController = (): UseWizardControllerResult => {
     }
   }, [programsData])
 
+  useEffect(() => {
+    if (intakesData?.intakes) {
+      const formattedIntakes = (intakesData.intakes as WizardIntake[]).map(intake => {
+        const normalizedName = intake.name?.trim() || ''
+        const yearString = Number.isFinite(intake.year) ? String(intake.year) : ''
+        const includesYear = yearString && normalizedName.includes(yearString)
+        const nameWithYear = includesYear ? normalizedName : `${normalizedName} ${yearString}`.trim()
+        const displayName = (nameWithYear || normalizedName || yearString || 'Upcoming Intake').trim()
+
+        return {
+          ...intake,
+          displayName
+        }
+      })
+
+      setIntakes(formattedIntakes)
+      return
+    }
+
+    setIntakes([])
+  }, [intakesData])
+
   const programNames = useMemo(() => programs.map(program => program.name).filter(Boolean), [programs])
-  const schema = useMemo(() => createWizardSchema(programNames), [programNames])
+  const intakeOptions = useMemo(
+    () => intakes.map(intake => intake.displayName).filter(Boolean),
+    [intakes]
+  )
+  const schema = useMemo(() => createWizardSchema(programNames, intakeOptions), [programNames, intakeOptions])
   const resolver = useMemo(() => zodResolver(schema), [schema])
 
   const form = useForm<WizardFormData>({
@@ -196,6 +231,18 @@ const useWizardController = (): UseWizardControllerResult => {
   }, [currentStepIndex, success])
 
   const { completionPercentage, hasAutoPopulatedData } = useProfileAutoPopulation(setValue)
+
+  useEffect(() => {
+    const currentIntake = watch('intake')
+    if (!currentIntake) return
+
+    if (intakeOptions.length > 0 && !intakeOptions.includes(currentIntake)) {
+      const fallbackIntake = intakes.find(intake => intake.name === currentIntake)
+      if (fallbackIntake) {
+        setValue('intake', fallbackIntake.displayName)
+      }
+    }
+  }, [intakes, intakeOptions, setValue, watch])
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -405,6 +452,10 @@ const useWizardController = (): UseWizardControllerResult => {
         setError('Please select a valid program from the list provided')
         return
       }
+      if (formData.intake && !intakeOptions.includes(formData.intake)) {
+        setError('Please select a valid intake from the list provided')
+        return
+      }
 
       try {
         setLoading(true)
@@ -518,6 +569,7 @@ const useWizardController = (): UseWizardControllerResult => {
     updateApplication,
     programNames,
     selectedProgramDetails,
+    intakeOptions
   ])
 
   const handlePrevStep = useCallback(() => {
@@ -639,6 +691,7 @@ const useWizardController = (): UseWizardControllerResult => {
     eligibilityCheck,
     recommendedSubjects,
     programs,
+    intakes,
     subjects,
     hasAutoPopulatedData,
     completionPercentage,

@@ -1,11 +1,15 @@
 import { z } from 'zod'
 
-import type { Institution, Program } from '@/lib/supabase'
+import type { Institution, Program, Intake } from '@/lib/supabase'
 
 type InstitutionSummary = Pick<Institution, 'id' | 'name' | 'full_name'>
 
 export type WizardProgram = Program & {
   institutions?: InstitutionSummary | null
+}
+
+export type WizardIntake = Intake & {
+  displayName: string
 }
 
 const createProgramValidator = (validProgramNames: string[]) =>
@@ -20,7 +24,19 @@ const createProgramValidator = (validProgramNames: string[]) =>
       }
     )
 
-const createSchema = (validProgramNames: string[]) =>
+const createIntakeValidator = (validIntakeOptions: string[]) =>
+  z
+    .string({ required_error: 'Please select an intake' })
+    .min(1, 'Please select an intake')
+    .refine(
+      value =>
+        value.trim().length > 0 && (validIntakeOptions.length === 0 || validIntakeOptions.includes(value)),
+      {
+        message: 'Please select a valid intake',
+      }
+    )
+
+const createSchema = (validProgramNames: string[], validIntakeOptions: string[]) =>
   z
     .object({
       full_name: z.string().min(2, 'Full name is required'),
@@ -34,7 +50,7 @@ const createSchema = (validProgramNames: string[]) =>
       next_of_kin_name: z.string().optional(),
       next_of_kin_phone: z.string().optional(),
       program: createProgramValidator(validProgramNames),
-      intake: z.string().min(1, 'Please select an intake'),
+      intake: createIntakeValidator(validIntakeOptions),
       payment_method: z
         .enum(['MTN Money', 'Airtel Money', 'Zamtel Money', 'Ewallet', 'Bank To Cell'])
         .default('MTN Money'),
@@ -54,7 +70,7 @@ const createSchema = (validProgramNames: string[]) =>
 
 export const createWizardSchema = createSchema
 
-export const wizardSchema = createWizardSchema([])
+export const wizardSchema = createWizardSchema([], [])
 
 export type WizardFormData = z.infer<ReturnType<typeof createWizardSchema>>
 

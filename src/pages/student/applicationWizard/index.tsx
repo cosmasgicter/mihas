@@ -35,6 +35,7 @@ const ApplicationWizard = () => {
     eligibilityCheck,
     recommendedSubjects,
     programs,
+    intakes,
     subjects,
     hasAutoPopulatedData,
     completionPercentage,
@@ -203,6 +204,7 @@ const ApplicationWizard = () => {
                 completionPercentage={completionPercentage}
                 selectedProgram={selectedProgram}
                 programs={programs}
+                intakes={intakes}
                 title={currentStepConfig.title}
               />
             )}
