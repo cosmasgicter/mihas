@@ -119,28 +119,25 @@ export function useProfileQuery(options: UseProfileQueryOptions = {}): ProfileQu
       if (!user) return null
 
       const supabase = getSupabaseClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      const accessToken = session?.access_token
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle()
 
-      if (!accessToken) {
-        return null
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return await createUserProfile(user)
+        }
+
+        console.error('Error loading profile:', sanitizeForLog(error.message))
+        throw new Error(`Failed to load profile: ${error.message ?? 'Unknown error'}`)
       }
 
-      const response = await fetch(`/api/admin/users?id=${user.id}`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
-        }
-      })
-
-      if (response.status === 404) {
+      if (!data) {
         return await createUserProfile(user)
       }
 
-      if (!response.ok) {
-        throw new Error(`Failed to load profile: ${response.statusText}`)
-      }
-
-      const data = await response.json()
       return sanitizeProfile(data)
     }
   })
