@@ -303,6 +303,20 @@ async function updateApplicationStatus(req, res, { user, isAdmin }, id) {
   }
 
   try {
+    const { data: existingApplication, error: fetchError } = await supabaseAdminClient
+      .from('applications_new')
+      .select('status, intake, intake_id, intake_name')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (fetchError) {
+      return res.status(400).json({ error: fetchError.message })
+    }
+
+    if (!existingApplication) {
+      return res.status(404).json({ error: 'Application not found' })
+    }
+
     const updateData = {
       status,
       updated_at: new Date().toISOString()
@@ -335,6 +349,21 @@ async function updateApplicationStatus(req, res, { user, isAdmin }, id) {
         changed_by: user.id,
         notes: notes || null
       })
+
+    const intakeId = existingApplication.intake_id || data?.intake_id || null
+    const intakeName =
+      existingApplication.intake || existingApplication.intake_name || data?.intake || data?.intake_name || null
+
+    try {
+      await adjustIntakeAvailability({
+        previousStatus: existingApplication.status,
+        newStatus: data?.status || status,
+        intakeId,
+        intakeName
+      })
+    } catch (adjustmentError) {
+      console.error('Failed to adjust intake availability', adjustmentError)
+    }
 
     return res.status(200).json(data)
   } catch (error) {
@@ -421,6 +450,92 @@ async function updatePaymentStatus(req, res, { user, isAdmin }, id) {
   } catch (error) {
     console.error('Payment status update error', error)
     return res.status(500).json({ error: 'Internal server error' })
+  }
+}
+
+async function adjustIntakeAvailability({ previousStatus, newStatus, intakeId, intakeName }) {
+  const normalizedPrevious = previousStatus || null
+  const normalizedNext = newStatus || null
+
+  const movedIntoApproved = normalizedNext === 'approved' && normalizedPrevious !== 'approved'
+  const movedOutOfApproved = normalizedPrevious === 'approved' && normalizedNext !== 'approved'
+
+  if (!movedIntoApproved && !movedOutOfApproved) {
+    return
+  }
+
+  if (!intakeId && !intakeName) {
+    console.warn('Skipping intake availability adjustment - no intake identifier found', {
+      previousStatus,
+      newStatus
+    })
+    return
+  }
+
+  let intakeQuery = supabaseAdminClient
+    .from('intakes')
+    .select('id, name, available_spots, total_capacity')
+    .limit(1)
+
+  intakeQuery = intakeId ? intakeQuery.eq('id', intakeId) : intakeQuery.eq('name', intakeName)
+
+  const { data: intakeRecord, error: intakeError } = await intakeQuery.maybeSingle()
+
+  if (intakeError) {
+    console.warn('Failed to fetch intake for availability adjustment', {
+      intakeId,
+      intakeName,
+      error: intakeError
+    })
+    return
+  }
+
+  if (!intakeRecord) {
+    console.warn('No intake found for availability adjustment', { intakeId, intakeName })
+    return
+  }
+
+  const rawAvailable =
+    intakeRecord.available_spots === null || intakeRecord.available_spots === undefined
+      ? 0
+      : Number(intakeRecord.available_spots)
+  const rawTotalCapacity =
+    intakeRecord.total_capacity === null || intakeRecord.total_capacity === undefined
+      ? null
+      : Number(intakeRecord.total_capacity)
+
+  const currentAvailable = Number.isFinite(rawAvailable) ? rawAvailable : 0
+  let availableSpots = currentAvailable
+  const totalCapacity = Number.isFinite(rawTotalCapacity) ? rawTotalCapacity : null
+
+  if (movedIntoApproved) {
+    availableSpots -= 1
+  } else if (movedOutOfApproved) {
+    availableSpots += 1
+  }
+
+  if (availableSpots < 0) {
+    availableSpots = 0
+  }
+
+  if (totalCapacity !== null && availableSpots > totalCapacity) {
+    availableSpots = totalCapacity
+  }
+
+  if (availableSpots === currentAvailable) {
+    return
+  }
+
+  let updateQuery = supabaseAdminClient.from('intakes').update({ available_spots: availableSpots })
+  updateQuery = intakeId ? updateQuery.eq('id', intakeId) : updateQuery.eq('name', intakeName)
+
+  const { error: updateError } = await updateQuery
+  if (updateError) {
+    console.warn('Failed to update intake availability', {
+      intakeId,
+      intakeName,
+      error: updateError
+    })
   }
 }
 
