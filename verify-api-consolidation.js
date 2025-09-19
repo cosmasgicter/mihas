@@ -49,6 +49,39 @@ consolidatedAPIs.forEach(api => {
   }
 });
 
+// 3. Check consolidated admin APIs
+console.log('\n🛡️ Checking Admin APIs:');
+const adminIndexPath = path.join('api', 'admin', 'index.js');
+if (fs.existsSync(adminIndexPath)) {
+  const adminIndexContent = fs.readFileSync(adminIndexPath, 'utf8');
+  const hasDashboard = /action === 'dashboard'/.test(adminIndexContent) && adminIndexContent.includes('generatedAt');
+  const hasAuditLog = /action === 'audit-log'/.test(adminIndexContent) && adminIndexContent.includes('normalizeRecord');
+
+  if (hasDashboard && hasAuditLog) {
+    console.log('✅ api/admin/index.js - Handles dashboard and audit-log actions');
+  } else {
+    console.log('❌ api/admin/index.js - Missing dashboard or audit-log handler');
+  }
+} else {
+  console.log('❌ api/admin/index.js - File not found');
+}
+
+const adminUsersPath = path.join('api', 'admin', 'users.js');
+if (fs.existsSync(adminUsersPath)) {
+  const adminUsersContent = fs.readFileSync(adminUsersPath, 'utf8');
+  const supportsQueryId = /query\?\.id/.test(adminUsersContent) && adminUsersContent.includes('parseUserId');
+  const handlesActions = adminUsersContent.includes("action === 'role'") && adminUsersContent.includes("action === 'permissions'");
+  const supportsMutations = /req\.method === 'POST'/.test(adminUsersContent) && /req\.method === 'DELETE'/.test(adminUsersContent);
+
+  if (supportsQueryId && handlesActions && supportsMutations) {
+    console.log('✅ api/admin/users.js - Consolidated user CRUD + role/permission routes');
+  } else {
+    console.log('❌ api/admin/users.js - Missing consolidated handlers');
+  }
+} else {
+  console.log('❌ api/admin/users.js - File not found');
+}
+
 // 3. Check Supabase Edge Function
 console.log('\n🌐 Checking Supabase Edge Functions:');
 const edgeFunctionPath = 'supabase/functions/mcp-operations/index.ts';
@@ -60,26 +93,24 @@ if (fs.existsSync(edgeFunctionPath)) {
 
 // 4. Check frontend integration
 console.log('\n🎨 Checking Frontend Integration:');
-const apiClientPath = 'src/services/apiClient.ts';
-if (fs.existsSync(apiClientPath)) {
-  const content = fs.readFileSync(apiClientPath, 'utf8');
-  
-  const checks = [
-    { name: 'Catalog API', pattern: /\/api\/catalog\?resource=/ },
-    { name: 'Auth API', pattern: /\/api\/auth\?action=/ },
-    { name: 'Notifications API', pattern: /\/api\/notifications\?action=/ }
-  ];
-  
-  checks.forEach(check => {
-    if (check.pattern.test(content)) {
-      console.log(`✅ ${check.name} - Using consolidated endpoint`);
+const frontendChecks = [
+  { name: 'Admin dashboard service', file: 'src/services/admin/dashboard.ts', pattern: /\/api\/admin\?action=dashboard/ },
+  { name: 'Admin audit service', file: 'src/services/admin/audit.ts', pattern: /\/api\/admin\?action=audit-log/ },
+  { name: 'Admin users service', file: 'src/services/admin/users.ts', pattern: /\/api\/admin\/users\?id=/ }
+];
+
+frontendChecks.forEach(({ name, file, pattern }) => {
+  if (fs.existsSync(file)) {
+    const content = fs.readFileSync(file, 'utf8');
+    if (pattern.test(content)) {
+      console.log(`✅ ${name} - Uses consolidated endpoint`);
     } else {
-      console.log(`❌ ${check.name} - Not using consolidated endpoint`);
+      console.log(`❌ ${name} - Update to consolidated endpoint`);
     }
-  });
-} else {
-  console.log('❌ API Client service not found');
-}
+  } else {
+    console.log(`❌ ${name} file missing (${file})`);
+  }
+});
 
 // 5. Check MCP service
 const mcpServicePath = 'src/services/mcpService.ts';

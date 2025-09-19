@@ -53,8 +53,8 @@ async function testUserAPI() {
       // Test 3: Update user
       const userId = createData.data?.user_id
       if (userId) {
-        console.log('\n✏️ Testing PUT /api/admin/users/[id]...')
-        const updateResponse = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
+        console.log('\n✏️ Testing PUT /api/admin/users?id=...')
+        const updateResponse = await fetch(`${API_BASE}/api/admin/users?id=${userId}`, {
           method: 'PUT',
           headers,
           body: JSON.stringify({
@@ -72,8 +72,8 @@ async function testUserAPI() {
         }
 
         // Test 4: Delete user
-        console.log('\n🗑️ Testing DELETE /api/admin/users/[id]...')
-        const deleteResponse = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
+        console.log('\n🗑️ Testing DELETE /api/admin/users?id=...')
+        const deleteResponse = await fetch(`${API_BASE}/api/admin/users?id=${userId}`, {
           method: 'DELETE',
           headers
         })

@@ -32,11 +32,20 @@ Successfully consolidated from 20+ to 12 serverless functions to meet Vercel Hob
 5. `/api/applications/[id].js`
 6. `/api/applications/index.js`
 7. `/api/applications/bulk.js`
-8. `/api/admin/dashboard.js`
-9. `/api/admin/users/[id].js`
-10. `/api/admin/users/index.js`
-11. `/api/documents/upload.js`
-12. `/api/test.js`
+8. `/api/admin/index.js`
+   - `GET /api/admin?action=dashboard`
+   - `GET /api/admin?action=audit-log`
+9. `/api/admin/users.js`
+   - `GET /api/admin/users` (list)
+   - `GET /api/admin/users?id={id}` (profile)
+   - `GET /api/admin/users?id={id}&action=role|permissions`
+   - `POST /api/admin/users`
+   - `PUT /api/admin/users?id={id}` (profile update)
+   - `PUT /api/admin/users?id={id}&action=permissions`
+   - `DELETE /api/admin/users?id={id}`
+10. `/api/documents/upload.js`
+11. `/api/test.js`
+12. `/api/user-consents.js`
 
 ## Supabase Edge Functions (1 Function)
 - **`mcp-operations`** - Consolidated MCP operations

@@ -46,7 +46,7 @@ async function runTests() {
   
   // Test Admin Dashboard API
   console.log('\n📊 Testing Admin Dashboard API:')
-  await testEndpoint('/api/admin/dashboard', 'GET')
+  await testEndpoint('/api/admin?action=dashboard', 'GET')
 
   console.log('\n✨ API Service tests completed!')
   console.log('\n📝 Note: Admin endpoints require valid authentication tokens')

@@ -21,7 +21,7 @@ Successfully extended catalog handlers and refactored admin components to use ce
 
 ### 2. New Admin Dashboard Endpoint
 
-#### `/api/admin/dashboard.js`
+#### `/api/admin/index.js` (`action=dashboard`)
 - ✅ Aggregates all dashboard metrics server-side
 - ✅ Requires admin authentication
 - ✅ Returns stats and recent activity data
@@ -105,7 +105,7 @@ node test-api-services.js
 |----------|---------|---------------|-------------|
 | `/api/catalog/programs` | GET, POST, PUT, DELETE | Admin (write ops) | Program management |
 | `/api/catalog/intakes` | GET, POST, PUT, DELETE | Admin (write ops) | Intake management |
-| `/api/admin/dashboard` | GET | Admin | Dashboard metrics |
+| `/api/admin?action=dashboard` | GET | Admin | Dashboard metrics |
 
 ## 🔄 Migration Status
 
@@ -142,7 +142,7 @@ To verify the refactor worked correctly:
 
 3. **Check browser network tab:**
    - Programs/Intakes: Should see API calls to `/api/catalog/*`
-   - Dashboard: Should see single call to `/api/admin/dashboard`
+   - Dashboard: Should see single call to `/api/admin?action=dashboard`
 
 4. **Test CRUD operations:**
    - Create, edit, delete programs/intakes

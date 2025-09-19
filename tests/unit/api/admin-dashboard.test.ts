@@ -2,6 +2,9 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { createRequire } from 'module'
 import type { MockInstance } from 'vitest'
 
+process.env.VITE_SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'http://localhost:54321'
+process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'service-role-key'
+
 const fromMock = vi.fn()
 let selectMock: MockInstance<[string], QueryBuilder>
 let eqMock: MockInstance<[string, unknown], QueryBuilder>
@@ -9,6 +12,8 @@ let maybeSingleMock: MockInstance<[], Promise<{ data: unknown; error: unknown }>
 const getUserFromRequestMock = vi.fn()
 const nodeRequire = createRequire(import.meta.url)
 const supabaseModulePath = nodeRequire.resolve('../../../api/_lib/supabaseClient.js')
+const auditLoggerModulePath = nodeRequire.resolve('../../../api/_lib/auditLogger.js')
+const handlerModulePath = nodeRequire.resolve('../../../api/admin/index.js')
 
 type StatusMock = MockInstance<[number], TestResponse>
 type JsonMock = MockInstance<[unknown], TestResponse>
@@ -22,6 +27,7 @@ interface QueryBuilder {
 interface TestRequest {
   method: string
   headers: Record<string, string>
+  query?: Record<string, unknown>
 }
 
 interface TestResponse {
@@ -43,10 +49,20 @@ function mockSupabaseModule() {
       getUserFromRequest: getUserFromRequestMock
     }
   }
+  nodeRequire.cache[auditLoggerModulePath] = {
+    id: auditLoggerModulePath,
+    filename: auditLoggerModulePath,
+    loaded: true,
+    exports: {
+      logAuditEvent: vi.fn().mockResolvedValue(undefined)
+    }
+  }
 }
 
 function clearSupabaseModule() {
   delete nodeRequire.cache[supabaseModulePath]
+  delete nodeRequire.cache[auditLoggerModulePath]
+  delete nodeRequire.cache[handlerModulePath]
 }
 
 type Handler = (req: TestRequest, res: TestResponse) => Promise<void>
@@ -73,13 +89,8 @@ function createMockResponse(): TestResponse {
   return response
 }
 
-describe('api/admin/dashboard', () => {
-  beforeAll(async () => {
-    const module = await import('../../../api/admin/dashboard.js')
-    handler = (module.default || module) as Handler
-  })
-
-  beforeEach(() => {
+describe('api/admin?action=dashboard', () => {
+  beforeEach(async () => {
     mockSupabaseModule()
     fromMock.mockReset()
     getUserFromRequestMock.mockReset()
@@ -96,15 +107,23 @@ describe('api/admin/dashboard', () => {
       maybeSingle: maybeSingleMock
     }
 
+    const deleteBuilder = {
+      eq: vi.fn().mockResolvedValue({ error: null })
+    }
+
     selectMock.mockReturnValue(queryBuilder)
-    fromMock.mockReturnValue({ select: selectMock })
+    fromMock.mockReturnValue({
+      select: selectMock,
+      insert: vi.fn().mockResolvedValue({ error: null }),
+      upsert: vi.fn().mockResolvedValue({ error: null }),
+      delete: vi.fn(() => deleteBuilder)
+    })
+
+    const module = await import('../../../api/admin/index.js')
+    handler = (module.default || module) as Handler
   })
 
   afterEach(() => {
-    clearSupabaseModule()
-  })
-
-  afterAll(() => {
     clearSupabaseModule()
   })
 
@@ -153,19 +172,30 @@ describe('api/admin/dashboard', () => {
     }
 
     getUserFromRequestMock.mockResolvedValue({ user: { id: 'admin' }, roles: ['admin'], isAdmin: true })
-    maybeSingleMock.mockResolvedValue({
-      data: { metrics: overview, generated_at: '2025-02-21T10:00:00Z' },
-      error: null
-    })
+    maybeSingleMock
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockResolvedValueOnce({
+        data: { metrics: overview, generated_at: '2025-02-21T10:00:00Z' },
+        error: null
+      })
 
-    const req = { method: 'GET', headers: { authorization: 'Bearer token' } }
+    const req = {
+      method: 'GET',
+      headers: { authorization: 'Bearer token' },
+      query: { action: 'dashboard' }
+    }
     const res = createMockResponse()
 
     await handler(req, res)
 
-    expect(fromMock).toHaveBeenCalledWith('admin_dashboard_metrics_cache')
-    expect(selectMock).toHaveBeenCalledWith('metrics, generated_at')
-    expect(eqMock).toHaveBeenCalledWith('id', 'overview')
+    const fromTables = fromMock.mock.calls.map(call => call[0])
+    expect(fromTables).toContain('admin_dashboard_metrics_cache')
+
+    const selectArgs = selectMock.mock.calls.map(call => call[0])
+    expect(selectArgs).toContain('metrics, generated_at')
+
+    const eqCalls = eqMock.mock.calls
+    expect(eqCalls.some(([column, value]) => column === 'id' && value === 'overview')).toBe(true)
     expect(res.setHeader).toHaveBeenCalledWith(
       'Cache-Control',
       'public, max-age=30, s-maxage=60, stale-while-revalidate=60'
@@ -198,9 +228,15 @@ describe('api/admin/dashboard', () => {
 
   it('returns an error response when the cache lookup fails', async () => {
     getUserFromRequestMock.mockResolvedValue({ user: { id: 'admin' }, roles: ['admin'], isAdmin: true })
-    maybeSingleMock.mockResolvedValue({ data: null, error: { message: 'cache failure' } })
+    maybeSingleMock
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockResolvedValueOnce({ data: null, error: { message: 'cache failure' } })
 
-    const req = { method: 'GET', headers: { authorization: 'Bearer token' } }
+    const req = {
+      method: 'GET',
+      headers: { authorization: 'Bearer token' },
+      query: { action: 'dashboard' }
+    }
     const res = createMockResponse()
 
     await handler(req, res)
