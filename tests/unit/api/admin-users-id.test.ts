@@ -2,10 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRequire } from 'module'
 import type { MockInstance } from 'vitest'
 
+process.env.VITE_SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'http://localhost:54321'
+process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'service-role-key'
+
 const nodeRequire = createRequire(import.meta.url)
 const supabaseModulePath = nodeRequire.resolve('../../../api/_lib/supabaseClient.js')
 const helperModulePath = nodeRequire.resolve('../../../api/_lib/adminUserHelpers.js')
-const handlerModulePath = nodeRequire.resolve('../../../api/admin/users/[id].js')
+const handlerModulePath = nodeRequire.resolve('../../../api/admin/users.js')
+const auditLoggerModulePath = nodeRequire.resolve('../../../api/_lib/auditLogger.js')
 
 type HelperModule = typeof import('../../../api/_lib/adminUserHelpers.js')
 
@@ -52,6 +56,7 @@ function clearModuleCache() {
   delete nodeRequire.cache[supabaseModulePath]
   delete nodeRequire.cache[helperModulePath]
   delete nodeRequire.cache[handlerModulePath]
+  delete nodeRequire.cache[auditLoggerModulePath]
 }
 
 let supabaseAdminClient: any
@@ -69,7 +74,7 @@ function mockSupabaseModule() {
     }
   }
 
-  requireUserMock = vi.fn().mockResolvedValue({ user: { id: 'admin-1' }, isAdmin: true })
+  requireUserMock = vi.fn().mockResolvedValue({ user: { id: 'admin-1' }, roles: ['admin'] })
   clearRequestRoleCacheMock = vi.fn()
 
   nodeRequire.cache[supabaseModulePath] = {
@@ -80,6 +85,14 @@ function mockSupabaseModule() {
       supabaseAdminClient,
       requireUser: requireUserMock,
       clearRequestRoleCache: clearRequestRoleCacheMock
+    }
+  }
+  nodeRequire.cache[auditLoggerModulePath] = {
+    id: auditLoggerModulePath,
+    filename: auditLoggerModulePath,
+    loaded: true,
+    exports: {
+      logAuditEvent: vi.fn().mockResolvedValue(undefined)
     }
   }
 }
@@ -107,12 +120,12 @@ async function loadHandler(
     exports: stubHelpers
   }
 
-  const module = await import('../../../api/admin/users/[id].js')
+  const module = await import('../../../api/admin/users.js')
   const handler = (module.default || module) as Handler
   return { handler, helpers: stubHelpers, actualHelpers }
 }
 
-describe('api/admin/users/[id]', () => {
+describe('api/admin/users', () => {
   beforeEach(() => {
     vi.resetModules()
     clearModuleCache()
@@ -145,7 +158,7 @@ describe('api/admin/users/[id]', () => {
     expect(requireUserMock).toHaveBeenCalledWith(req, { requireAdmin: true })
     expect(fetchUserProfileSpy!).toHaveBeenCalledWith('user-123')
     expect(res.status).toHaveBeenCalledWith(200)
-    expect(res.json).toHaveBeenCalledWith({ data: { user_id: 'user-123', email: 'user@example.com' } })
+    expect(res.json).toHaveBeenCalledWith({ user_id: 'user-123', email: 'user@example.com' })
   })
 
   it('returns the active role when action=role is provided', async () => {

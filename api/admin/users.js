@@ -2,8 +2,8 @@ const {
   supabaseAdminClient,
   requireUser,
   clearRequestRoleCache
-} = require('../../_lib/supabaseClient')
-const { logAuditEvent } = require('../../_lib/auditLogger')
+} = require('../_lib/supabaseClient')
+const { logAuditEvent } = require('../_lib/auditLogger')
 const {
   fetchUserProfile,
   fetchActiveRole,
@@ -12,84 +12,146 @@ const {
   parseAction,
   parseRequestBody,
   updateAuthUserMetadata
-} = require('../../_lib/adminUserHelpers')
+} = require('../_lib/adminUserHelpers')
 
 module.exports = async function handler(req, res) {
   try {
     const { user, roles } = await requireUser(req, { requireAdmin: true })
-
     const userId = parseUserId(req.query?.id)
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' })
-    }
-
     const action = parseAction(req.query?.action)
 
     if (req.method === 'GET') {
-      if (action === 'permissions') {
-        const { data: permissionsRecord, error: permissionsError } = await supabaseAdminClient
-          .from('user_permissions')
-          .select('permissions')
-          .eq('user_id', userId)
-          .maybeSingle()
+      if (userId) {
+        if (action === 'permissions') {
+          const { data: permissionsRecord, error: permissionsError } = await supabaseAdminClient
+            .from('user_permissions')
+            .select('permissions')
+            .eq('user_id', userId)
+            .maybeSingle()
 
-        if (permissionsError && permissionsError.code !== 'PGRST116') {
-          throw permissionsError
+          if (permissionsError && permissionsError.code !== 'PGRST116') {
+            throw permissionsError
+          }
+
+          const permissions = Array.isArray(permissionsRecord?.permissions)
+            ? permissionsRecord.permissions
+            : []
+
+          await logAuditEvent({
+            req,
+            action: 'admin.users.permissions.view',
+            actorId: user.id,
+            actorEmail: user.email || null,
+            actorRoles: roles,
+            targetTable: 'user_permissions',
+            targetId: userId,
+            metadata: { permissionsCount: permissions.length }
+          })
+
+          return res.status(200).json({ data: permissions })
         }
 
-        const permissions = Array.isArray(permissionsRecord?.permissions)
-          ? permissionsRecord.permissions
-          : []
+        if (action === 'role') {
+          const activeRole = await fetchActiveRole(userId)
+
+          await logAuditEvent({
+            req,
+            action: 'admin.users.role.view',
+            actorId: user.id,
+            actorEmail: user.email || null,
+            actorRoles: roles,
+            targetTable: 'user_roles',
+            targetId: userId,
+            metadata: { activeRole: activeRole?.role || null }
+          })
+
+          return res.status(200).json(activeRole)
+        }
+
+        const profile = await fetchUserProfile(userId)
+        if (!profile) {
+          return res.status(404).json({ error: 'User not found' })
+        }
 
         await logAuditEvent({
           req,
-          action: 'admin.users.permissions.view',
+          action: 'admin.users.view',
           actorId: user.id,
           actorEmail: user.email || null,
           actorRoles: roles,
-          targetTable: 'user_permissions',
+          targetTable: 'user_profiles',
           targetId: userId,
-          metadata: { permissionsCount: permissions.length }
+          metadata: { found: true }
         })
 
-        return res.status(200).json({ data: permissions })
+        return res.status(200).json(profile)
       }
 
-      if (action === 'role') {
-        const activeRole = await fetchActiveRole(userId)
+      const { data, error } = await supabaseAdminClient
+        .from('user_profiles')
+        .select('*')
+        .order('created_at', { ascending: false })
 
-        await logAuditEvent({
-          req,
-          action: 'admin.users.role.view',
-          actorId: user.id,
-          actorEmail: user.email || null,
-          actorRoles: roles,
-          targetTable: 'user_roles',
-          targetId: userId,
-          metadata: { activeRole: activeRole?.role || null }
-        })
+      if (error) throw error
 
-        return res.status(200).json(activeRole)
-      }
-
-      const profile = await fetchUserProfile(userId)
-      if (!profile) {
-        return res.status(404).json({ error: 'User not found' })
-      }
       await logAuditEvent({
         req,
-        action: 'admin.users.view',
+        action: 'admin.users.list',
         actorId: user.id,
         actorEmail: user.email || null,
         actorRoles: roles,
         targetTable: 'user_profiles',
-        targetId: userId,
-        metadata: { found: true }
+        metadata: { total: Array.isArray(data) ? data.length : 0 }
       })
-      return res.status(200).json({ data: profile })
+
+      return res.status(200).json({ data })
+    }
+
+    if (req.method === 'POST') {
+      const { email, password, full_name, phone, role } = req.body || {}
+
+      const { data: authData, error: authError } = await supabaseAdminClient.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true
+      })
+
+      if (authError) throw authError
+      if (!authData?.user) throw new Error('Failed to create user')
+
+      const { data: profileData, error: profileError } = await supabaseAdminClient
+        .from('user_profiles')
+        .insert({
+          user_id: authData.user.id,
+          email,
+          full_name,
+          phone,
+          role
+        })
+        .select()
+        .single()
+
+      if (profileError) throw profileError
+
+      await logAuditEvent({
+        req,
+        action: 'admin.users.create',
+        actorId: user.id,
+        actorEmail: user.email || null,
+        actorRoles: roles,
+        targetTable: 'user_profiles',
+        targetId: profileData?.user_id || null,
+        metadata: { email, role }
+      })
+
+      return res.status(201).json({ data: profileData })
     }
 
     if (req.method === 'PUT') {
+      if (!userId) {
+        return res.status(400).json({ error: 'User ID is required' })
+      }
+
       if (action === 'permissions') {
         const payload = parseRequestBody(req.body)
         const { permissions } = payload || {}
@@ -190,6 +252,10 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
+      if (!userId) {
+        return res.status(400).json({ error: 'User ID is required' })
+      }
+
       const profile = await fetchUserProfile(userId)
       if (!profile) {
         return res.status(404).json({ error: 'User not found' })
@@ -232,7 +298,7 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ success: true })
     }
 
-    res.setHeader('Allow', 'GET,PUT,DELETE')
+    res.setHeader('Allow', 'GET,POST,PUT,DELETE')
     return res.status(405).json({ error: 'Method not allowed' })
   } catch (error) {
     console.error('Admin user handler error:', error)

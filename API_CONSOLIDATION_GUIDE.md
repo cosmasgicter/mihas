@@ -97,11 +97,11 @@ fetch('https://your-project.supabase.co/functions/v1/mcp-operations?action=schem
 5. `/api/applications/[id].js`
 6. `/api/applications/index.js`
 7. `/api/applications/bulk.js`
-8. `/api/admin/dashboard.js`
-9. `/api/admin/users/[id].js`
-10. `/api/admin/users/index.js`
-11. `/api/documents/upload.js`
-12. `/api/test.js`
+8. `/api/admin/index.js` (`action=dashboard|audit-log`)
+9. `/api/admin/users.js` (list/detail/role/permissions + mutations)
+10. `/api/documents/upload.js`
+11. `/api/test.js`
+12. `/api/user-consents.js`
 
 ## Supabase Edge Functions (5 total)
 1. `document-upload` (existing)

@@ -24,9 +24,8 @@ api/
 ├── applications/[id].js
 ├── applications/index.js
 ├── applications/bulk.js
-├── admin/dashboard.js
-├── admin/users/[id].js
-├── admin/users/index.js
+├── admin/index.js      # Consolidated: dashboard, audit-log
+├── admin/users.js      # Consolidated: list/detail/role/permissions CRUD
 ├── documents/upload.js
 └── test.js
 ```

@@ -38,7 +38,7 @@ export interface AuditLogFilters {
 function buildQuery(params: AuditLogFilters = {}): string {
   const searchParams = new URLSearchParams()
 
-  if (params.action) searchParams.set('action', params.action)
+  if (params.action) searchParams.set('logAction', params.action)
   if (params.actorId) searchParams.set('actorId', params.actorId)
   if (params.targetTable) searchParams.set('targetTable', params.targetTable)
   if (params.targetId) searchParams.set('targetId', params.targetId)
@@ -54,7 +54,8 @@ function buildQuery(params: AuditLogFilters = {}): string {
 export const adminAuditService = {
   async list(params: AuditLogFilters = {}): Promise<AuditLogResponse> {
     const query = buildQuery(params)
-    return apiClient.request(`/api/admin/audit-log${query}`, {
+    const url = `/api/admin?action=audit-log${query ? `&${query.slice(1)}` : ''}`
+    return apiClient.request(url, {
       method: 'GET'
     })
   }

@@ -7,17 +7,14 @@ Successfully implemented admin-guarded user management APIs and refactored the f
 
 ### 1. Admin-Guarded API Handlers
 
-#### `/api/admin/users/index.js`
-- **GET**: Lists all users (admin-only)
+#### `/api/admin/users.js`
+- **GET**: Lists all users when no `id` is provided (admin-only)
+- **GET**: Retrieves a specific user when `?id={userId}` is provided
+- **GET**: Supports `?id={userId}&action=role|permissions` for role and permission lookups
 - **POST**: Creates new users with auth account and profile (admin-only)
-- Uses `supabaseAdminClient` with elevated privileges
-- Includes role validation via `requireUser({ requireAdmin: true })`
-
-#### `/api/admin/users/[id].js`
-- **GET**: Retrieves specific user by ID (admin-only)
-- **PUT**: Updates user profile information (admin-only)
-- **DELETE**: Soft deletes user by setting `deleted_at` timestamp (admin-only)
-- Proper error handling and validation
+- **PUT**: Updates user profile information via `?id={userId}` or `?id={userId}&action=permissions`
+- **DELETE**: Removes user accounts and associated records via `?id={userId}` (admin-only)
+- Uses `supabaseAdminClient` with elevated privileges and centralized role validation
 
 ### 2. Service Layer Updates
 
@@ -59,11 +56,14 @@ Added React Query hooks:
 ## API Endpoints
 
 ```
-GET    /api/admin/users          # List all users
-POST   /api/admin/users          # Create new user
-GET    /api/admin/users/[id]     # Get user by ID
-PUT    /api/admin/users/[id]     # Update user
-DELETE /api/admin/users/[id]     # Soft delete user
+GET    /api/admin/users                               # List all users
+POST   /api/admin/users                               # Create new user
+GET    /api/admin/users?id={id}                       # Get user by ID
+GET    /api/admin/users?id={id}&action=role           # Get active role
+GET    /api/admin/users?id={id}&action=permissions    # Get permissions array
+PUT    /api/admin/users?id={id}                       # Update user profile
+PUT    /api/admin/users?id={id}&action=permissions    # Update permissions
+DELETE /api/admin/users?id={id}                       # Delete user
 ```
 
 ## Request/Response Format
