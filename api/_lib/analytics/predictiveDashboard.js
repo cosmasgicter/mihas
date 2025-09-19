@@ -1,10 +1,10 @@
-const { supabaseAdminClient, getUserFromRequest } = require('../_lib/supabaseClient')
+const { supabaseAdminClient, getUserFromRequest } = require('../supabaseClient')
 const {
   checkRateLimit,
   buildRateLimitKey,
   getLimiterConfig,
   attachRateLimitHeaders
-} = require('../_lib/rateLimiter')
+} = require('../rateLimiter')
 
 const DEFAULT_PREDICTIVE_SUMMARY = {
   avgAdmissionProbability: 0,
@@ -45,7 +45,10 @@ function parseArrayField(value) {
       // Fall back to comma-separated parsing below
     }
 
-    return trimmed.split(',').map(item => item.trim()).filter(Boolean)
+    return trimmed
+      .split(',')
+      .map(item => item.trim())
+      .filter(Boolean)
   }
 
   return []
@@ -74,7 +77,7 @@ async function fetchPredictiveSummary() {
   try {
     const { data, error } = await supabaseAdminClient
       .from('analytics_predictive_summary')
-      .select('
+      .select(`
         avg_admission_probability,
         total_applications,
         avg_processing_time,
@@ -84,7 +87,7 @@ async function fetchPredictiveSummary() {
         processing_bottlenecks,
         generated_at,
         last_computed_at
-      ')
+      `)
       .limit(1)
       .maybeSingle()
 
@@ -122,14 +125,14 @@ async function fetchWorkflowSummary() {
   try {
     const { data, error } = await supabaseAdminClient
       .from('workflow_metrics_summary')
-      .select('
+      .select(`
         total_executions,
         successful_executions,
         failed_executions,
         rule_stats,
         generated_at,
         last_computed_at
-      ')
+      `)
       .limit(1)
       .maybeSingle()
 
@@ -283,11 +286,7 @@ async function fallbackWorkflowSummary() {
   return summary
 }
 
-module.exports = async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
-
+async function handlePredictiveDashboardRequest(req, res) {
   try {
     const rateKey = buildRateLimitKey(req, { prefix: 'analytics-predictive' })
     const rateResult = await checkRateLimit(
@@ -339,4 +338,8 @@ module.exports = async function handler(req, res) {
     console.error('Predictive dashboard aggregation error:', error)
     return res.status(500).json({ error: 'Internal server error' })
   }
+}
+
+module.exports = {
+  handlePredictiveDashboardRequest
 }

@@ -207,7 +207,7 @@ class HttpTelemetrySink implements TelemetrySink {
       return
     }
 
-    const response = await fetch(`${this.baseUrl}/api/analytics/telemetry`, {
+    const response = await fetch(`${this.baseUrl}/api/analytics?action=telemetry`, {
       method: 'POST',
       headers: await this.buildHeaders(),
       body: JSON.stringify({ events }),
@@ -222,6 +222,7 @@ class HttpTelemetrySink implements TelemetrySink {
 
   async query(query: TelemetryQuery = {}): Promise<TelemetryQueryResult> {
     const params = new URLSearchParams()
+    params.set('action', 'telemetry')
     if (query.service) params.set('service', query.service)
     if (query.endpoint) params.set('endpoint', query.endpoint)
     if (query.type) params.set('type', query.type)
@@ -230,7 +231,7 @@ class HttpTelemetrySink implements TelemetrySink {
     if (query.since) params.set('since', query.since)
     if (query.windowMinutes) params.set('windowMinutes', String(query.windowMinutes))
 
-    const url = `${this.baseUrl}/api/analytics/telemetry${params.size > 0 ? `?${params.toString()}` : ''}`
+    const url = `${this.baseUrl}/api/analytics?${params.toString()}`
     const response = await fetch(url, {
       method: 'GET',
       headers: await this.buildHeaders()

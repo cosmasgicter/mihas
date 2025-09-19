@@ -20,7 +20,7 @@ api/
 ├── catalog.js           # Consolidated: subjects, programs, intakes
 ├── auth.js             # Consolidated: login, signin, register  
 ├── notifications.js    # Consolidated: send, application-submitted
-├── analytics/metrics.js
+├── analytics/index.js
 ├── applications/[id].js
 ├── applications/index.js
 ├── applications/bulk.js

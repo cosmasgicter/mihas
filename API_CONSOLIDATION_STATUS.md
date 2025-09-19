@@ -21,7 +21,7 @@ Successfully consolidated from 20+ to 12 serverless functions to meet Vercel Hob
    - `POST /api/notifications?action=application-submitted`
 
 ### Remaining Individual APIs ✅
-4. `/api/analytics/metrics.js`
+4. `/api/analytics/index.js`
 5. `/api/applications/[id].js`
 6. `/api/applications/index.js`
 7. `/api/applications/bulk.js`
