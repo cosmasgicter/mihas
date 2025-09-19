@@ -81,6 +81,7 @@ const createControllerReturn = (overrides: Partial<ReturnType<typeof mockUseWiza
     selectedGrades: baseGrades,
     eligibilityCheck: null,
     recommendedSubjects: [],
+    programs: [],
     subjects: [],
     hasAutoPopulatedData: false,
     completionPercentage: 0,
