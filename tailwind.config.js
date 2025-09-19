@@ -15,9 +15,9 @@ module.exports = {
 				'2xl': '1400px',
 			},
 		},
-		extend: {
-			colors: {
-				border: 'hsl(var(--border))',
+                extend: {
+                        colors: {
+                                border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
@@ -51,11 +51,14 @@ module.exports = {
 					foreground: 'hsl(var(--card-foreground))',
 				},
 			},
-			borderRadius: {
-				lg: 'var(--radius)',
-				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)',
-			},
+                        borderRadius: {
+                                lg: 'var(--radius)',
+                                md: 'calc(var(--radius) - 2px)',
+                                sm: 'calc(var(--radius) - 4px)',
+                        },
+                        height: {
+                                'btn-lg': '3.25rem',
+                        },
 			keyframes: {
 				'accordion-down': {
 					from: { height: 0 },
