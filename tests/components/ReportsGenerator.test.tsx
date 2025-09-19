@@ -2,7 +2,13 @@ import React from 'react'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 
-const roleState = vi.hoisted(() => ({ isAdmin: true }))
+const roleState = vi.hoisted(() => ({
+  isAdmin: true,
+  userRole: { role: 'admin' },
+  isLoading: false,
+  isFetching: false,
+  error: null as unknown
+}))
 
 vi.mock('@/hooks/auth/useRoleQuery', () => ({
   useRoleQuery: () => roleState
@@ -41,6 +47,10 @@ const originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard'
 
 beforeEach(() => {
   roleState.isAdmin = true
+  roleState.userRole = { role: 'admin' }
+  roleState.isLoading = false
+  roleState.isFetching = false
+  roleState.error = null
   renderTemplateByIdMock.mockReset()
 })
 
@@ -56,6 +66,7 @@ afterEach(() => {
 describe('<ReportsGenerator />', () => {
   it('hides document templates for non-admin users', () => {
     roleState.isAdmin = false
+    roleState.userRole = { role: 'admissions_officer' }
 
     render(<ReportsGenerator />)
 
@@ -66,6 +77,7 @@ describe('<ReportsGenerator />', () => {
 
     it('allows admins to copy generated text templates and preview the output', async () => {
       roleState.isAdmin = true
+      roleState.userRole = { role: 'admin' }
 
     renderTemplateByIdMock.mockResolvedValue({
       template: DOCUMENT_TEMPLATE_DEFINITIONS.offerLetter,
@@ -115,6 +127,7 @@ describe('<ReportsGenerator />', () => {
 
     it('surfaces validation errors when template rendering fails', async () => {
       roleState.isAdmin = true
+      roleState.userRole = { role: 'admin' }
 
     renderTemplateByIdMock.mockRejectedValue(new Error('Missing required fields: student.fullName'))
 

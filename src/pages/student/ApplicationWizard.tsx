@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -25,6 +25,7 @@ import { catalogData } from '@/data/catalog'
 import { useToast } from '@/components/ui/Toast'
 import { createApplicationSlip } from '@/lib/slipService'
 import useApplicationSlip, { SubmittedApplicationSummary } from './applicationWizard/hooks/useApplicationSlip'
+import useApplicationFileUploads from './applicationWizard/hooks/useApplicationFileUploads'
 import type { ApplicationSlipData } from '@/lib/applicationSlip'
 
 const wizardSchema = z.object({
@@ -82,12 +83,6 @@ export default function ApplicationWizard() {
   const [submittedApplication, setSubmittedApplication] = useState<SubmittedApplicationSummary | null>(null)
 
   const [selectedGrades, setSelectedGrades] = useState<SubjectGrade[]>([])
-  const [resultSlipFile, setResultSlipFile] = useState<File | null>(null)
-  const [extraKycFile, setExtraKycFile] = useState<File | null>(null)
-  const [uploading, setUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState<{[key: string]: number}>({})
-  const [uploadedFiles, setUploadedFiles] = useState<{[key: string]: boolean}>({})
-  const [popFile, setPopFile] = useState<File | null>(null)
   const [isDraftSaving, setIsDraftSaving] = useState(false)
   const [draftSaved, setDraftSaved] = useState(false)
   const [sessionWarning, setSessionWarning] = useState<any>(null)
@@ -112,6 +107,26 @@ export default function ApplicationWizard() {
   })
 
   const selectedProgram = watch('program')
+  const clearValidationError = useCallback(() => setError(''), [setError])
+
+  const {
+    resultSlipFile,
+    extraKycFile,
+    proofOfPaymentFile: popFile,
+    uploading,
+    uploadProgress,
+    uploadedFiles,
+    handleResultSlipUpload,
+    handleExtraKycUpload,
+    handleProofOfPaymentUpload,
+    startUpload,
+    trackUploadTask
+  } = useApplicationFileUploads({
+    userId: user?.id,
+    applicationId,
+    onValidationError: setError,
+    onValidationClear: clearValidationError
+  })
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -426,77 +441,6 @@ export default function ApplicationWizard() {
     updated[index] = { ...updated[index], [field]: value }
     setSelectedGrades(updated)
   }
-
-
-
-  const uploadFileWithProgress = async (file: File, fileType: string): Promise<string> => {
-    if (!user?.id || !applicationId) {
-      throw new Error('User or application ID not available')
-    }
-
-    // Verify user is still authenticated
-    const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
-    if (authError || !currentUser) {
-      throw new Error('Please sign in again to upload files')
-    }
-
-    // Reset any previous upload state
-    setUploadProgress(prev => ({ ...prev, [fileType]: 0 }))
-    setUploadedFiles(prev => ({ ...prev, [fileType]: false }))
-    
-    let progressInterval: NodeJS.Timeout | null = null
-    
-    try {
-      // Start progress simulation
-      progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          const current = prev[fileType] || 0
-          if (current < 85) {
-            return { ...prev, [fileType]: current + 15 }
-          }
-          return prev
-        })
-      }, 300)
-      
-      const { uploadApplicationFile } = await import('@/lib/storage')
-      const result = await uploadApplicationFile(file, user.id, applicationId, fileType)
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Upload failed')
-      }
-
-      // Complete progress
-      setUploadProgress(prev => ({ ...prev, [fileType]: 100 }))
-      setUploadedFiles(prev => ({ ...prev, [fileType]: true }))
-      
-      return result.url!
-    } catch (error) {
-      console.error('File upload error:', { error: sanitizeForLog(error instanceof Error ? error.message : 'Unknown error') })
-      // Reset progress on error
-      setUploadProgress(prev => {
-        const newProgress = { ...prev }
-        delete newProgress[fileType]
-        return newProgress
-      })
-      setUploadedFiles(prev => ({ ...prev, [fileType]: false }))
-      throw error
-    } finally {
-      // Clear progress interval
-      if (progressInterval) {
-        clearInterval(progressInterval)
-      }
-      
-      // Clear progress after delay
-      setTimeout(() => {
-        setUploadProgress(prev => {
-          const newProgress = { ...prev }
-          delete newProgress[fileType]
-          return newProgress
-        })
-      }, 3000)
-    }
-  }
-
   const nextStep = async (e?: React.MouseEvent) => {
     e?.preventDefault()
     saveDraft() // Auto-save when moving to next step
@@ -590,36 +534,33 @@ export default function ApplicationWizard() {
 
       
       try {
-        setUploading(true)
-        setError('')
-        
-        const resultSlipUrl = await uploadFileWithProgress(resultSlipFile, 'result_slip')
-        setUploadedFiles(prev => ({ ...prev, result_slip: true }))
-        
-        let extraKycUrl = null
-        if (extraKycFile) {
-          extraKycUrl = await uploadFileWithProgress(extraKycFile, 'extra_kyc')
-          setUploadedFiles(prev => ({ ...prev, extra_kyc: true }))
-        }
-        
-        // Save grades first, then update application
-        if (selectedGrades.length > 0) {
-          await syncGrades.mutateAsync({ id: applicationId, grades: selectedGrades })
-        }
+        await trackUploadTask(async () => {
+          clearValidationError()
 
-        await updateApplication.mutateAsync({ 
-          id: applicationId, 
-          data: {
-            result_slip_url: resultSlipUrl,
-            extra_kyc_url: extraKycUrl
+          const resultSlipUrl = await startUpload(resultSlipFile, 'result_slip')
+
+          let extraKycUrl = null
+          if (extraKycFile) {
+            extraKycUrl = await startUpload(extraKycFile, 'extra_kyc')
           }
+
+          // Save grades first, then update application
+          if (selectedGrades.length > 0) {
+            await syncGrades.mutateAsync({ id: applicationId, grades: selectedGrades })
+          }
+
+          await updateApplication.mutateAsync({
+            id: applicationId,
+            data: {
+              result_slip_url: resultSlipUrl,
+              extra_kyc_url: extraKycUrl
+            }
+          })
         })
-        
+
         setCurrentStep(3)
       } catch (err: any) {
         setError(err.message)
-      } finally {
-        setUploading(false)
       }
       return
     }
@@ -670,8 +611,7 @@ export default function ApplicationWizard() {
         throw new Error('Please sign in again to submit your application')
       }
       
-      const popUrl = await uploadFileWithProgress(popFile, 'proof_of_payment')
-      setUploadedFiles(prev => ({ ...prev, proof_of_payment: true }))
+      const popUrl = await startUpload(popFile, 'proof_of_payment')
       
       // Update application with payment info and submit - ensure we stay on step 4
       const updatedApp = await updateApplication.mutateAsync({
@@ -1452,25 +1392,7 @@ export default function ApplicationWizard() {
                         <input
                           type="file"
                           accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0] || null
-                            if (file) {
-                              // Validate file immediately
-                              if (file.size > 10 * 1024 * 1024) {
-                                setError('File size must be less than 10MB')
-                                e.target.value = ''
-                                return
-                              }
-                              const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
-                              if (!allowedTypes.includes(file.type)) {
-                                setError('Only PDF, JPG, JPEG, and PNG files are allowed')
-                                e.target.value = ''
-                                return
-                              }
-                              setError('') // Clear any previous errors
-                            }
-                            setResultSlipFile(file)
-                          }}
+                          onChange={handleResultSlipUpload}
                           className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                         />
 
@@ -1516,25 +1438,7 @@ export default function ApplicationWizard() {
                         <input
                           type="file"
                           accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0] || null
-                            if (file) {
-                              // Validate file immediately
-                              if (file.size > 10 * 1024 * 1024) {
-                                setError('File size must be less than 10MB')
-                                e.target.value = ''
-                                return
-                              }
-                              const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
-                              if (!allowedTypes.includes(file.type)) {
-                                setError('Only PDF, JPG, JPEG, and PNG files are allowed')
-                                e.target.value = ''
-                                return
-                              }
-                              setError('') // Clear any previous errors
-                            }
-                            setExtraKycFile(file)
-                          }}
+                          onChange={handleExtraKycUpload}
                           className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                         />
                         {extraKycFile && (
@@ -1716,27 +1620,7 @@ export default function ApplicationWizard() {
                       <input
                         type="file"
                         accept=".pdf,.jpg,.jpeg,.png"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0] || null
-                          setPopFile(file)
-                          if (file) {
-                            // Validate file immediately
-                            if (file.size > 10 * 1024 * 1024) {
-                              setError('File size must be less than 10MB')
-                              e.target.value = ''
-                              setPopFile(null)
-                              return
-                            }
-                            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
-                            if (!allowedTypes.includes(file.type)) {
-                              setError('Only PDF, JPG, JPEG, and PNG files are allowed')
-                              e.target.value = ''
-                              setPopFile(null)
-                              return
-                            }
-                            setError('') // Clear any previous errors
-                          }
-                        }}
+                        onChange={handleProofOfPaymentUpload}
                         className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                       />
                       {popFile && (
