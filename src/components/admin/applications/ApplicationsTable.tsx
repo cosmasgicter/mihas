@@ -3,7 +3,7 @@ import { VariableSizeList as List, type ListChildComponentProps } from 'react-wi
 import { sanitizeHtml } from '@/lib/sanitizer'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
-interface ApplicationSummary {
+export interface ApplicationSummary {
   id: string
   application_number: string
   full_name: string
@@ -46,6 +46,7 @@ interface ApplicationsTableProps {
   onLoadMore: () => void | Promise<void>
   onStatusUpdate: (id: string, status: string) => void
   onPaymentStatusUpdate: (id: string, status: string) => void
+  onApplicationSelect?: (application: ApplicationSummary) => void
 }
 
 const ESTIMATED_ROW_HEIGHT = 184
@@ -58,6 +59,7 @@ type RowData = {
   onStatusUpdate: (id: string, status: string) => void
   onPaymentStatusUpdate: (id: string, status: string) => void
   setSize: (index: number, size: number) => void
+  onApplicationSelect?: (application: ApplicationSummary) => void
 }
 
 export function ApplicationsTable({
@@ -68,7 +70,8 @@ export function ApplicationsTable({
   isLoadingMore,
   onLoadMore,
   onStatusUpdate,
-  onPaymentStatusUpdate
+  onPaymentStatusUpdate,
+  onApplicationSelect
 }: ApplicationsTableProps) {
   const formatDateTime = useCallback((value?: string | null) => {
     if (!value) return null
@@ -138,8 +141,9 @@ export function ApplicationsTable({
     getPaymentBadge,
     onStatusUpdate,
     onPaymentStatusUpdate,
-    setSize
-  }), [applications, formatDateTime, getPaymentBadge, getStatusBadge, onPaymentStatusUpdate, onStatusUpdate, setSize])
+    setSize,
+    onApplicationSelect
+  }), [applications, formatDateTime, getPaymentBadge, getStatusBadge, onApplicationSelect, onPaymentStatusUpdate, onStatusUpdate, setSize])
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -278,6 +282,30 @@ const ApplicationRow: React.FC<ListChildComponentProps<RowData>> = ({ index, sty
     }
   }, [measure])
 
+  const handleRowClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (!data.onApplicationSelect || !app) {
+      return
+    }
+
+    const interactiveTarget = (event.target as HTMLElement).closest('button, a, select, [role="button"], input, label')
+    if (interactiveTarget) {
+      return
+    }
+
+    data.onApplicationSelect(app)
+  }, [app, data])
+
+  const handleRowKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!data.onApplicationSelect || !app) {
+      return
+    }
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      data.onApplicationSelect(app)
+    }
+  }, [app, data])
+
   if (!app) {
     return null
   }
@@ -290,6 +318,10 @@ const ApplicationRow: React.FC<ListChildComponentProps<RowData>> = ({ index, sty
       <div
         ref={rowRef}
         className="border-b border-gray-100 bg-white px-4 sm:px-6 py-4 hover:bg-gray-50"
+        onClick={handleRowClick}
+        role={data.onApplicationSelect ? 'button' : undefined}
+        tabIndex={data.onApplicationSelect ? 0 : undefined}
+        onKeyDown={handleRowKeyDown}
       >
         <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(160px,1fr)_minmax(220px,1.4fr)_minmax(200px,1.2fr)_minmax(170px,1fr)_minmax(220px,1.3fr)_minmax(200px,1fr)_minmax(160px,0.8fr)] md:gap-6">
           <div className="space-y-2">
@@ -388,6 +420,15 @@ const ApplicationRow: React.FC<ListChildComponentProps<RowData>> = ({ index, sty
           <div className="space-y-2 text-sm font-medium">
             <div className="md:hidden text-xs font-semibold uppercase text-gray-500">Actions</div>
             <div className="flex flex-col space-y-1">
+              {data.onApplicationSelect && (
+                <button
+                  type="button"
+                  onClick={() => data.onApplicationSelect?.(app)}
+                  className="text-xs font-semibold text-blue-600 hover:text-blue-900 text-left"
+                >
+                  View details
+                </button>
+              )}
               {app.result_slip_url && (
                 <a
                   href={app.result_slip_url}

@@ -1,4 +1,5 @@
 export { FiltersPanel } from './FiltersPanel'
 export { MetricsHeader } from './MetricsHeader'
 export { ApplicationsTable } from './ApplicationsTable'
+export type { ApplicationSummary } from './ApplicationsTable'
 export { ApplicationsSkeleton } from './ApplicationsSkeleton'

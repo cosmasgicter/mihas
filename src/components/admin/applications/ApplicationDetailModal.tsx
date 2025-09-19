@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/Button'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { formatDate } from '@/lib/utils'
 import { XCircle } from 'lucide-react'
 import { applicationService } from '@/services/applications'
@@ -49,11 +50,14 @@ interface ApplicationDetailModalProps {
   application: ApplicationWithDetails | null
   show: boolean
   updating: string | null
+  paymentUpdating: string | null
+  loading?: boolean
   onClose: () => void
   onSendNotification: () => void
   onViewDocuments: () => void
   onViewHistory: () => void
   onUpdateStatus: (id: string, status: string) => void
+  onUpdatePaymentStatus: (id: string, status: string) => void
   onGenerateAcceptanceLetter: () => Promise<void>
   onGenerateFinanceReceipt: () => Promise<void>
 }
@@ -112,11 +116,14 @@ export function ApplicationDetailModal({
   application,
   show,
   updating,
+  paymentUpdating,
+  loading,
   onClose,
   onSendNotification,
   onViewDocuments,
   onViewHistory,
   onUpdateStatus,
+  onUpdatePaymentStatus,
   onGenerateAcceptanceLetter,
   onGenerateFinanceReceipt
 }: ApplicationDetailModalProps) {
@@ -129,6 +136,10 @@ export function ApplicationDetailModal({
   }, [application?.id, show])
 
   if (!show || !application) return null
+
+  const isStatusUpdating = updating === application.id
+  const isPaymentUpdating = paymentUpdating === application.id
+  const isModalLoading = Boolean(loading)
 
   const handleGenerateAcceptance = async () => {
     try {
@@ -154,7 +165,12 @@ export function ApplicationDetailModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        {isModalLoading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/80 pointer-events-none">
+            <LoadingSpinner size="lg" />
+          </div>
+        )}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-secondary">
@@ -273,6 +289,37 @@ export function ApplicationDetailModal({
                       </p>
                     )}
                   </div>
+                  <div className="flex flex-wrap gap-2 pt-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isPaymentUpdating || isModalLoading || application.payment_status === 'verified'}
+                      loading={isPaymentUpdating}
+                      className="border-green-300 text-green-700 hover:bg-green-50"
+                      onClick={() => onUpdatePaymentStatus(application.id, 'verified')}
+                    >
+                      Mark Verified
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isPaymentUpdating || isModalLoading || application.payment_status === 'pending_review'}
+                      loading={isPaymentUpdating}
+                      onClick={() => onUpdatePaymentStatus(application.id, 'pending_review')}
+                    >
+                      Reset to Pending
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-red-300 text-red-600 hover:bg-red-50"
+                      disabled={isPaymentUpdating || isModalLoading || application.payment_status === 'rejected'}
+                      loading={isPaymentUpdating}
+                      onClick={() => onUpdatePaymentStatus(application.id, 'rejected')}
+                    >
+                      Reject Payment
+                    </Button>
+                  </div>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-secondary">Documents</h4>
@@ -294,24 +341,28 @@ export function ApplicationDetailModal({
           <Button
             variant="outline"
             onClick={onSendNotification}
+            disabled={isModalLoading}
           >
             Send Notification
           </Button>
           <Button
             variant="outline"
             onClick={onViewDocuments}
+            disabled={isModalLoading}
           >
             View Documents
           </Button>
           <Button
             variant="outline"
             onClick={onViewHistory}
+            disabled={isModalLoading}
           >
             Status History
           </Button>
           {application.status === 'submitted' && (
             <Button
-              loading={updating === application.id}
+              loading={isStatusUpdating}
+              disabled={isModalLoading}
               onClick={() => onUpdateStatus(application.id, 'under_review')}
             >
               Start Review
@@ -321,7 +372,8 @@ export function ApplicationDetailModal({
             <>
               <Button
                 variant="outline"
-                loading={updating === application.id}
+                loading={isStatusUpdating}
+                disabled={isModalLoading}
                 onClick={() => onUpdateStatus(application.id, 'approved')}
                 className="text-green-600 border-green-300 hover:bg-green-50"
               >
@@ -329,7 +381,8 @@ export function ApplicationDetailModal({
               </Button>
               <Button
                 variant="outline"
-                loading={updating === application.id}
+                loading={isStatusUpdating}
+                disabled={isModalLoading}
                 onClick={() => onUpdateStatus(application.id, 'rejected')}
                 className="text-red-600 border-red-300 hover:bg-red-50"
               >
@@ -342,6 +395,7 @@ export function ApplicationDetailModal({
               <Button
                 variant="outline"
                 loading={isGeneratingAcceptance}
+                disabled={isModalLoading}
                 onClick={() => { void handleGenerateAcceptance() }}
               >
                 Generate Acceptance Letter
@@ -349,6 +403,7 @@ export function ApplicationDetailModal({
               <Button
                 variant="outline"
                 loading={isGeneratingFinanceReceipt}
+                disabled={isModalLoading}
                 onClick={() => { void handleGenerateFinanceReceipt() }}
               >
                 Generate Finance Receipt
