@@ -34,6 +34,7 @@ const ApplicationWizard = () => {
     selectedGrades,
     eligibilityCheck,
     recommendedSubjects,
+    programs,
     subjects,
     hasAutoPopulatedData,
     completionPercentage,
@@ -201,6 +202,7 @@ const ApplicationWizard = () => {
                 hasAutoPopulatedData={hasAutoPopulatedData}
                 completionPercentage={completionPercentage}
                 selectedProgram={selectedProgram}
+                programs={programs}
                 title={currentStepConfig.title}
               />
             )}

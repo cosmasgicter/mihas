@@ -19,7 +19,7 @@ import { safeJsonParse } from '@/lib/utils'
 
 import useApplicationSlip, { SubmittedApplicationSummary } from './useApplicationSlip'
 import useApplicationFileUploads from './useApplicationFileUploads'
-import { wizardSchema, type SubjectGrade, type WizardFormData } from '../types'
+import { createWizardSchema, type SubjectGrade, type WizardFormData, type WizardProgram } from '../types'
 import { getStepIndexById, wizardSteps } from '../steps/config'
 
 interface UseWizardControllerResult {
@@ -40,6 +40,7 @@ interface UseWizardControllerResult {
   selectedGrades: SubjectGrade[]
   eligibilityCheck: ReturnType<typeof checkEligibility> | null
   recommendedSubjects: string[]
+  programs: WizardProgram[]
   subjects: Array<{ id: string; name: string; code: string }>
   hasAutoPopulatedData: boolean
   completionPercentage: number
@@ -91,11 +92,13 @@ const useWizardController = (): UseWizardControllerResult => {
   const [draftSaved, setDraftSaved] = useState(false)
   const [restoringDraft, setRestoringDraft] = useState(false)
   const [confirmSubmission, setConfirmSubmission] = useState(false)
+  const [programs, setPrograms] = useState<WizardProgram[]>([])
 
   const totalSteps = wizardSteps.length
   const currentStepConfig = wizardSteps[currentStepIndex] ?? wizardSteps[0]
   const isLastStep = currentStepConfig.key === 'submit'
 
+  const { data: programsData } = catalogData.usePrograms()
   const { data: subjectsData } = catalogData.useSubjects()
   const subjects = subjectsData?.subjects || []
   const createApplication = applicationsData.useCreate()
@@ -103,12 +106,26 @@ const useWizardController = (): UseWizardControllerResult => {
   const syncGrades = applicationsData.useSyncGrades()
   const { data: draftApplications } = applicationsData.useList({ status: 'draft', mine: true, pageSize: 1 })
 
+  useEffect(() => {
+    if (programsData?.programs) {
+      setPrograms(programsData.programs as WizardProgram[])
+    }
+  }, [programsData])
+
+  const programNames = useMemo(() => programs.map(program => program.name).filter(Boolean), [programs])
+  const schema = useMemo(() => createWizardSchema(programNames), [programNames])
+  const resolver = useMemo(() => zodResolver(schema), [schema])
+
   const form = useForm<WizardFormData>({
-    resolver: zodResolver(wizardSchema),
+    resolver,
     defaultValues: { amount: 153, payment_method: 'MTN Money' }
   })
-  const { handleSubmit, watch, setValue } = form
+  const { watch, setValue } = form
   const selectedProgram = watch('program')
+  const selectedProgramDetails = useMemo(
+    () => programs.find(program => program.name === selectedProgram),
+    [programs, selectedProgram]
+  )
   const clearValidationError = useCallback(() => setError(''), [])
 
   const {
@@ -351,13 +368,19 @@ const useWizardController = (): UseWizardControllerResult => {
     )
   }, [selectedProgram, selectedGrades, subjects])
 
-  const recommendedSubjects = useMemo(() => (selectedProgram ? getRecommendedSubjects(selectedProgram) : []), [selectedProgram])
+  const recommendedSubjects = useMemo(
+    () => (selectedProgram ? getRecommendedSubjects(selectedProgram) : []),
+    [selectedProgram]
+  )
 
   const getPaymentTarget = useCallback(() => {
     if (!selectedProgram) return ''
-    const isKATC = ['Clinical Medicine', 'Environmental Health'].includes(selectedProgram)
-    return isKATC ? 'KATC MTN 0966 992 299' : 'MIHAS MTN 0961 515 151'
-  }, [selectedProgram])
+    const institutionName = selectedProgramDetails?.institutions?.name
+    if (institutionName === 'KATC') {
+      return 'KATC MTN 0966 992 299'
+    }
+    return 'MIHAS MTN 0961 515 151'
+  }, [selectedProgram, selectedProgramDetails])
 
   const goToStep = useCallback((index: number) => {
     setCurrentStepIndex(Math.min(Math.max(index, 0), totalSteps - 1))
@@ -378,13 +401,19 @@ const useWizardController = (): UseWizardControllerResult => {
         setError('Either NRC or Passport number is required')
         return
       }
+      if (formData.program && !programNames.includes(formData.program)) {
+        setError('Please select a valid program from the list provided')
+        return
+      }
 
       try {
         setLoading(true)
         setError('')
-        const institution = ['Clinical Medicine', 'Environmental Health'].includes(formData.program) ? 'KATC' : 'MIHAS'
+        const institutionName =
+          selectedProgramDetails?.institutions?.name || selectedProgramDetails?.institutions?.full_name || 'MIHAS'
+        const normalizedInstitution = institutionName === 'KATC' ? 'KATC' : 'MIHAS'
         const { generateApplicationNumber } = await import('@/lib/applicationNumberGenerator')
-        const applicationNumber = generateApplicationNumber({ institution: institution as 'KATC' | 'MIHAS' })
+        const applicationNumber = generateApplicationNumber({ institution: normalizedInstitution })
         const trackingCode = `TRK${Math.random().toString(36).substring(2, 8).toUpperCase()}`
 
         const app = await createApplication.mutateAsync({
@@ -402,7 +431,7 @@ const useWizardController = (): UseWizardControllerResult => {
           next_of_kin_phone: formData.next_of_kin_phone || null,
           program: formData.program,
           intake: formData.intake,
-          institution,
+          institution: normalizedInstitution,
           status: 'draft'
         })
 
@@ -411,7 +440,7 @@ const useWizardController = (): UseWizardControllerResult => {
           applicationNumber,
           trackingCode,
           program: formData.program,
-          institution,
+          institution: normalizedInstitution,
           intake: formData.intake,
           fullName: formData.full_name,
           email: formData.email,
@@ -469,7 +498,27 @@ const useWizardController = (): UseWizardControllerResult => {
       }
       goToStep(currentStepIndex + 1)
     }
-  }, [saveDraft, currentStepConfig, watch, createApplication, goToStep, currentStepIndex, selectedGrades, selectedProgram, eligibilityCheck, resultSlipFile, extraKycFile, trackUploadTask, clearValidationError, startUpload, syncGrades, applicationId, updateApplication])
+  }, [
+    saveDraft,
+    currentStepConfig,
+    watch,
+    createApplication,
+    goToStep,
+    currentStepIndex,
+    selectedGrades,
+    selectedProgram,
+    eligibilityCheck,
+    resultSlipFile,
+    extraKycFile,
+    trackUploadTask,
+    clearValidationError,
+    startUpload,
+    syncGrades,
+    applicationId,
+    updateApplication,
+    programNames,
+    selectedProgramDetails,
+  ])
 
   const handlePrevStep = useCallback(() => {
     if (currentStepIndex > 0) {
@@ -589,6 +638,7 @@ const useWizardController = (): UseWizardControllerResult => {
     selectedGrades,
     eligibilityCheck,
     recommendedSubjects,
+    programs,
     subjects,
     hasAutoPopulatedData,
     completionPercentage,

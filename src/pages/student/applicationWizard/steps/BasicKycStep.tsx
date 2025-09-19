@@ -1,3 +1,5 @@
+import { useMemo } from 'react'
+
 import { motion } from 'framer-motion'
 import { CheckCircle } from 'lucide-react'
 import type { UseFormReturn } from 'react-hook-form'
@@ -5,13 +7,14 @@ import type { UseFormReturn } from 'react-hook-form'
 import { Input } from '@/components/ui/Input'
 import { ProfileCompletionBadge } from '@/components/ui/ProfileAutoPopulationIndicator'
 
-import type { WizardFormData } from '../types'
+import type { WizardFormData, WizardProgram } from '../types'
 
 interface BasicKycStepProps {
   form: UseFormReturn<WizardFormData>
   hasAutoPopulatedData: boolean
   completionPercentage: number
   selectedProgram?: WizardFormData['program']
+  programs: WizardProgram[]
   title: string
 }
 
@@ -20,12 +23,23 @@ const BasicKycStep = ({
   hasAutoPopulatedData,
   completionPercentage,
   selectedProgram,
+  programs,
   title
 }: BasicKycStepProps) => {
   const {
     register,
     formState: { errors }
   } = form
+
+  const selectedProgramDetails = useMemo(
+    () => programs.find(program => program.name === selectedProgram),
+    [programs, selectedProgram]
+  )
+
+  const selectedInstitutionLabel = useMemo(() => {
+    if (!selectedProgramDetails?.institutions) return undefined
+    return selectedProgramDetails.institutions.full_name || selectedProgramDetails.institutions.name || undefined
+  }, [selectedProgramDetails])
 
   return (
     <motion.div
@@ -168,9 +182,20 @@ const BasicKycStep = ({
             className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">Select program</option>
-            <option value="Clinical Medicine">Clinical Medicine</option>
-            <option value="Environmental Health">Environmental Health</option>
-            <option value="Registered Nursing">Registered Nursing</option>
+            {programs.length === 0 && (
+              <option value="" disabled>
+                Programs currently unavailable
+              </option>
+            )}
+            {programs.map(program => {
+              const institutionName = program.institutions?.full_name || program.institutions?.name
+              const label = institutionName ? `${program.name} (${institutionName})` : program.name
+              return (
+                <option key={program.id} value={program.name}>
+                  {label}
+                </option>
+              )
+            })}
           </select>
           {errors.program && <p className="mt-1 text-sm text-red-600">{errors.program.message}</p>}
         </div>
@@ -200,7 +225,7 @@ const BasicKycStep = ({
         >
           <p className="text-sm text-blue-800">
             <strong>Institution:</strong>{' '}
-            {['Clinical Medicine', 'Environmental Health'].includes(selectedProgram) ? 'KATC' : 'MIHAS'}
+            {selectedInstitutionLabel || 'MIHAS'}
           </p>
         </motion.div>
       )}
