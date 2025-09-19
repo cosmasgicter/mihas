@@ -7,6 +7,8 @@ import { AdminRoute } from '@/components/AdminRoute'
 import { ToastProvider } from '@/components/ui/Toast'
 import { LoadingFallback } from '@/components/ui/LoadingFallback'
 import { routes, type RouteConfig } from '@/routes/config'
+import { AnalyticsTracker } from '@/components/analytics/AnalyticsTracker'
+import { Analytics } from '@vercel/analytics/react'
 
 
 // Optimized query client for better performance
@@ -55,17 +57,20 @@ function App() {
       <AuthProvider>
         <ToastProvider>
           <Router>
-            <div className="min-h-screen bg-gray-50">
-              <Routes>
-                {routes.map((route) => (
-                  <Route
-                    key={route.path}
-                    path={route.path}
-                    element={renderRoute(route)}
-                  />
-                ))}
-              </Routes>
-            </div>
+            <AnalyticsTracker>
+              <div className="min-h-screen bg-gray-50">
+                <Routes>
+                  {routes.map((route) => (
+                    <Route
+                      key={route.path}
+                      path={route.path}
+                      element={renderRoute(route)}
+                    />
+                  ))}
+                </Routes>
+              </div>
+            </AnalyticsTracker>
+            <Analytics />
           </Router>
 
         </ToastProvider>
