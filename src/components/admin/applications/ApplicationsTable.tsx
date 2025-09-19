@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { VariableSizeList as List, type ListChildComponentProps } from 'react-window'
 import { sanitizeHtml } from '@/lib/sanitizer'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
@@ -32,6 +33,8 @@ interface ApplicationSummary {
   pop_url: string
   grades_summary: string
   total_subjects: number
+  average_grade: number
+  days_since_submission: number
 }
 
 interface ApplicationsTableProps {
@@ -45,6 +48,18 @@ interface ApplicationsTableProps {
   onPaymentStatusUpdate: (id: string, status: string) => void
 }
 
+const ESTIMATED_ROW_HEIGHT = 184
+
+type RowData = {
+  applications: ApplicationSummary[]
+  formatDateTime: (value?: string | null) => string | null
+  getStatusBadge: (status: string) => JSX.Element
+  getPaymentBadge: (status: string) => JSX.Element
+  onStatusUpdate: (id: string, status: string) => void
+  onPaymentStatusUpdate: (id: string, status: string) => void
+  setSize: (index: number, size: number) => void
+}
+
 export function ApplicationsTable({
   applications,
   totalCount,
@@ -55,14 +70,14 @@ export function ApplicationsTable({
   onStatusUpdate,
   onPaymentStatusUpdate
 }: ApplicationsTableProps) {
-  const formatDateTime = (value?: string | null) => {
+  const formatDateTime = useCallback((value?: string | null) => {
     if (!value) return null
     const date = new Date(value)
     if (Number.isNaN(date.getTime())) return null
     return date.toLocaleString()
-  }
+  }, [])
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = useCallback((status: string) => {
     const colors = {
       draft: 'bg-gray-100 text-gray-800',
       submitted: 'bg-blue-100 text-blue-800',
@@ -70,207 +85,100 @@ export function ApplicationsTable({
       approved: 'bg-green-100 text-green-800',
       rejected: 'bg-red-100 text-red-800'
     }
-    
+
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors[status as keyof typeof colors] || colors.draft}`}>
         {status.replace('_', ' ').toUpperCase()}
       </span>
     )
-  }
+  }, [])
 
-  const getPaymentBadge = (paymentStatus: string) => {
+  const getPaymentBadge = useCallback((paymentStatus: string) => {
     const colors = {
       pending_review: 'bg-yellow-100 text-yellow-800',
       verified: 'bg-green-100 text-green-800',
       rejected: 'bg-red-100 text-red-800'
     }
-    
+
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors[paymentStatus as keyof typeof colors] || colors.pending_review}`}>
         {paymentStatus.replace('_', ' ').toUpperCase()}
       </span>
     )
-  }
+  }, [])
+
+  const listRef = useRef<List>(null)
+  const sizeMapRef = useRef<Map<number, number>>(new Map())
+
+  const getSize = useCallback((index: number) => {
+    return sizeMapRef.current.get(index) ?? ESTIMATED_ROW_HEIGHT
+  }, [])
+
+  const setSize = useCallback((index: number, size: number) => {
+    if (sizeMapRef.current.get(index) === size) {
+      return
+    }
+    sizeMapRef.current.set(index, size)
+    listRef.current?.resetAfterIndex(index)
+  }, [])
+
+  useEffect(() => {
+    sizeMapRef.current.clear()
+    listRef.current?.resetAfterIndex(0, true)
+  }, [applications.length])
+
+  const listHeight = useMemo(() => {
+    if (applications.length === 0) {
+      return 240
+    }
+    const visibleCount = Math.min(applications.length, 6)
+    return Math.min(Math.max(visibleCount * ESTIMATED_ROW_HEIGHT, 240), 720)
+  }, [applications.length])
+
+  const rowData = useMemo<RowData>(() => ({
+    applications,
+    formatDateTime,
+    getStatusBadge,
+    getPaymentBadge,
+    onStatusUpdate,
+    onPaymentStatusUpdate,
+    setSize
+  }), [applications, formatDateTime, getPaymentBadge, getStatusBadge, onPaymentStatusUpdate, onStatusUpdate, setSize])
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Application
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Student
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Program
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Payment
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Subjects
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {applications.map((app) => (
-              <tr key={app.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
-                    {app.application_number}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {new Date(app.submitted_at || app.created_at).toLocaleDateString()}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
-                    {app.full_name}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {app.email}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {app.phone}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
-                    {app.program}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {app.institution} • {app.intake}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="space-y-2">
-                    {getStatusBadge(app.status)}
-                    <select
-                      value={app.status}
-                      onChange={(e) => onStatusUpdate(app.id, e.target.value)}
-                      className="block w-full text-xs rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                    >
-                      <option value="draft">Draft</option>
-                      <option value="submitted">Submitted</option>
-                      <option value="under_review">Under Review</option>
-                      <option value="approved">Approved</option>
-                      <option value="rejected">Rejected</option>
-                    </select>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="space-y-2">
-                    {getPaymentBadge(app.payment_status)}
-                    <div className="text-xs text-gray-500">
-                      K{app.paid_amount || 0} / K{app.application_fee}
-                    </div>
-                    {app.payment_status === 'verified' && (() => {
-                      const verifiedAt = formatDateTime(app.payment_verified_at)
-                      const ledgerAt = formatDateTime(app.last_payment_audit_at)
-                      if (!verifiedAt && !ledgerAt) return null
+        <div className="min-w-[1024px]">
+          <div className="hidden bg-gray-50 px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 md:grid md:grid-cols-[minmax(160px,1fr)_minmax(220px,1.4fr)_minmax(200px,1.2fr)_minmax(170px,1fr)_minmax(220px,1.3fr)_minmax(200px,1fr)_minmax(160px,0.8fr)]">
+            <div>Application</div>
+            <div>Student</div>
+            <div>Program</div>
+            <div>Status</div>
+            <div>Payment</div>
+            <div>Subjects</div>
+            <div>Actions</div>
+          </div>
 
-                      return (
-                        <div className="text-xs text-green-700 space-y-1">
-                          {verifiedAt && (
-                            <div>
-                              Verified {verifiedAt}
-                              {(app.payment_verified_by_name || app.payment_verified_by_email) && (
-                                <>
-                                  {' '}by{' '}
-                                  {app.payment_verified_by_name || app.payment_verified_by_email}
-                                </>
-                              )}
-                            </div>
-                          )}
-                          {ledgerAt && (
-                            <div className="text-xs text-gray-500">
-                              Ledger entry: {ledgerAt}
-                              {app.last_payment_reference && (
-                                <>
-                                  {' '}
-                                  <span className="text-gray-400">(Ref: {app.last_payment_reference})</span>
-                                </>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })()}
-                    <select
-                      value={app.payment_status}
-                      onChange={(e) => onPaymentStatusUpdate(app.id, e.target.value)}
-                      className="block w-full text-xs rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                    >
-                      <option value="pending_review">Pending Review</option>
-                      <option value="verified">Verified</option>
-                      <option value="rejected">Rejected</option>
-                    </select>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {app.total_subjects} subjects
-                  </div>
-                  {app.grades_summary && (
-                    <div className="text-xs text-gray-500 max-w-xs truncate" title={sanitizeHtml(app.grades_summary)}>
-                      {sanitizeHtml(app.grades_summary)}
-                    </div>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-y-1">
-                  <div className="flex flex-col space-y-1">
-                    {app.result_slip_url && (
-                      <a
-                        href={app.result_slip_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-900 text-xs"
-                      >
-                        Result Slip
-                      </a>
-                    )}
-                    {app.extra_kyc_url && (
-                      <a
-                        href={app.extra_kyc_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-900 text-xs"
-                      >
-                        Extra KYC
-                      </a>
-                    )}
-                    {app.pop_url && (
-                      <a
-                        href={app.pop_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-900 text-xs"
-                      >
-                        Proof of Payment
-                      </a>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      
-      {applications.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-gray-500">No applications found matching your criteria.</div>
+          {applications.length > 0 ? (
+            <List
+              ref={listRef}
+              height={listHeight}
+              itemCount={applications.length}
+              itemSize={getSize}
+              width="100%"
+              itemData={rowData}
+              overscanCount={5}
+              itemKey={(index) => applications[index]?.id ?? index}
+            >
+              {ApplicationRow}
+            </List>
+          ) : (
+            <div className="text-center py-12 text-sm text-gray-500">
+              No applications found matching your criteria.
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm text-gray-500">
@@ -299,6 +207,161 @@ export function ApplicationsTable({
             <span className="text-sm text-gray-400">All applications loaded.</span>
           )
         )}
+      </div>
+    </div>
+  )
+}
+
+const ApplicationRow: React.FC<ListChildComponentProps<RowData>> = ({ index, style, data }) => {
+  const app = data.applications[index]
+  const rowRef = useRef<HTMLDivElement | null>(null)
+
+  useLayoutEffect(() => {
+    if (!rowRef.current) return
+    const height = rowRef.current.getBoundingClientRect().height
+    if (height > 0) {
+      data.setSize(index, height)
+    }
+  }, [data, index, app])
+
+  if (!app) {
+    return null
+  }
+
+  const verifiedAt = app.payment_status === 'verified' ? data.formatDateTime(app.payment_verified_at) : null
+  const ledgerAt = app.payment_status === 'verified' ? data.formatDateTime(app.last_payment_audit_at) : null
+
+  return (
+    <div ref={rowRef} style={style} className="border-b border-gray-100 bg-white px-4 sm:px-6 py-4 hover:bg-gray-50">
+      <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(160px,1fr)_minmax(220px,1.4fr)_minmax(200px,1.2fr)_minmax(170px,1fr)_minmax(220px,1.3fr)_minmax(200px,1fr)_minmax(160px,0.8fr)] md:gap-6">
+        <div className="space-y-2">
+          <div className="md:hidden text-xs font-semibold uppercase text-gray-500">Application</div>
+          <div className="text-sm font-medium text-gray-900">{app.application_number}</div>
+          <div className="text-sm text-gray-500">
+            {new Date(app.submitted_at || app.created_at).toLocaleDateString()}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="md:hidden text-xs font-semibold uppercase text-gray-500">Student</div>
+          <div className="text-sm font-medium text-gray-900">{app.full_name}</div>
+          <div className="text-sm text-gray-500">{app.email}</div>
+          <div className="text-sm text-gray-500">{app.phone}</div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="md:hidden text-xs font-semibold uppercase text-gray-500">Program</div>
+          <div className="text-sm font-medium text-gray-900">{app.program}</div>
+          <div className="text-sm text-gray-500">{app.institution} • {app.intake}</div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="md:hidden text-xs font-semibold uppercase text-gray-500">Status</div>
+          {data.getStatusBadge(app.status)}
+          <select
+            value={app.status}
+            onChange={(e) => data.onStatusUpdate(app.id, e.target.value)}
+            className="block w-full text-xs rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+          >
+            <option value="draft">Draft</option>
+            <option value="submitted">Submitted</option>
+            <option value="under_review">Under Review</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+
+        <div className="space-y-3">
+          <div className="md:hidden text-xs font-semibold uppercase text-gray-500">Payment</div>
+          {data.getPaymentBadge(app.payment_status)}
+          <div className="text-xs text-gray-500">
+            K{app.paid_amount || 0} / K{app.application_fee}
+          </div>
+          {app.payment_status === 'verified' && (verifiedAt || ledgerAt) && (
+            <div className="text-xs text-green-700 space-y-1">
+              {verifiedAt && (
+                <div>
+                  Verified {verifiedAt}
+                  {(app.payment_verified_by_name || app.payment_verified_by_email) && (
+                    <>
+                      {' '}by{' '}
+                      {app.payment_verified_by_name || app.payment_verified_by_email}
+                    </>
+                  )}
+                </div>
+              )}
+              {ledgerAt && (
+                <div className="text-xs text-gray-500">
+                  Ledger entry: {ledgerAt}
+                  {app.last_payment_reference && (
+                    <>
+                      {' '}
+                      <span className="text-gray-400">(Ref: {app.last_payment_reference})</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          <select
+            value={app.payment_status}
+            onChange={(e) => data.onPaymentStatusUpdate(app.id, e.target.value)}
+            className="block w-full text-xs rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+          >
+            <option value="pending_review">Pending Review</option>
+            <option value="verified">Verified</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <div className="md:hidden text-xs font-semibold uppercase text-gray-500">Subjects</div>
+          <div className="text-sm text-gray-900">{app.total_subjects} subjects</div>
+          {app.grades_summary && (
+            <div
+              className="text-xs text-gray-500 max-w-xs truncate"
+              title={sanitizeHtml(app.grades_summary)}
+            >
+              {sanitizeHtml(app.grades_summary)}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-2 text-sm font-medium">
+          <div className="md:hidden text-xs font-semibold uppercase text-gray-500">Actions</div>
+          <div className="flex flex-col space-y-1">
+            {app.result_slip_url && (
+              <a
+                href={app.result_slip_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-900 text-xs"
+              >
+                Result Slip
+              </a>
+            )}
+            {app.extra_kyc_url && (
+              <a
+                href={app.extra_kyc_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-900 text-xs"
+              >
+                Extra KYC
+              </a>
+            )}
+            {app.pop_url && (
+              <a
+                href={app.pop_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-900 text-xs"
+              >
+                Proof of Payment
+              </a>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

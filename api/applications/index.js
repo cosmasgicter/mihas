@@ -8,6 +8,45 @@ const SORT_FIELD_MAP = {
   status: 'status'
 }
 
+const APPLICATION_LIST_COLUMNS = [
+  'id',
+  'application_number',
+  'user_id',
+  'full_name',
+  'nrc_number',
+  'passport_number',
+  'date_of_birth',
+  'sex',
+  'phone',
+  'email',
+  'residence_town',
+  'guardian_name',
+  'guardian_phone',
+  'program',
+  'intake',
+  'institution',
+  'result_slip_url',
+  'extra_kyc_url',
+  'pop_url',
+  'application_fee',
+  'payment_method',
+  'payer_name',
+  'payer_phone',
+  'amount',
+  'paid_at',
+  'momo_ref',
+  'payment_status',
+  'payment_verified_at',
+  'payment_verified_by',
+  'status',
+  'submitted_at',
+  'created_at',
+  'updated_at',
+  'public_tracking_code'
+]
+
+const MAX_DELTA_RESULTS = 200
+
 function sanitizeSearchTerm(term = '') {
   return term.replace(/[%_\\]/g, '\\$&').replace(/'/g, "''")
 }
@@ -50,7 +89,8 @@ async function handleGet(req, res, { user, isAdmin }) {
       startDate = '',
       endDate = '',
       includeStats = 'false',
-      mine = 'false'
+      mine = 'false',
+      cursor = ''
     } = req.query
 
     const parsedPage = Math.max(parseInt(Array.isArray(page) ? page[0] : page, 10) || 0, 0)
@@ -61,6 +101,10 @@ async function handleGet(req, res, { user, isAdmin }) {
 
     const shouldIncludeStats = parseBoolean(Array.isArray(includeStats) ? includeStats[0] : includeStats)
     const limitToUser = !isAdmin || parseBoolean(Array.isArray(mine) ? mine[0] : mine)
+
+    const cursorValueRaw = Array.isArray(cursor) ? cursor[0] : cursor
+    const cursorTimestamp = cursorValueRaw ? Date.parse(cursorValueRaw) : NaN
+    const hasCursor = Number.isFinite(cursorTimestamp)
 
     const sortFieldKey = Array.isArray(sortBy) ? sortBy[0] : sortBy
     const orderField = ALLOWED_SORT_FIELDS.has(sortFieldKey) ? SORT_FIELD_MAP[sortFieldKey] : SORT_FIELD_MAP.date
@@ -74,9 +118,11 @@ async function handleGet(req, res, { user, isAdmin }) {
     const startDateFilter = Array.isArray(startDate) ? startDate[0] : startDate
     const endDateFilter = Array.isArray(endDate) ? endDate[0] : endDate
 
+    const selectOptions = { count: hasCursor ? undefined : 'exact' }
+
     let query = supabaseAdminClient
       .from('applications_new')
-      .select('*', { count: 'exact' })
+      .select(APPLICATION_LIST_COLUMNS.join(','), selectOptions)
 
     if (limitToUser) {
       query = query.eq('user_id', user.id)
@@ -121,12 +167,19 @@ async function handleGet(req, res, { user, isAdmin }) {
       )
     }
 
-    query = query.order(orderField, { ascending: orderAscending })
+    if (hasCursor) {
+      const cursorIso = new Date(cursorTimestamp).toISOString()
+      query = query.gt('updated_at', cursorIso)
+        .order('updated_at', { ascending: true })
+        .limit(MAX_DELTA_RESULTS)
+    } else {
+      query = query.order(orderField, { ascending: orderAscending })
 
-    if (parsedPageSize !== 'all') {
-      const rangeStart = parsedPage * parsedPageSize
-      const rangeEnd = rangeStart + parsedPageSize - 1
-      query = query.range(rangeStart, rangeEnd)
+      if (parsedPageSize !== 'all') {
+        const rangeStart = parsedPage * parsedPageSize
+        const rangeEnd = rangeStart + parsedPageSize - 1
+        query = query.range(rangeStart, rangeEnd)
+      }
     }
 
     const { data, error, count } = await query
@@ -140,10 +193,37 @@ async function handleGet(req, res, { user, isAdmin }) {
       stats = await fetchApplicationStats(limitToUser ? user.id : null)
     }
 
+    let latestCursor = null
+    if (Array.isArray(data) && data.length > 0) {
+      let maxTimestamp = Number.isFinite(cursorTimestamp) ? cursorTimestamp : null
+      for (const row of data) {
+        const candidate = row.updated_at || row.created_at
+        const candidateTimestamp = candidate ? Date.parse(candidate) : NaN
+        if (Number.isFinite(candidateTimestamp) && (!maxTimestamp || candidateTimestamp > maxTimestamp)) {
+          maxTimestamp = candidateTimestamp
+        }
+      }
+
+      if (Number.isFinite(maxTimestamp)) {
+        latestCursor = new Date(maxTimestamp).toISOString()
+      }
+    }
+
+    if (!latestCursor && Number.isFinite(cursorTimestamp)) {
+      latestCursor = new Date(cursorTimestamp).toISOString()
+    }
+
+    if (latestCursor) {
+      res.setHeader('X-Applications-Cursor', latestCursor)
+    }
+
     return res.status(200).json({
       applications: data || [],
-      totalCount: count || 0,
-      stats
+      totalCount: hasCursor ? undefined : (count || 0),
+      stats,
+      cursor: latestCursor,
+      deltaCount: hasCursor ? (data?.length || 0) : undefined,
+      changes: hasCursor ? (data || []) : undefined
     })
   } catch (error) {
     console.error('Applications GET error', error)
