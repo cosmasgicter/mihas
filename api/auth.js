@@ -1,4 +1,10 @@
 const { supabaseAnonClient } = require('./_lib/supabaseClient')
+const {
+  checkRateLimit,
+  buildRateLimitKey,
+  getLimiterConfig,
+  attachRateLimitHeaders
+} = require('./_lib/rateLimiter')
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -9,8 +15,24 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: 'Supabase anon key is not configured' })
   }
 
+  try {
+    const rateLimitKey = buildRateLimitKey(req, { prefix: 'auth' })
+    const rateResult = await checkRateLimit(
+      rateLimitKey,
+      getLimiterConfig('auth', { maxAttempts: 8, windowMs: 60_000 })
+    )
+
+    if (rateResult.isLimited) {
+      attachRateLimitHeaders(res, rateResult)
+      return res.status(429).json({ error: 'Too many authentication attempts. Please try again later.' })
+    }
+  } catch (rateError) {
+    console.error('Auth rate limiter error:', rateError)
+    return res.status(503).json({ error: 'Rate limiter unavailable' })
+  }
+
   const { action } = req.query
-  
+
   if (!action || !['login', 'signin', 'register'].includes(action)) {
     return res.status(400).json({ error: 'Invalid action. Use: login, signin, or register' })
   }

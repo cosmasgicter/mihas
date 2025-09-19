@@ -1,4 +1,10 @@
 const { supabaseAdminClient, getUserFromRequest } = require('../_lib/supabaseClient')
+const {
+  checkRateLimit,
+  buildRateLimitKey,
+  getLimiterConfig,
+  attachRateLimitHeaders
+} = require('../_lib/rateLimiter')
 
 const DEFAULT_PREDICTIVE_SUMMARY = {
   avgAdmissionProbability: 0,
@@ -280,6 +286,22 @@ async function fallbackWorkflowSummary() {
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  try {
+    const rateKey = buildRateLimitKey(req, { prefix: 'analytics-predictive' })
+    const rateResult = await checkRateLimit(
+      rateKey,
+      getLimiterConfig('analytics_predictive', { maxAttempts: 20, windowMs: 120_000 })
+    )
+
+    if (rateResult.isLimited) {
+      attachRateLimitHeaders(res, rateResult)
+      return res.status(429).json({ error: 'Too many analytics requests. Please slow down.' })
+    }
+  } catch (rateError) {
+    console.error('Predictive analytics rate limiter error:', rateError)
+    return res.status(503).json({ error: 'Rate limiter unavailable' })
   }
 
   const authContext = await getUserFromRequest(req, { requireAdmin: true })

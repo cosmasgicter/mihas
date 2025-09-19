@@ -1,4 +1,10 @@
 const { supabaseAdminClient, getUserFromRequest } = require('./_lib/supabaseClient')
+const {
+  checkRateLimit,
+  buildRateLimitKey,
+  getLimiterConfig,
+  attachRateLimitHeaders
+} = require('./_lib/rateLimiter')
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -6,9 +12,25 @@ module.exports = async function handler(req, res) {
   }
 
   const { action } = req.query
-  
+
   if (!action || !['send', 'application-submitted'].includes(action)) {
     return res.status(400).json({ error: 'Invalid action. Use: send or application-submitted' })
+  }
+
+  try {
+    const rateKey = buildRateLimitKey(req, { prefix: `notifications-${action}` })
+    const rateResult = await checkRateLimit(
+      rateKey,
+      getLimiterConfig(`notifications_${action.replace(/-/g, '_')}`, { maxAttempts: 25, windowMs: 120_000 })
+    )
+
+    if (rateResult.isLimited) {
+      attachRateLimitHeaders(res, rateResult)
+      return res.status(429).json({ error: 'Too many notification requests. Please wait before retrying.' })
+    }
+  } catch (rateError) {
+    console.error('Notifications rate limiter error:', rateError)
+    return res.status(503).json({ error: 'Rate limiter unavailable' })
   }
 
   try {

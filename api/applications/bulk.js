@@ -1,6 +1,30 @@
+import rateLimiter from '../_lib/rateLimiter'
 import { supabaseAdminClient, getUserFromRequest } from '../_lib/supabaseClient'
 
+const {
+  checkRateLimit,
+  buildRateLimitKey,
+  getLimiterConfig,
+  attachRateLimitHeaders
+} = rateLimiter
+
 export default async function handler(req, res) {
+  try {
+    const rateKey = buildRateLimitKey(req, { prefix: 'applications-bulk' })
+    const rateResult = await checkRateLimit(
+      rateKey,
+      getLimiterConfig('applications_bulk', { maxAttempts: 20, windowMs: 120_000 })
+    )
+
+    if (rateResult.isLimited) {
+      attachRateLimitHeaders(res, rateResult)
+      return res.status(429).json({ error: 'Too many bulk operations. Please try again later.' })
+    }
+  } catch (rateError) {
+    console.error('Bulk applications rate limiter error:', rateError)
+    return res.status(503).json({ error: 'Rate limiter unavailable' })
+  }
+
   const authContext = await getUserFromRequest(req, { requireAdmin: true })
   if (authContext.error) {
     const status = authContext.error === 'Access denied' ? 403 : 401
