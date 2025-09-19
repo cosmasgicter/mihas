@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { adminDashboardService } from '@/services/admin/dashboard'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
@@ -34,6 +34,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { useAnalytics } from '@/hooks/useAnalytics'
+import { useAdminRealtimeMetrics } from '@/hooks/admin'
+import type { AdminApplicationChange, AdminMetricsDelta } from '@/hooks/admin/useAdminRealtimeMetrics'
 import { EnhancedDashboard, type EnhancedDashboardMetrics } from '@/components/admin/EnhancedDashboard'
 import { QuickActionsPanel } from '@/components/admin/QuickActionsPanel'
 import { PredictiveDashboard } from '@/components/admin/PredictiveDashboard'
@@ -95,9 +97,37 @@ export default function AdminDashboard() {
   const [showQuickActions, setShowQuickActions] = useState(true)
   const [networkError, setNetworkError] = useState(false)
 
+  const updateStatsFromRealtime = useCallback((delta: AdminMetricsDelta) => {
+    setStats(prev => ({
+      ...prev,
+      totalApplications: Math.max(prev.totalApplications + delta.totalApplications, 0),
+      pendingApplications: Math.max(prev.pendingApplications + delta.pendingApplications, 0),
+      approvedApplications: Math.max(prev.approvedApplications + delta.approvedApplications, 0),
+      rejectedApplications: Math.max(prev.rejectedApplications + delta.rejectedApplications, 0),
+      todayApplications: Math.max(prev.todayApplications + delta.todayApplications, 0),
+      weekApplications: Math.max(prev.weekApplications + delta.weekApplications, 0),
+      monthApplications: Math.max(prev.monthApplications + delta.monthApplications, 0)
+    }))
+  }, [])
 
+  const handleRealtimeChange = useCallback((change: AdminApplicationChange) => {
+    updateStatsFromRealtime(change.metricsDelta)
 
-  const loadDashboardStats = async (options?: { refresh?: boolean }) => {
+    if (change.activity) {
+      const activity = change.activity
+      setRecentActivity(prev => {
+        const filtered = prev.filter(item => item.id !== activity.id)
+        return [activity, ...filtered].slice(0, 10)
+      })
+    }
+  }, [updateStatsFromRealtime])
+
+  const { isConnected } = useAdminRealtimeMetrics({
+    currentUserId: user?.id ?? null,
+    onChange: handleRealtimeChange
+  })
+
+  const loadDashboardStats = useCallback(async (options?: { refresh?: boolean }) => {
     const isRefresh = options?.refresh ?? false
     try {
       if (isRefresh) {
@@ -128,19 +158,46 @@ export default function AdminDashboard() {
         setIsInitialLoading(false)
       }
     }
-  }
+  }, [])
 
 
 
-  const refreshDashboard = async () => {
+  const refreshDashboard = useCallback(async () => {
     await loadDashboardStats({ refresh: true })
-  }
+  }, [loadDashboardStats])
 
   useEffect(() => {
-    if (user && profile) {
-      loadDashboardStats()
+    trackPageView('admin_dashboard')
+  }, [trackPageView])
+
+  useEffect(() => {
+    if (!user || !profile) {
+      return
     }
-  }, [user, profile])
+
+    void loadDashboardStats()
+
+    const intervalId = window.setInterval(() => {
+      void loadDashboardStats({ refresh: true })
+    }, 180000)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [loadDashboardStats, profile, user])
+
+  useEffect(() => {
+    if (!user || !profile) return
+    if (isConnected) return
+
+    const timeoutId = window.setTimeout(() => {
+      void loadDashboardStats({ refresh: true })
+    }, 60000)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [isConnected, loadDashboardStats, profile, user])
 
   if (isInitialLoading) {
     return <DashboardSkeleton />

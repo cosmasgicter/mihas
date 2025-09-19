@@ -1,7 +1,12 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { applicationService } from '@/services/applications'
 import { ApplicationFilters, DEFAULT_APPLICATION_FILTERS } from './useApplicationFilters'
+import {
+  useAdminRealtimeMetrics,
+  doesApplicationMatchFilters
+} from './useAdminRealtimeMetrics'
+import type { AdminApplicationChange } from './useAdminRealtimeMetrics'
 
 interface ApplicationSummary {
   id: string
@@ -66,6 +71,41 @@ export function useApplicationsData(filters: ApplicationFilters = DEFAULT_APPLIC
   const [pageSize] = useState(DEFAULT_PAGE_SIZE)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
+
+  const filtersRef = useRef<ApplicationFilters>(filters || DEFAULT_APPLICATION_FILTERS)
+  const hydrationPromisesRef = useRef<Map<string, Promise<any>>>(new Map())
+
+  useEffect(() => {
+    filtersRef.current = filters || DEFAULT_APPLICATION_FILTERS
+  }, [filters])
+
+  const hydrateApplicationById = useCallback(async (id: string) => {
+    if (!id) return null
+
+    if (hydrationPromisesRef.current.has(id)) {
+      return hydrationPromisesRef.current.get(id)
+    }
+
+    const hydrationPromise = supabase
+      .from('admin_application_detailed')
+      .select('*')
+      .eq('id', id)
+      .single()
+      .then(({ data, error }) => {
+        hydrationPromisesRef.current.delete(id)
+        if (error) {
+          throw error
+        }
+        return data
+      })
+      .catch(error => {
+        hydrationPromisesRef.current.delete(id)
+        throw error
+      })
+
+    hydrationPromisesRef.current.set(id, hydrationPromise)
+    return hydrationPromise
+  }, [])
 
   const loadPage = useCallback(async (page: number, mode: LoadMode) => {
     const safePage = Math.max(page, 1)
@@ -182,6 +222,110 @@ export function useApplicationsData(filters: ApplicationFilters = DEFAULT_APPLIC
   const loadApplications = useCallback(async () => {
     await loadPage(1, 'initial')
   }, [loadPage])
+
+  const applyRealtimeChange = useCallback(async (change: AdminApplicationChange) => {
+    const activeFilters = filtersRef.current || DEFAULT_APPLICATION_FILTERS
+    const matchesNew = change.newRow ? doesApplicationMatchFilters(change.newRow, activeFilters) : false
+    const matchesOld = change.oldRow ? doesApplicationMatchFilters(change.oldRow, activeFilters) : false
+
+    if (change.type === 'insert') {
+      if (!matchesNew) {
+        return
+      }
+
+      try {
+        const detailed = await hydrateApplicationById(change.targetId)
+        if (!detailed) return
+
+        let existed = false
+        setApplications(prev => {
+          existed = prev.some(item => item.id === change.targetId)
+          const withoutTarget = prev.filter(item => item.id !== change.targetId)
+          const maxItems = Math.max(pageSize * currentPage, pageSize)
+          return [detailed, ...withoutTarget].slice(0, maxItems)
+        })
+        if (!existed) {
+          setTotalCount(prev => prev + 1)
+        }
+      } catch (err) {
+        console.warn('Failed to hydrate inserted application', err)
+      }
+      return
+    }
+
+    if (change.type === 'update') {
+      if (matchesNew) {
+        try {
+          const detailed = await hydrateApplicationById(change.targetId)
+          if (detailed) {
+            setApplications(prev => {
+              const index = prev.findIndex(item => item.id === change.targetId)
+              if (index === -1) {
+                if (currentPage > 1) {
+                  return prev
+                }
+                const maxItems = Math.max(pageSize * currentPage, pageSize)
+                return [detailed, ...prev].slice(0, maxItems)
+              }
+
+              const next = [...prev]
+              next[index] = { ...next[index], ...detailed }
+              return next
+            })
+          }
+        } catch (err) {
+          console.warn('Failed to refresh updated application', err)
+        }
+      }
+
+      if (!matchesOld && matchesNew) {
+        setTotalCount(prev => prev + 1)
+      }
+
+      if (matchesOld && !matchesNew) {
+        let removed = false
+        setApplications(prev => {
+          const next = prev.filter(item => {
+            if (item.id === change.targetId) {
+              removed = true
+              return false
+            }
+            return true
+          })
+          return next
+        })
+        if (removed) {
+          setTotalCount(prev => Math.max(prev - 1, 0))
+        }
+      }
+      return
+    }
+
+    if (change.type === 'delete') {
+      if (matchesOld) {
+        let removed = false
+        setApplications(prev => {
+          const next = prev.filter(item => {
+            if (item.id === change.targetId) {
+              removed = true
+              return false
+            }
+            return true
+          })
+          return next
+        })
+        if (removed) {
+          setTotalCount(prev => Math.max(prev - 1, 0))
+        }
+      }
+    }
+  }, [currentPage, hydrateApplicationById, pageSize])
+
+  useAdminRealtimeMetrics({
+    onChange: change => {
+      void applyRealtimeChange(change)
+    }
+  })
 
   const pagination: PaginationState = useMemo(() => ({
     pageSize,
