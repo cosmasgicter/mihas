@@ -7,6 +7,7 @@ import {
   ApplicationsTable,
   ApplicationsSkeleton
 } from '@/components/admin/applications'
+import { ApplicationDetailModal } from '@/components/admin/applications/ApplicationDetailModal'
 import { useApplicationsData, useApplicationFilters } from '@/hooks/admin'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
@@ -18,6 +19,8 @@ import {
   type ApplicationData
 } from '@/lib/exportUtils'
 import { FileDown, FileSpreadsheet, FileText } from 'lucide-react'
+import { applicationService } from '@/services/applications'
+import type { ApplicationSummary } from '@/components/admin/applications/ApplicationsTable'
 
 const EXPORT_BATCH_SIZE = 500
 
@@ -66,14 +69,41 @@ export default function Applications() {
     pagination,
     hasMore,
     loadNextPage,
+    refreshCurrentPage,
     updateStatus,
     updatePaymentStatus
   } = useApplicationsData(filters)
 
   const { showError, showSuccess, showInfo } = useToast()
   const [exportingFormat, setExportingFormat] = useState<'csv' | 'excel' | 'pdf' | null>(null)
+  const [selectedApplication, setSelectedApplication] = useState<
+    NonNullable<React.ComponentProps<typeof ApplicationDetailModal>['application']>
+  | null>(null)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const [isDetailLoading, setIsDetailLoading] = useState(false)
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null)
+  const [updatingPaymentId, setUpdatingPaymentId] = useState<string | null>(null)
 
   const activeFilters = useMemo(() => ({ ...filters }), [filters])
+
+  const fetchDetailedApplication = useCallback(async (applicationId: string) => {
+    const detailed = await applicationService.getById(applicationId, {
+      include: ['grades', 'documents']
+    })
+
+    setSelectedApplication(prev => {
+      if (prev && prev.id === applicationId) {
+        return {
+          ...prev,
+          ...detailed
+        }
+      }
+
+      return detailed as NonNullable<React.ComponentProps<typeof ApplicationDetailModal>['application']>
+    })
+
+    return detailed
+  }, [])
 
   const createExportStream = useCallback(() => {
     const filtersSnapshot = activeFilters
@@ -170,104 +200,238 @@ export default function Applications() {
 
   const isExporting = exportingFormat !== null
 
+  const handleApplicationSelect = useCallback(async (application: ApplicationSummary) => {
+    setSelectedApplication(application as NonNullable<React.ComponentProps<typeof ApplicationDetailModal>['application']>)
+    setIsDetailModalOpen(true)
+    setIsDetailLoading(true)
+
+    try {
+      await fetchDetailedApplication(application.id)
+    } catch (error) {
+      console.error('Failed to load application details', error)
+      const message = error instanceof Error ? error.message : 'Unable to load application details right now.'
+      showError('Failed to load details', message)
+    } finally {
+      setIsDetailLoading(false)
+    }
+  }, [fetchDetailedApplication, showError])
+
+  const handleCloseModal = useCallback(() => {
+    setIsDetailModalOpen(false)
+    setSelectedApplication(null)
+    setIsDetailLoading(false)
+  }, [])
+
+  const handleStatusUpdate = useCallback(async (applicationId: string, newStatus: string) => {
+    setUpdatingStatusId(applicationId)
+    try {
+      await updateStatus(applicationId, newStatus)
+      await fetchDetailedApplication(applicationId)
+      setSelectedApplication(prev => (prev && prev.id === applicationId ? { ...prev, status: newStatus } : prev))
+      showSuccess('Application updated', `Status changed to ${newStatus.replace('_', ' ')}`)
+    } catch (error) {
+      console.error('Failed to update application status', error)
+      const message = error instanceof Error ? error.message : 'Unable to update application status.'
+      showError('Update failed', message)
+    } finally {
+      setUpdatingStatusId(null)
+    }
+  }, [fetchDetailedApplication, showError, showSuccess, updateStatus])
+
+  const handlePaymentUpdate = useCallback(async (applicationId: string, newStatus: string) => {
+    setUpdatingPaymentId(applicationId)
+    try {
+      await updatePaymentStatus(applicationId, newStatus)
+      await fetchDetailedApplication(applicationId)
+      setSelectedApplication(prev => (prev && prev.id === applicationId ? { ...prev, payment_status: newStatus } : prev))
+      showSuccess('Payment updated', `Payment marked as ${newStatus.replace('_', ' ')}`)
+    } catch (error) {
+      console.error('Failed to update payment status', error)
+      const message = error instanceof Error ? error.message : 'Unable to update payment status.'
+      showError('Payment update failed', message)
+    } finally {
+      setUpdatingPaymentId(null)
+    }
+  }, [fetchDetailedApplication, showError, showSuccess, updatePaymentStatus])
+
+  const handleGenerateDocument = useCallback(async (
+    type: 'acceptance' | 'finance',
+    application: NonNullable<React.ComponentProps<typeof ApplicationDetailModal>['application']>
+  ) => {
+    try {
+      if (type === 'acceptance') {
+        const document = await applicationService.generateAcceptanceLetter(application.id)
+        showSuccess(
+          'Acceptance letter generated',
+          document?.document_name
+            ? `Generated ${document.document_name} for ${application.full_name}.`
+            : `A letter has been generated for ${application.full_name}.`
+        )
+      } else {
+        const document = await applicationService.generateFinanceReceipt(application.id)
+        showSuccess(
+          'Finance receipt generated',
+          document?.document_name
+            ? `Generated ${document.document_name} for ${application.full_name}.`
+            : `A receipt has been generated for ${application.full_name}.`
+        )
+      }
+
+      await refreshCurrentPage()
+      await fetchDetailedApplication(application.id)
+    } catch (error) {
+      console.error('Failed to generate document', error)
+      const message = error instanceof Error ? error.message : 'Please try again in a moment.'
+      if (type === 'acceptance') {
+        showError('Failed to generate acceptance letter', message)
+      } else {
+        showError('Failed to generate finance receipt', message)
+      }
+    }
+  }, [fetchDetailedApplication, refreshCurrentPage, showError, showSuccess])
+
+  const handleSendNotification = useCallback(() => {
+    showInfo('Notification', 'Use the communications panel to send a custom update to the applicant.')
+  }, [showInfo])
+
+  const handleViewDocuments = useCallback((application: NonNullable<React.ComponentProps<typeof ApplicationDetailModal>['application']>) => {
+    const urls = [application.result_slip_url, application.extra_kyc_url, application.pop_url].filter(Boolean) as string[]
+
+    if (urls.length === 0) {
+      showInfo('No documents', 'This application has no uploaded documents yet.')
+      return
+    }
+
+    urls.forEach(url => {
+      window.open(url, '_blank', 'noopener,noreferrer')
+    })
+  }, [showInfo])
+
+  const handleViewHistory = useCallback(() => {
+    showInfo('Status history', 'Status history will be available in an upcoming release.')
+  }, [showInfo])
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <AdminNavigation />
-      <div className="container-mobile py-4 sm:py-6 lg:py-8 safe-area-bottom">
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-          <div className="bg-gradient-to-r from-secondary to-primary p-6 text-white">
-            <div className="space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold">📄 Applications Management</h1>
-                <p className="text-white/90 text-sm sm:text-base">
-                  Manage student applications and review submissions
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-white/10 text-white border-white/40 hover:bg-white/20"
-                  onClick={() => { void handleExport('csv') }}
-                  loading={exportingFormat === 'csv'}
-                  disabled={isExporting && exportingFormat !== 'csv'}
-                >
-                  <FileDown className="mr-2 h-4 w-4" />
-                  Export CSV
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-white/10 text-white border-white/40 hover:bg-white/20"
-                  onClick={() => { void handleExport('excel') }}
-                  loading={exportingFormat === 'excel'}
-                  disabled={isExporting && exportingFormat !== 'excel'}
-                >
-                  <FileSpreadsheet className="mr-2 h-4 w-4" />
-                  Export Excel
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-white/10 text-white border-white/40 hover:bg-white/20"
-                  onClick={() => { void handleExport('pdf') }}
-                  loading={exportingFormat === 'pdf'}
-                  disabled={isExporting && exportingFormat !== 'pdf'}
-                >
-                  <FileText className="mr-2 h-4 w-4" />
-                  Export PDF
-                </Button>
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <AdminNavigation />
+        <div className="container-mobile py-4 sm:py-6 lg:py-8 safe-area-bottom">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+            <div className="bg-gradient-to-r from-secondary to-primary p-6 text-white">
+              <div className="space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold">📄 Applications Management</h1>
+                  <p className="text-white/90 text-sm sm:text-base">
+                    Manage student applications and review submissions
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-white/10 text-white border-white/40 hover:bg-white/20"
+                    onClick={() => { void handleExport('csv') }}
+                    loading={exportingFormat === 'csv'}
+                    disabled={isExporting && exportingFormat !== 'csv'}
+                  >
+                    <FileDown className="mr-2 h-4 w-4" />
+                    Export CSV
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-white/10 text-white border-white/40 hover:bg-white/20"
+                    onClick={() => { void handleExport('excel') }}
+                    loading={exportingFormat === 'excel'}
+                    disabled={isExporting && exportingFormat !== 'excel'}
+                  >
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    Export Excel
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-white/10 text-white border-white/40 hover:bg-white/20"
+                    onClick={() => { void handleExport('pdf') }}
+                    loading={exportingFormat === 'pdf'}
+                    disabled={isExporting && exportingFormat !== 'pdf'}
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    Export PDF
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="p-6 space-y-6">
-            {error && (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-                <div className="text-sm font-medium">{error}</div>
-              </div>
-            )}
+            <div className="p-6 space-y-6">
+              {error && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+                  <div className="text-sm font-medium">{error}</div>
+                </div>
+              )}
 
-            {isInitialLoading ? (
-              <ApplicationsSkeleton />
-            ) : (
-              <div className="space-y-6">
-                <MetricsHeader
-                  applications={applications}
-                  totalCount={pagination.totalCount}
-                />
+              {isInitialLoading ? (
+                <ApplicationsSkeleton />
+              ) : (
+                <div className="space-y-6">
+                  <MetricsHeader
+                    applications={applications}
+                    totalCount={pagination.totalCount}
+                  />
 
-                {isRefreshing && (
-                  <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-600">
-                    <LoadingSpinner size="sm" />
-                    <span>Refreshing latest applications…</span>
-                  </div>
-                )}
+                  {isRefreshing && (
+                    <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-600">
+                      <LoadingSpinner size="sm" />
+                      <span>Refreshing latest applications…</span>
+                    </div>
+                  )}
 
-                <FiltersPanel
-                  searchTerm={filters.searchTerm}
-                  statusFilter={filters.statusFilter}
-                  paymentFilter={filters.paymentFilter}
-                  programFilter={filters.programFilter}
-                  institutionFilter={filters.institutionFilter}
-                  onFilterChange={updateFilter}
-                />
+                  <FiltersPanel
+                    searchTerm={filters.searchTerm}
+                    statusFilter={filters.statusFilter}
+                    paymentFilter={filters.paymentFilter}
+                    programFilter={filters.programFilter}
+                    institutionFilter={filters.institutionFilter}
+                    onFilterChange={updateFilter}
+                  />
 
-                <ApplicationsTable
-                  applications={applications}
-                  totalCount={pagination.totalCount}
-                  loadedCount={pagination.loadedCount}
-                  hasMore={hasMore}
-                  isLoadingMore={isLoadingMore}
-                  onLoadMore={loadNextPage}
-                  onStatusUpdate={updateStatus}
-                  onPaymentStatusUpdate={updatePaymentStatus}
-                />
-              </div>
-            )}
+                  <ApplicationsTable
+                    applications={applications}
+                    totalCount={pagination.totalCount}
+                    loadedCount={pagination.loadedCount}
+                    hasMore={hasMore}
+                    isLoadingMore={isLoadingMore}
+                    onLoadMore={loadNextPage}
+                    onStatusUpdate={updateStatus}
+                    onPaymentStatusUpdate={updatePaymentStatus}
+                    onApplicationSelect={handleApplicationSelect}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <ApplicationDetailModal
+        application={selectedApplication}
+        show={isDetailModalOpen}
+        updating={updatingStatusId}
+        paymentUpdating={updatingPaymentId}
+        loading={isDetailLoading}
+        onClose={handleCloseModal}
+        onSendNotification={handleSendNotification}
+        onViewDocuments={() => {
+          if (selectedApplication) {
+            handleViewDocuments(selectedApplication)
+          }
+        }}
+        onViewHistory={handleViewHistory}
+        onUpdateStatus={handleStatusUpdate}
+        onUpdatePaymentStatus={handlePaymentUpdate}
+        onGenerateAcceptanceLetter={() => selectedApplication ? handleGenerateDocument('acceptance', selectedApplication) : Promise.resolve()}
+        onGenerateFinanceReceipt={() => selectedApplication ? handleGenerateDocument('finance', selectedApplication) : Promise.resolve()}
+      />
+    </>
   )
 }
