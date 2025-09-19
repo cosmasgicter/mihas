@@ -75,7 +75,7 @@ The MIHAS/KATC Application System is a **fully operational production system** s
 - **Application Management** (`/api/applications`)
 - **Document Processing** (`/api/documents`)
 - **Notification Service** (`/api/notifications`)
-- **Analytics Service** (`/api/analytics`)
+- **Analytics Service** (`/api/analytics?action=metrics|predictive-dashboard|telemetry`)
 
 ## 📈 Production Statistics
 

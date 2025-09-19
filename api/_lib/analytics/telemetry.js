@@ -2,13 +2,13 @@ const { z } = require('zod')
 const {
   supabaseAdminClient,
   getUserFromRequest
-} = require('../_lib/supabaseClient')
+} = require('../supabaseClient')
 const {
   checkRateLimit,
   buildRateLimitKey,
   getLimiterConfig,
   attachRateLimitHeaders
-} = require('../_lib/rateLimiter')
+} = require('../rateLimiter')
 
 const telemetryEventSchema = z.object({
   type: z.enum(['api_call', 'custom_metric', 'error', 'alert']),
@@ -44,7 +44,7 @@ function calculatePercentile(samples, percentile) {
   return sorted[lower] * (1 - weight) + sorted[upper] * weight
 }
 
-async function handlePost(req, res) {
+async function handleTelemetryIngest(req, res) {
   try {
     const rateKey = buildRateLimitKey(req, { prefix: 'telemetry-ingest' })
     const rateResult = await checkRateLimit(
@@ -93,7 +93,7 @@ async function handlePost(req, res) {
   return res.status(202).json({ stored: records.length })
 }
 
-async function handleGet(req, res) {
+async function handleTelemetryFetch(req, res) {
   try {
     const rateKey = buildRateLimitKey(req, { prefix: 'telemetry-fetch' })
     const rateResult = await checkRateLimit(
@@ -217,15 +217,7 @@ async function handleGet(req, res) {
   })
 }
 
-module.exports = async function handler(req, res) {
-  if (req.method === 'POST') {
-    return handlePost(req, res)
-  }
-
-  if (req.method === 'GET') {
-    return handleGet(req, res)
-  }
-
-  res.setHeader('Allow', 'GET, POST')
-  return res.status(405).json({ error: 'Method not allowed' })
+module.exports = {
+  handleTelemetryFetch,
+  handleTelemetryIngest
 }

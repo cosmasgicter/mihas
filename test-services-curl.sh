@@ -29,7 +29,7 @@ curl -s -o /dev/null -w "   Notifications Service: %{http_code} %{url_effective}
 
 echo "5. Testing Analytics Service..."
 curl -s -o /dev/null -w "   Analytics Service: %{http_code} %{url_effective}\n" \
-  "$PRODUCTION_URL/api/analytics/metrics"
+  "$PRODUCTION_URL/api/analytics?action=metrics"
 
 echo ""
 echo "✅ Service testing complete!"

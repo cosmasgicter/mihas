@@ -22,7 +22,9 @@
 /api/applications/[id]   - GET/PUT/DELETE - Individual applications
 /api/documents/upload    - POST - Document upload
 /api/notifications/send  - POST - Send notifications
-/api/analytics/metrics   - GET - System analytics
+/api/analytics?action=metrics             - GET - System analytics
+/api/analytics?action=predictive-dashboard - GET - Predictive insights
+/api/analytics?action=telemetry           - GET/POST - Telemetry management
 ```
 
 ### Frontend Integration

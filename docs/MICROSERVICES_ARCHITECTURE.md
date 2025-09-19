@@ -32,8 +32,11 @@ The MIHAS application has been restructured into a serverless microservices arch
 ### Notification Service (`/api/notifications/`)
 - `POST /api/notifications/send` - Send notifications
 
-### Analytics Service (`/api/analytics/`)
-- `GET /api/analytics/metrics` - Get system metrics
+### Analytics Service (`/api/analytics`)
+- `GET /api/analytics?action=metrics` - Get system metrics
+- `GET /api/analytics?action=predictive-dashboard` - Predictive analytics overview
+- `GET /api/analytics?action=telemetry` - Admin telemetry insights
+- `POST /api/analytics?action=telemetry` - Telemetry ingestion endpoint
 
 ## 🔧 Usage
 
