@@ -1,6 +1,8 @@
 import React from 'react'
-import { useApplications } from '@/hooks/useApiServices'
+
 import { Button } from '@/components/ui/Button'
+import { useApplications } from '@/hooks/useApiServices'
+import { Application } from '@/lib/supabase'
 
 export function ApplicationsTable() {
   const { data: applications, isLoading, error } = useApplications()
@@ -31,7 +33,7 @@ export function ApplicationsTable() {
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {applications?.map((app: any) => (
+          {applications?.map((app: Application) => (
             <tr key={app.id}>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                 {app.application_number}

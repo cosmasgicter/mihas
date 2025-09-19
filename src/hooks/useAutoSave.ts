@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { UseFormGetValues, UseFormWatch } from 'react-hook-form'
 import { supabase } from '@/lib/supabase'
 import { ApplicationFormData, UploadedFile } from '@/forms/applicationSchema'
+import { OfflineApplicationDraftData } from '@/types/offline'
 
 interface AutoSaveOptions {
   userId: string
@@ -55,7 +56,7 @@ export function useAutoSave({
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
-  }, [pendingChanges])
+  }, [pendingChanges, saveDraft])
 
   // Load existing draft
   const loadDraft = useCallback(async (): Promise<DraftData | null> => {
@@ -92,7 +93,7 @@ export function useAutoSave({
     
     try {
       const formData = getValues()
-      const draftData = {
+      const draftData: OfflineApplicationDraftData = {
         form_data: formData,
         uploaded_files: uploadedFiles,
         current_step: currentStep,
@@ -136,9 +137,10 @@ export function useAutoSave({
 
       // Clear offline data if exists
       localStorage.removeItem('applicationDraftOffline')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving draft:', error)
-      onSaveError?.(error.message)
+      const message = error instanceof Error ? error.message : 'Failed to save draft'
+      onSaveError?.(message)
     } finally {
       setIsSaving(false)
     }

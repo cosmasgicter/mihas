@@ -5,7 +5,11 @@ import { getApiBaseUrl } from '@/lib/apiConfig'
 const API_BASE = getApiBaseUrl()
 
 class ApiClient {
-  private async parseJsonSafely(response: Response, service: string, endpoint: string) {
+  private async parseJsonSafely<TResponse>(
+    response: Response,
+    service: string,
+    endpoint: string
+  ): Promise<TResponse | null> {
     if (response.status === 204 || response.status === 205) {
       return null
     }
@@ -36,7 +40,7 @@ class ApiClient {
     }
 
     try {
-      return JSON.parse(bodyText)
+      return JSON.parse(bodyText) as TResponse
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
       throw new Error(`Failed to parse JSON response from ${endpoint}: ${message}`)
@@ -85,7 +89,7 @@ class ApiClient {
     return baseHeaders
   }
 
-  async request(endpoint: string, options: RequestInit = {}) {
+  async request<TResponse = unknown>(endpoint: string, options: RequestInit = {}): Promise<TResponse | null> {
     const start = Date.now()
     const service = endpoint.split('/')[2] || 'unknown'
     const method = (options.method ?? 'GET').toString().toUpperCase()
@@ -118,7 +122,7 @@ class ApiClient {
         throw new Error(`API Error: ${response.statusText}`)
       }
 
-      return this.parseJsonSafely(response, service, endpoint)
+      return this.parseJsonSafely<TResponse>(response, service, endpoint)
     } catch (error) {
       const duration = Date.now() - start
       monitoring.trackApiCall(service, endpoint, duration, false, { method })
@@ -134,7 +138,11 @@ class ApiClient {
 
 export const apiClient = new ApiClient()
 
-export function buildQueryString(params: Record<string, any> = {}) {
+export type QueryParamValue = string | number | boolean
+
+export type QueryParams = Record<string, QueryParamValue | QueryParamValue[] | null | undefined>
+
+export function buildQueryString(params: QueryParams = {}) {
   const query = new URLSearchParams()
 
   Object.entries(params).forEach(([key, value]) => {

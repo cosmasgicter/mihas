@@ -5,6 +5,13 @@
 
 import { SecuritySanitizer } from './securityConfig'
 
+type TemplatePrimitive = string | number | boolean | null | undefined
+type TemplateVariables = Record<string, TemplatePrimitive>
+type ConditionPrimitive = string | number | boolean
+type ConditionOperand = ConditionPrimitive | ConditionPrimitive[]
+type ConditionOperator = '==' | '!=' | '>' | '<' | '>=' | '<=' | 'in' | 'contains'
+type EventHandler = (...args: unknown[]) => unknown
+
 /**
  * Secure replacement for dynamic code execution
  * Replaces Function() constructor usage with safe alternatives
@@ -94,7 +101,7 @@ export class SecureCodeExecution {
   /**
    * Secure template processor that doesn't use Function constructor
    */
-  static processTemplate(template: string, variables: Record<string, any>): string {
+  static processTemplate(template: string, variables: TemplateVariables): string {
     let result = SecuritySanitizer.sanitizeInput(template)
     
     // Replace variables using safe string replacement
@@ -113,8 +120,8 @@ export class SecureCodeExecution {
   /**
    * Secure condition evaluator for workflow rules
    */
-  static evaluateCondition(left: any, operator: string, right: any): boolean {
-    const allowedOperators = ['==', '!=', '>', '<', '>=', '<=', 'in', 'contains']
+  static evaluateCondition(left: ConditionOperand, operator: ConditionOperator, right: ConditionOperand): boolean {
+    const allowedOperators: ConditionOperator[] = ['==', '!=', '>', '<', '>=', '<=', 'in', 'contains']
     
     if (!allowedOperators.includes(operator)) {
       throw new Error(`Operator '${operator}' is not allowed`)
@@ -127,7 +134,10 @@ export class SecureCodeExecution {
       case '<': return Number(left) < Number(right)
       case '>=': return Number(left) >= Number(right)
       case '<=': return Number(left) <= Number(right)
-      case 'in': return Array.isArray(right) && right.includes(left)
+      case 'in':
+        return Array.isArray(right)
+          ? (right as ConditionPrimitive[]).includes(left as ConditionPrimitive)
+          : false
       case 'contains': return String(left).toLowerCase().includes(String(right).toLowerCase())
       default: return false
     }
@@ -138,28 +148,24 @@ export class SecureCodeExecution {
  * Secure event handler that prevents code injection
  */
 export class SecureEventHandler {
-  private static handlers = new Map<string, Function>()
+  private static handlers = new Map<string, EventHandler>()
   
   /**
    * Register a secure event handler
    */
-  static register(eventName: string, handler: Function): void {
-    if (typeof handler !== 'function') {
-      throw new Error('Handler must be a function')
-    }
-    
+  static register(eventName: string, handler: EventHandler): void {
     // Validate event name
     if (!/^[a-zA-Z0-9_-]+$/.test(eventName)) {
       throw new Error('Invalid event name')
     }
-    
+
     this.handlers.set(eventName, handler)
   }
   
   /**
    * Execute a registered handler safely
    */
-  static execute(eventName: string, ...args: any[]): any {
+  static execute(eventName: string, ...args: unknown[]): unknown {
     const handler = this.handlers.get(eventName)
     if (!handler) {
       throw new Error(`No handler registered for event: ${eventName}`)
@@ -181,7 +187,7 @@ export class SecureConfigLoader {
   /**
    * Load configuration safely without prototype pollution
    */
-  static loadConfig(config: any): any {
+  static loadConfig<TConfig extends Record<string, unknown> | null | undefined>(config: TConfig): Record<string, unknown> {
     if (!config || typeof config !== 'object') {
       return {}
     }
@@ -198,12 +204,12 @@ export class SecureConfigLoader {
       
       // Recursively clean nested objects
       if (value && typeof value === 'object' && !Array.isArray(value)) {
-        safeConfig[key] = this.loadConfig(value)
+        safeConfig[key] = this.loadConfig(value as Record<string, unknown>)
       } else {
         safeConfig[key] = value
       }
     }
-    
+
     return safeConfig
   }
 }
@@ -215,7 +221,7 @@ export class SecureURLBuilder {
   /**
    * Build URL safely with parameter validation
    */
-  static buildURL(base: string, params: Record<string, string>): string {
+  static buildURL(base: string, params: Record<string, string | number | boolean>): string {
     try {
       const url = new URL(base)
       
@@ -227,7 +233,7 @@ export class SecureURLBuilder {
       // Add parameters safely
       for (const [key, value] of Object.entries(params)) {
         const sanitizedKey = SecuritySanitizer.sanitizeInput(key)
-        const sanitizedValue = SecuritySanitizer.sanitizeInput(value)
+        const sanitizedValue = SecuritySanitizer.sanitizeInput(String(value))
         url.searchParams.set(sanitizedKey, sanitizedValue)
       }
       
@@ -246,16 +252,16 @@ export function initializeSecurityPatches(): void {
   if (typeof window !== 'undefined') {
     // Prevent Function constructor usage
     if (window.Function) {
-      window.Function = function(...args: any[]) {
+      window.Function = function(..._args: unknown[]) {
         // SECURE: Security patch to block Function constructor
         console.warn('Function constructor blocked by security patch')
         throw new Error('Function constructor usage is blocked for security')
-      } as any
+      } as unknown as typeof window.Function
     }
     
     // Prevent eval usage
     if (window.eval) {
-      window.eval = function(code: string) {
+      window.eval = function(_code: string) {
         // SECURE: Security patch to block eval usage
         console.warn('eval() blocked by security patch')
         throw new Error('eval() usage is blocked for security')

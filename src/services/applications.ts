@@ -1,45 +1,55 @@
-import { apiClient, buildQueryString } from './client'
+import { Application } from '@/lib/supabase'
+
+import { apiClient, buildQueryString, QueryParams } from './client'
 
 type ApplicationIncludeOptions = {
   include?: string[]
 }
 
+type ApplicationPayload = Partial<Application>
+
 export const applicationService = {
-  list: (params?: Record<string, any>) =>
-    apiClient.request(`/api/applications${buildQueryString(params)}`),
+  list: (params?: QueryParams) =>
+    apiClient.request<Application[]>(`/api/applications${buildQueryString(params ?? {})}`),
 
   // Alias for backward compatibility
-  getAll: (params?: Record<string, any>) =>
-    apiClient.request(`/api/applications${buildQueryString(params)}`),
+  getAll: (params?: QueryParams) =>
+    apiClient.request<Application[]>(`/api/applications${buildQueryString(params ?? {})}`),
 
   getById: (id: string, options?: ApplicationIncludeOptions) =>
-    apiClient.request(`/api/applications/${id}${buildQueryString({ include: options?.include })}`),
+    apiClient.request<Application>(
+      `/api/applications/${id}${buildQueryString({ include: options?.include ?? [] })}`
+    ),
 
-  create: (data: any) =>
-    apiClient.request('/api/applications', {
+  create: (data: ApplicationPayload) =>
+    apiClient.request<Application>('/api/applications', {
       method: 'POST',
       body: JSON.stringify(data)
     }),
 
-  update: (id: string, data: any) =>
-    apiClient.request(`/api/applications/${id}`, {
+  update: (id: string, data: ApplicationPayload) =>
+    apiClient.request<Application>(`/api/applications/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data)
     }),
 
   delete: (id: string) =>
-    apiClient.request(`/api/applications/${id}`, {
+    apiClient.request<void>(`/api/applications/${id}`, {
       method: 'DELETE'
     }),
 
-  updateStatus: (id: string, status: string, notes?: string) =>
-    apiClient.request(`/api/applications/${id}`, {
+  updateStatus: (id: string, status: Application['status'], notes?: string) =>
+    apiClient.request<Application>(`/api/applications/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ action: 'update_status', status, notes })
     }),
 
-  updatePaymentStatus: (id: string, paymentStatus: string, verificationNotes?: string) =>
-    apiClient.request(`/api/applications/${id}`, {
+  updatePaymentStatus: (
+    id: string,
+    paymentStatus: Application['payment_status'],
+    verificationNotes?: string
+  ) =>
+    apiClient.request<Application>(`/api/applications/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({
         action: 'update_payment_status',
@@ -52,31 +62,31 @@ export const applicationService = {
     id: string,
     payload: { documentId?: string; documentType?: string; status: string; notes?: string }
   ) =>
-    apiClient.request(`/api/applications/${id}`, {
+    apiClient.request<Application>(`/api/applications/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ action: 'verify_document', ...payload })
     }),
 
   syncGrades: (id: string, grades: Array<{ subject_id: string; grade: number }>) =>
-    apiClient.request(`/api/applications/${id}`, {
+    apiClient.request<Application>(`/api/applications/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ action: 'sync_grades', grades })
     }),
 
   sendNotification: (id: string, notification: { title: string; message: string }) =>
-    apiClient.request(`/api/applications/${id}`, {
+    apiClient.request<Application>(`/api/applications/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ action: 'send_notification', ...notification })
     }),
 
   generateAcceptanceLetter: (id: string) =>
-    apiClient.request(`/api/applications/${id}`, {
+    apiClient.request<Application>(`/api/applications/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ action: 'generate_acceptance_letter' })
     }),
 
   generateFinanceReceipt: (id: string) =>
-    apiClient.request(`/api/applications/${id}`, {
+    apiClient.request<Application>(`/api/applications/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ action: 'generate_finance_receipt' })
     })
