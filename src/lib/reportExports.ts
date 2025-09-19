@@ -1,7 +1,3 @@
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
-import ExcelJS from 'exceljs'
-
 export type ReportFormat = 'json' | 'pdf' | 'excel'
 
 export interface ProgramBreakdownStats {
@@ -49,7 +45,11 @@ export const exportReportAsJson = (reportData: ReportExportData, fileName: strin
   triggerDownload(blob, `${sanitizeFileName(fileName)}.json`)
 }
 
-export const exportReportAsPdf = (reportData: ReportExportData, fileName: string) => {
+export const exportReportAsPdf = async (reportData: ReportExportData, fileName: string) => {
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable')
+  ])
   const doc = new jsPDF()
   const marginLeft = 14
   let currentY = 20
@@ -125,6 +125,7 @@ export const exportReportAsPdf = (reportData: ReportExportData, fileName: string
 }
 
 export const exportReportAsExcel = async (reportData: ReportExportData, fileName: string) => {
+  const { default: ExcelJS } = await import('exceljs')
   const workbook = new ExcelJS.Workbook()
   workbook.created = new Date()
   workbook.modified = new Date()
@@ -227,7 +228,7 @@ export const exportReport = async (
   fileName: string
 ) => {
   if (format === 'pdf') {
-    exportReportAsPdf(reportData, fileName)
+    await exportReportAsPdf(reportData, fileName)
     return
   }
 
