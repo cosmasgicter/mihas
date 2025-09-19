@@ -1,15 +1,12 @@
-import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  Activity, 
-  TrendingUp, 
-  Users, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  FileText,
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import {
+  Activity,
+  TrendingUp,
+  Users,
+  Clock,
+  CheckCircle,
   Calendar,
-  Bell,
   Zap,
   Shield,
   Database,
@@ -19,176 +16,147 @@ import {
   AlertTriangle
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/contexts/AuthContext'
-import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
 import { sanitizeForLog } from '@/lib/sanitize'
+import {
+  adminDashboardService,
+  createEmptyDashboardResponse,
+  type AdminDashboardResponse,
+  type AdminDashboardStats
+} from '@/services/admin/dashboard'
 
-interface DashboardMetrics {
-  totalApplications: number
-  todayApplications: number
-  pendingReviews: number
-  approvalRate: number
-  avgProcessingTime: number
-  systemHealth: 'excellent' | 'good' | 'warning' | 'critical'
-  activeUsers: number
+const integerFormatter = new Intl.NumberFormat()
+const decimalFormatter = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 })
+
+const statusColorMap: Record<string, string> = {
+  approved: 'bg-green-500',
+  rejected: 'bg-red-500',
+  submitted: 'bg-blue-500',
+  under_review: 'bg-amber-500',
+  review: 'bg-amber-500',
+  pending: 'bg-yellow-500',
+  awaiting_documents: 'bg-purple-500'
 }
 
-interface RecentActivity {
-  id: string
-  type: 'application' | 'approval' | 'rejection' | 'system'
-  message: string
-  timestamp: string
-  user?: string
+const systemHealthStyles: Record<AdminDashboardStats['systemHealth'], string> = {
+  excellent: 'bg-emerald-100 text-emerald-700',
+  good: 'bg-blue-100 text-blue-700',
+  warning: 'bg-amber-100 text-amber-700',
+  critical: 'bg-red-100 text-red-700'
 }
+
+const formatStatusLabel = (status: string) =>
+  status
+    .split(/[_-]/)
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+
+const formatTimestamp = (value: string) => {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return 'Recently updated'
+  }
+  return date.toLocaleString()
+}
+
+const formatCount = (value: number) => integerFormatter.format(Math.max(0, Math.round(value)))
+const formatHours = (value: number) => decimalFormatter.format(Math.max(0, value))
+
+const clampPercentage = (value: number) => Math.min(100, Math.max(0, value))
 
 export function FixedAdminDashboard() {
-  const { user } = useAuth()
-  const { profile } = useProfileQuery()
-  const [metrics, setMetrics] = useState<DashboardMetrics>({
-    totalApplications: 0,
-    todayApplications: 0,
-    pendingReviews: 0,
-    approvalRate: 0,
-    avgProcessingTime: 0,
-    systemHealth: 'good',
-    activeUsers: 0
-  })
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
+  const [dashboard, setDashboard] = useState<AdminDashboardResponse>(() => createEmptyDashboardResponse())
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const loadMetrics = async () => {
-    try {
-      setError(null)
-      
-      // Try to use the RPC function first
-      const { data: rpcData, error: rpcError } = await supabase.rpc('get_admin_dashboard_stats')
-      
-      if (!rpcError && rpcData && rpcData.length > 0) {
-        const stats = rpcData[0]
-        setMetrics({
-          totalApplications: Number(stats.total_applications || 0),
-          todayApplications: 0, // Will calculate separately
-          pendingReviews: Number(stats.submitted_applications || 0) + Number(stats.under_review_applications || 0),
-          approvalRate: calculateApprovalRate(stats),
-          avgProcessingTime: Math.floor(Math.random() * 5) + 2, // Placeholder
-          systemHealth: Number(stats.submitted_applications || 0) > 50 ? 'warning' : 'good',
-          activeUsers: Math.floor(Math.random() * 20) + 5 // Placeholder
-        })
-      } else {
-        // Fallback to manual queries
-        console.log('RPC failed, using fallback queries:', sanitizeForLog(rpcError?.message || 'No data'))
-        await loadMetricsFallback()
+  const stats = dashboard.stats
+  const statusBreakdown = dashboard.statusBreakdown
+  const processingMetrics = dashboard.processingMetrics
+  const periodTotals = dashboard.periodTotals
+  const recentActivity = dashboard.recentActivity
+
+  const totalApplications = stats.totalApplications || statusBreakdown.total || 0
+  const inReviewCount = (statusBreakdown.submitted ?? 0) + (statusBreakdown.under_review ?? 0)
+
+  const approvalRate = useMemo(() => {
+    const approved = stats.approvedApplications || statusBreakdown.approved || 0
+    const rejected = stats.rejectedApplications || statusBreakdown.rejected || 0
+    const totalDecisions = approved + rejected
+    return totalDecisions > 0 ? Math.round((approved / totalDecisions) * 100) : 0
+  }, [
+    stats.approvedApplications,
+    stats.rejectedApplications,
+    statusBreakdown.approved,
+    statusBreakdown.rejected
+  ])
+
+  const statusEntries = useMemo(
+    () =>
+      Object.entries(statusBreakdown)
+        .filter(([key]) => key !== 'total')
+        .sort(([, valueA], [, valueB]) => Number(valueB) - Number(valueA)),
+    [statusBreakdown]
+  )
+
+  const todayTotal = periodTotals.today ?? stats.todayApplications
+  const weekTotal =
+    periodTotals.this_week ?? periodTotals.week ?? stats.weekApplications
+  const monthTotal =
+    periodTotals.this_month ?? periodTotals.month ?? stats.monthApplications
+
+  const averageProcessingDays = processingMetrics.averageDays || stats.avgProcessingTime
+  const averageProcessingHours =
+    processingMetrics.averageHours || stats.avgProcessingTimeHours
+  const medianProcessingHours =
+    processingMetrics.medianHours || stats.medianProcessingTimeHours
+  const p95ProcessingHours = processingMetrics.p95Hours || stats.p95ProcessingTimeHours
+
+  const loadDashboard = useCallback(
+    async (options?: { silent?: boolean; showRefreshing?: boolean }) => {
+      const silent = options?.silent ?? false
+      const showRefreshing = options?.showRefreshing ?? false
+
+      if (!silent) {
+        setLoading(true)
       }
 
-      // Load today's applications separately
-      await loadTodayApplications()
-      await loadRecentActivity()
-      
-    } catch (error: any) {
-      console.error('Error loading metrics:', sanitizeForLog(error.message))
-      setError('Failed to load dashboard metrics')
-      await loadMetricsFallback()
-    } finally {
-      setLoading(false)
-    }
-  }
+      if (showRefreshing) {
+        setRefreshing(true)
+      }
 
-  const calculateApprovalRate = (stats: any) => {
-    const approved = Number(stats.approved_applications || 0)
-    const rejected = Number(stats.rejected_applications || 0)
-    const total = approved + rejected
-    return total > 0 ? Math.round((approved / total) * 100) : 0
-  }
+      try {
+        setError(null)
+        const response = await adminDashboardService.getOverview()
+        setDashboard(response)
+      } catch (err) {
+        console.error('Error loading admin dashboard:', sanitizeForLog(err))
+        setError('Failed to load dashboard metrics')
+      } finally {
+        if (!silent) {
+          setLoading(false)
+        }
 
-  const loadMetricsFallback = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('applications_new')
-        .select('status, created_at, submitted_at')
-      
-      if (error) throw error
-      
-      const total = data.length
-      const pending = data.filter(app => ['submitted', 'under_review'].includes(app.status)).length
-      const approved = data.filter(app => app.status === 'approved').length
-      const rejected = data.filter(app => app.status === 'rejected').length
-      const approvalRate = (approved + rejected) > 0 ? Math.round((approved / (approved + rejected)) * 100) : 0
-
-      setMetrics(prev => ({
-        ...prev,
-        totalApplications: total,
-        pendingReviews: pending,
-        approvalRate: approvalRate,
-        systemHealth: pending > 50 ? 'warning' : 'good'
-      }))
-      
-    } catch (error: any) {
-      console.error('Fallback metrics error:', sanitizeForLog(error.message))
-      setError('Unable to load metrics')
-    }
-  }
-
-  const loadTodayApplications = async () => {
-    try {
-      const today = new Date().toISOString().split('T')[0]
-      
-      const { data, error } = await supabase
-        .from('applications_new')
-        .select('id')
-        .gte('created_at', today)
-      
-      if (error) throw error
-      
-      setMetrics(prev => ({
-        ...prev,
-        todayApplications: data.length
-      }))
-      
-    } catch (error: any) {
-      console.error('Error loading today applications:', sanitizeForLog(error.message))
-    }
-  }
-
-  const loadRecentActivity = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('applications_new')
-        .select('id, full_name, status, created_at, updated_at')
-        .order('updated_at', { ascending: false })
-        .limit(5)
-      
-      if (error) throw error
-      
-      const activities: RecentActivity[] = (data || []).map(app => ({
-        id: app.id,
-        type: app.status === 'approved' ? 'approval' : 
-              app.status === 'rejected' ? 'rejection' : 'application',
-        message: `${app.full_name} - Application ${app.status}`,
-        timestamp: app.updated_at || app.created_at,
-        user: app.full_name
-      }))
-      
-      setRecentActivity(activities)
-      
-    } catch (error: any) {
-      console.error('Error loading recent activity:', sanitizeForLog(error.message))
-    }
-  }
-
-  const refreshData = async () => {
-    setRefreshing(true)
-    await loadMetrics()
-    setRefreshing(false)
-  }
+        if (showRefreshing) {
+          setRefreshing(false)
+        }
+      }
+    },
+    []
+  )
 
   useEffect(() => {
-    loadMetrics()
-    const interval = setInterval(loadMetrics, 30000) // Refresh every 30 seconds
+    loadDashboard()
+    const interval = setInterval(() => {
+      loadDashboard({ silent: true })
+    }, 30000)
+
     return () => clearInterval(interval)
-  }, [])
+  }, [loadDashboard])
+
+  const refreshData = useCallback(async () => {
+    await loadDashboard({ silent: true, showRefreshing: true })
+  }, [loadDashboard])
 
   if (loading) {
     return (
@@ -201,7 +169,6 @@ export function FixedAdminDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Error Display */}
       <AnimatePresence>
         {error && (
           <motion.div
@@ -227,9 +194,8 @@ export function FixedAdminDashboard() {
         )}
       </AnimatePresence>
 
-      {/* Key Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 relative overflow-hidden"
@@ -241,19 +207,24 @@ export function FixedAdminDashboard() {
                 <Calendar className="h-6 w-6 text-blue-600" />
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-gray-900">{metrics.todayApplications}</div>
+                <div
+                  className="text-2xl font-bold text-gray-900"
+                  data-testid="today-applications-value"
+                >
+                  {integerFormatter.format(stats.todayApplications)}
+                </div>
                 <div className="text-xs text-gray-500">Today</div>
               </div>
             </div>
             <div className="text-sm font-medium text-gray-600">New Applications</div>
             <div className="flex items-center mt-2 text-xs">
               <ArrowUp className="h-3 w-3 text-green-500 mr-1" />
-              <span className="text-green-600">+{Math.floor(Math.random() * 20)}% from yesterday</span>
+              <span className="text-green-600">{formatCount(weekTotal)} this week</span>
             </div>
           </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -266,18 +237,23 @@ export function FixedAdminDashboard() {
                 <Clock className="h-6 w-6 text-yellow-600" />
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-gray-900">{metrics.pendingReviews}</div>
+                <div
+                  className="text-2xl font-bold text-gray-900"
+                  data-testid="pending-applications-value"
+                >
+                  {integerFormatter.format(stats.pendingApplications)}
+                </div>
                 <div className="text-xs text-gray-500">Pending</div>
               </div>
             </div>
             <div className="text-sm font-medium text-gray-600">Awaiting Review</div>
-            {metrics.pendingReviews > 0 && (
-              <div className="text-xs text-yellow-600 mt-2">Requires attention</div>
-            )}
+            <div className="text-xs text-yellow-600 mt-2">
+              In review: {formatCount(inReviewCount)}
+            </div>
           </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -290,19 +266,24 @@ export function FixedAdminDashboard() {
                 <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-gray-900">{metrics.approvalRate}%</div>
+                <div
+                  className="text-2xl font-bold text-gray-900"
+                  data-testid="approval-rate-value"
+                >
+                  {approvalRate}%
+                </div>
                 <div className="text-xs text-gray-500">Rate</div>
               </div>
             </div>
             <div className="text-sm font-medium text-gray-600">Approval Rate</div>
             <div className="flex items-center mt-2 text-xs">
               <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-              <span className="text-green-600">Stable performance</span>
+              <span className="text-green-600">Approved: {formatCount(stats.approvedApplications)}</span>
             </div>
           </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
@@ -315,23 +296,138 @@ export function FixedAdminDashboard() {
                 <Zap className="h-6 w-6 text-purple-600" />
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-gray-900">{metrics.avgProcessingTime}</div>
+                <div
+                  className="text-2xl font-bold text-gray-900"
+                  data-testid="avg-processing-value"
+                >
+                  {decimalFormatter.format(averageProcessingDays)}
+                </div>
                 <div className="text-xs text-gray-500">Days</div>
               </div>
             </div>
             <div className="text-sm font-medium text-gray-600">Avg Processing</div>
             <div className="flex items-center mt-2 text-xs">
               <ArrowDown className="h-3 w-3 text-green-500 mr-1" />
-              <span className="text-green-600">Improved by 15%</span>
+              <span className="text-green-600">Median: {formatHours(medianProcessingHours)}h</span>
             </div>
           </div>
         </motion.div>
       </div>
 
-      {/* Recent Activity & System Health */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="bg-white rounded-xl shadow-lg border border-gray-100 xl:col-span-2"
+        >
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 className="text-lg font-bold text-gray-900">📊 Status Distribution</h3>
+            <span className="text-sm text-gray-500">Total: {formatCount(totalApplications)}</span>
+          </div>
+          <div className="p-6 space-y-4">
+            {statusEntries.length > 0 ? (
+              statusEntries.map(([status, value]) => {
+                const numericValue = Number(value)
+                const percentage = totalApplications > 0
+                  ? clampPercentage(Math.round((numericValue / totalApplications) * 100))
+                  : 0
+                const barClass = statusColorMap[status] ?? 'bg-slate-400'
+
+                return (
+                  <div key={status} className="space-y-2">
+                    <div className="flex items-center justify-between text-sm font-medium text-gray-700">
+                      <span>{formatStatusLabel(status)}</span>
+                      <span>{formatCount(numericValue)} ({percentage}%)</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`${barClass} h-full`}
+                        style={{ width: `${percentage}%` }}
+                        aria-label={`${formatStatusLabel(status)}: ${percentage}%`}
+                      />
+                    </div>
+                  </div>
+                )
+              })
+            ) : (
+              <div className="text-sm text-gray-500 text-center py-6">
+                No application statuses available
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="bg-white rounded-xl shadow-lg border border-gray-100 xl:col-span-2"
+        >
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-bold text-gray-900">⚡ Processing Performance</h3>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { label: 'Today', value: todayTotal },
+                { label: 'This Week', value: weekTotal },
+                { label: 'This Month', value: monthTotal }
+              ].map(period => (
+                <div key={period.label} className="p-3 bg-slate-50 rounded-xl">
+                  <div className="text-xs text-gray-500">{period.label}</div>
+                  <div className="mt-1 text-lg font-semibold text-gray-900">
+                    {formatCount(period.value)}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <Clock className="h-4 w-4 text-yellow-600" />
+                  <span>Average processing time</span>
+                </div>
+                <span className="text-sm font-semibold text-gray-900">
+                  {decimalFormatter.format(averageProcessingDays)} days · {formatHours(averageProcessingHours)}h
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <TrendingUp className="h-4 w-4 text-green-600" />
+                  <span>Median decision time</span>
+                </div>
+                <span className="text-sm font-semibold text-gray-900">
+                  {formatHours(medianProcessingHours)}h
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <Zap className="h-4 w-4 text-purple-600" />
+                  <span>P95 response time</span>
+                </div>
+                <span className="text-sm font-semibold text-gray-900">
+                  {formatHours(p95ProcessingHours)}h
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <Activity className="h-4 w-4 text-blue-600" />
+                  <span>Decisions in last 24h</span>
+                </div>
+                <span className="text-sm font-semibold text-gray-900">
+                  {formatCount(processingMetrics.decisionVelocity24h)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activity */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           className="bg-white rounded-xl shadow-lg border border-gray-100"
@@ -347,27 +443,38 @@ export function FixedAdminDashboard() {
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
-          
+
           <div className="p-6 space-y-3 max-h-80 overflow-y-auto">
-            {recentActivity.length > 0 ? recentActivity.map((activity, index) => (
-              <motion.div 
-                key={activity.id}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <div className={`w-2 h-2 rounded-full mt-2 ${
-                  activity.type === 'approval' ? 'bg-green-500' :
-                  activity.type === 'rejection' ? 'bg-red-500' :
-                  'bg-blue-500'
-                }`}></div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{activity.message}</p>
-                  <p className="text-xs text-gray-500">{new Date(activity.timestamp).toLocaleString()}</p>
-                </div>
-              </motion.div>
-            )) : (
+            {recentActivity.length > 0 ? (
+              recentActivity.map((activity, index) => {
+                const accentColor =
+                  activity.type === 'approval'
+                    ? 'bg-green-500'
+                    : activity.type === 'rejection'
+                      ? 'bg-red-500'
+                      : activity.type === 'review'
+                        ? 'bg-amber-500'
+                        : activity.type === 'system'
+                          ? 'bg-purple-500'
+                          : 'bg-blue-500'
+
+                return (
+                  <motion.div
+                    key={activity.id}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <div className={`w-2 h-2 rounded-full mt-2 ${accentColor}`}></div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{activity.message}</p>
+                      <p className="text-xs text-gray-500">{formatTimestamp(activity.timestamp)}</p>
+                    </div>
+                  </motion.div>
+                )
+              })
+            ) : (
               <div className="text-center py-8 text-gray-500">
                 <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No recent activity</p>
@@ -376,8 +483,7 @@ export function FixedAdminDashboard() {
           </div>
         </motion.div>
 
-        {/* System Health */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           className="bg-white rounded-xl shadow-lg border border-gray-100"
@@ -385,45 +491,78 @@ export function FixedAdminDashboard() {
           <div className="px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-bold text-gray-900">🛡️ System Health</h3>
           </div>
-          
+
           <div className="p-6 space-y-4">
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-xl">
-              <div className="flex items-center space-x-2">
-                <Database className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium text-gray-700">Database</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <Shield className="h-5 w-5 text-blue-500" />
+                <span>Overall status</span>
               </div>
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-green-500 text-white">
-                ✓ Healthy
-              </span>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-xl">
-              <div className="flex items-center space-x-2">
-                <Shield className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium text-gray-700">Security</span>
-              </div>
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-green-500 text-white">
-                ✓ Secure
-              </span>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl">
-              <div className="flex items-center space-x-2">
-                <Activity className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium text-gray-700">Performance</span>
-              </div>
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-blue-500 text-white">
-                ✓ Optimal
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${systemHealthStyles[stats.systemHealth]}`}>
+                {formatStatusLabel(stats.systemHealth)}
               </span>
             </div>
 
-            <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Total Applications</p>
-                  <p className="text-2xl font-bold text-blue-600">{metrics.totalApplications}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="p-3 bg-slate-50 rounded-xl">
+                <div className="flex items-center space-x-2 text-xs text-gray-600">
+                  <Users className="h-4 w-4 text-indigo-600" />
+                  <span>Active admins (24h)</span>
                 </div>
-                <Users className="h-8 w-8 text-blue-500" />
+                <p
+                  className="mt-2 text-lg font-semibold text-gray-900"
+                  data-testid="active-admins-24h"
+                >
+                  {formatCount(processingMetrics.activeAdminsLast24h)}
+                </p>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl">
+                <div className="flex items-center space-x-2 text-xs text-gray-600">
+                  <TrendingUp className="h-4 w-4 text-sky-600" />
+                  <span>Active admins (7d)</span>
+                </div>
+                <p className="mt-2 text-lg font-semibold text-gray-900">
+                  {formatCount(processingMetrics.activeAdminsLast7d)}
+                </p>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl">
+                <div className="flex items-center space-x-2 text-xs text-gray-600">
+                  <Database className="h-4 w-4 text-emerald-600" />
+                  <span>Total applications</span>
+                </div>
+                <p className="mt-2 text-lg font-semibold text-gray-900" data-testid="total-applications-value">
+                  {formatCount(totalApplications)}
+                </p>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl">
+                <div className="flex items-center space-x-2 text-xs text-gray-600">
+                  <Calendar className="h-4 w-4 text-amber-600" />
+                  <span>Active intakes</span>
+                </div>
+                <p className="mt-2 text-lg font-semibold text-gray-900">
+                  {formatCount(stats.activeIntakes)}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="p-3 bg-blue-50 rounded-xl">
+                <div className="flex items-center space-x-2 text-xs text-blue-700">
+                  <Activity className="h-4 w-4" />
+                  <span>Decision velocity (24h)</span>
+                </div>
+                <p className="mt-2 text-lg font-semibold text-blue-900">
+                  {formatCount(processingMetrics.decisionVelocity24h)} decisions
+                </p>
+              </div>
+              <div className="p-3 bg-purple-50 rounded-xl">
+                <div className="flex items-center space-x-2 text-xs text-purple-700">
+                  <Users className="h-4 w-4" />
+                  <span>Total students</span>
+                </div>
+                <p className="mt-2 text-lg font-semibold text-purple-900">
+                  {formatCount(stats.totalStudents)}
+                </p>
               </div>
             </div>
           </div>
