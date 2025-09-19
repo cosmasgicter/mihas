@@ -478,8 +478,8 @@ function normalizePreferencesRecord(record = {}) {
 function normalizeChannelPreferences(channels) {
   const defaultConfig = [
     { type: 'email', enabled: true, priority: 1 },
-    { type: 'sms', enabled: false, priority: 2 },
-    { type: 'whatsapp', enabled: false, priority: 3 },
+    { type: 'sms', enabled: true, priority: 2 },
+    { type: 'whatsapp', enabled: true, priority: 3 },
     { type: 'in_app', enabled: true, priority: 4 }
   ]
 
@@ -492,13 +492,15 @@ function normalizeChannelPreferences(channels) {
       }
 
       const type = String(entry.type)
+      const existing = channelMap.get(type) || { type, enabled: true, priority: defaultConfig.length + 1 }
+      const hasExplicitEnabled = typeof entry.enabled === 'boolean'
       const normalized = {
         type,
-        enabled: Boolean(entry.enabled),
-        priority: Number.isFinite(entry.priority) ? Number(entry.priority) : channelMap.get(type)?.priority ?? defaultConfig.length + 1
+        enabled: hasExplicitEnabled ? entry.enabled : existing.enabled,
+        priority: Number.isFinite(entry.priority) ? Number(entry.priority) : existing.priority
       }
 
-      channelMap.set(type, { ...channelMap.get(type), ...normalized })
+      channelMap.set(type, { ...existing, ...normalized })
     })
   }
 
@@ -573,6 +575,11 @@ function hasExplicitOptIn(preferences, channel) {
 
   return true
 }
+
+module.exports.normalizePreferencesRecord = normalizePreferencesRecord
+module.exports.normalizeChannelPreferences = normalizeChannelPreferences
+module.exports.updateChannelEnabledState = updateChannelEnabledState
+module.exports.hasExplicitOptIn = hasExplicitOptIn
 
 function ensureTwilioConfiguration(channel) {
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {

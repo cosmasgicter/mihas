@@ -66,7 +66,7 @@ function formatTimestamp(timestamp?: string | null) {
 
 function resolveChannelEntry(preferences: NotificationPreferencesResponse | null, channel: ChannelKey) {
   const entry = preferences?.channels?.find(item => item.type === channel)
-  return entry ?? { type: channel, enabled: false, priority: channel === 'sms' ? 2 : 3 }
+  return entry ?? { type: channel, enabled: true, priority: channel === 'sms' ? 2 : 3 }
 }
 
 function isChannelOptedIn(preferences: NotificationPreferencesResponse | null, channel: ChannelKey) {
@@ -82,7 +82,15 @@ function isChannelOptedIn(preferences: NotificationPreferencesResponse | null, c
   const optInAt = channel === 'sms' ? preferences.sms_opt_in_at : preferences.whatsapp_opt_in_at
   const optOutAt = channel === 'sms' ? preferences.sms_opt_out_at : preferences.whatsapp_opt_out_at
 
-  return Boolean(optInAt) && !optOutAt
+  if (optOutAt) {
+    return false
+  }
+
+  if (optInAt) {
+    return true
+  }
+
+  return true
 }
 
 export default function NotificationSettings() {
@@ -465,3 +473,5 @@ export default function NotificationSettings() {
     </div>
   )
 }
+
+export { resolveChannelEntry, isChannelOptedIn }
