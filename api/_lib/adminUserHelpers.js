@@ -1,4 +1,4 @@
-const { supabaseAdminClient } = require('../../_lib/supabaseClient')
+const { supabaseAdminClient } = require('./supabaseClient')
 
 async function fetchUserProfile(userId) {
   const { data, error } = await supabaseAdminClient
