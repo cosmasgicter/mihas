@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { TextArea } from '@/components/ui/TextArea'
 import { Turnstile } from '@/components/ui/Turnstile'
-import { GraduationCap, ArrowLeft } from 'lucide-react'
+import { AuthLayout } from './AuthLayout'
 
 const signUpSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -56,8 +56,6 @@ export default function SignUpPage() {
     }
   }, [success, navigate])
 
-
-
   const handleTurnstileVerify = useCallback((token: string) => {
     setTurnstileToken(token)
     setError('')
@@ -87,7 +85,8 @@ export default function SignUpPage() {
 
     try {
       // Proceed with sign up
-      const { confirmPassword: _confirmPassword, ...userData } = data
+      const { confirmPassword, ...userData } = data
+      void confirmPassword
       const result = await signUp(data.email, data.password, userData)
 
       if (result?.error) {
@@ -108,220 +107,213 @@ export default function SignUpPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-            <div className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-                <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-medium text-secondary mb-2">Account Created Successfully!</h3>
-              <p className="text-sm text-secondary mb-6">{success}</p>
-              <p className="text-xs text-gray-500 mb-6">Redirecting to sign in page...</p>
-              <div className="space-y-3">
-                <Link to="/auth/signin">
-                  <Button className="w-full">
-                    Go to Sign In Now
-                  </Button>
-                </Link>
-                <Link to="/">
-                  <Button variant="outline" className="w-full">
-                    Back to Home
-                  </Button>
-                </Link>
-              </div>
-            </div>
+      <AuthLayout
+        title="Account created successfully!"
+        description={success}
+      >
+        <div className="space-y-6 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-2 border-primary/30 bg-primary/10 text-primary">
+            <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <p className="text-sm text-secondary/80">Redirecting to sign in page...</p>
+          <div className="space-y-3">
+            <Link to="/auth/signin" className="block">
+              <Button className="w-full" variant="gradient" size="lg">
+                Go to Sign In Now
+              </Button>
+            </Link>
+            <Link
+              to="/"
+              className="block"
+            >
+              <Button variant="outline" className="w-full" size="lg">
+                Back to Home
+              </Button>
+            </Link>
           </div>
         </div>
-      </div>
+      </AuthLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-2xl">
-        <Link to="/" className="flex items-center justify-center text-blue-600 hover:text-blue-700 mb-6">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Home
-        </Link>
-        
-        <div className="flex items-center justify-center mb-6">
-          <GraduationCap className="h-12 w-12 text-blue-600" />
-        </div>
-        
-        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-          Create your account
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+    <AuthLayout
+      title="Create your account"
+      description={(
+        <>
           Already have an account?{' '}
           <Link
             to="/auth/signin"
-            className="font-medium text-blue-600 hover:text-blue-700"
+            className="font-semibold text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-md"
           >
             Sign in here
           </Link>
-        </p>
-      </div>
+        </>
+      )}
+    >
+      <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <Input
+            {...register('full_name')}
+            type="text"
+            label="Full Name"
+            error={errors.full_name?.message}
+            required
+          />
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-2xl">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                {...register('full_name')}
-                type="text"
-                label="Full Name"
-                error={errors.full_name?.message}
-                required
-              />
-              
-              <Input
-                {...register('email')}
-                type="email"
-                label="Email Address"
-                error={errors.email?.message}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                {...register('password')}
-                type="password"
-                label="Create Password"
-                error={errors.password?.message}
-                helperText="Must be at least 6 characters"
-                required
-              />
-              
-              <Input
-                {...register('confirmPassword')}
-                type="password"
-                label="Confirm Password"
-                error={errors.confirmPassword?.message}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                {...register('phone')}
-                type="tel"
-                label="Phone Number"
-                error={errors.phone?.message}
-                required
-              />
-              
-              <Input
-                {...register('date_of_birth')}
-                type="date"
-                label="Date of Birth"
-                error={errors.date_of_birth?.message}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="sex" className="block text-sm font-medium text-secondary mb-1">
-                  Sex <span className="text-red-500">*</span>
-                </label>
-                <select
-                  {...register('sex')}
-                  id="sex"
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-                >
-                  <option value="">Select Sex</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                </select>
-                {errors.sex && (
-                  <p className="mt-1 text-sm text-red-600">{errors.sex.message}</p>
-                )}
-              </div>
-              
-              <Input
-                {...register('nationality')}
-                type="text"
-                label="Nationality"
-                error={errors.nationality?.message}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <TextArea
-                {...register('address')}
-                label="Full Address"
-                error={errors.address?.message}
-                rows={3}
-                required
-              />
-              
-              <Input
-                {...register('city')}
-                type="text"
-                label="City"
-                error={errors.city?.message}
-                required
-              />
-            </div>
-
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-medium text-secondary mb-4">Next of Kin</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input
-                  {...register('next_of_kin_name')}
-                  type="text"
-                  label="Next of Kin Name"
-                  error={errors.next_of_kin_name?.message}
-                  required
-                />
-                
-                <Input
-                  {...register('next_of_kin_phone')}
-                  type="tel"
-                  label="Next of Kin Phone"
-                  error={errors.next_of_kin_phone?.message}
-                  required
-                />
-              </div>
-            </div>
-
-            {import.meta.env.VITE_TURNSTILE_SITE_KEY && (
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-medium text-secondary mb-4">Security Verification</h3>
-                <div className="flex justify-center">
-                  <Turnstile
-                    key={turnstileKey}
-                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
-                    onVerify={handleTurnstileVerify}
-                    onError={handleTurnstileError}
-                    onExpire={handleTurnstileExpire}
-                  />
-                </div>
-              </div>
-            )}
-
-            {error && (
-              <div className="rounded-md bg-red-50 p-4">
-                <div className="text-sm text-red-700">{error}</div>
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              className="w-full"
-              loading={loading}
-              disabled={import.meta.env.VITE_TURNSTILE_SITE_KEY && !turnstileToken}
-            >
-              Create Account
-            </Button>
-          </form>
+          <Input
+            {...register('email')}
+            type="email"
+            label="Email Address"
+            error={errors.email?.message}
+            required
+          />
         </div>
-      </div>
-    </div>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <Input
+            {...register('password')}
+            type="password"
+            label="Create Password"
+            error={errors.password?.message}
+            helperText="Must be at least 6 characters"
+            required
+          />
+
+          <Input
+            {...register('confirmPassword')}
+            type="password"
+            label="Confirm Password"
+            error={errors.confirmPassword?.message}
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <Input
+            {...register('phone')}
+            type="tel"
+            label="Phone Number"
+            error={errors.phone?.message}
+            required
+          />
+
+          <Input
+            {...register('date_of_birth')}
+            type="date"
+            label="Date of Birth"
+            error={errors.date_of_birth?.message}
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div>
+            <label htmlFor="sex" className="mb-1 block text-sm font-medium text-secondary">
+              Sex <span className="text-red-500">*</span>
+            </label>
+            <select
+              {...register('sex')}
+              id="sex"
+              className="w-full rounded-md border border-secondary/30 bg-white px-3 py-2 text-sm text-secondary placeholder:text-secondary/60 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+            >
+              <option value="">Select Sex</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+            {errors.sex && (
+              <p className="mt-1 text-sm text-red-600">{errors.sex.message}</p>
+            )}
+          </div>
+
+          <Input
+            {...register('nationality')}
+            type="text"
+            label="Nationality"
+            error={errors.nationality?.message}
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <TextArea
+            {...register('address')}
+            label="Full Address"
+            error={errors.address?.message}
+            rows={3}
+            required
+          />
+
+          <Input
+            {...register('city')}
+            type="text"
+            label="City"
+            error={errors.city?.message}
+            required
+          />
+        </div>
+
+        <div className="rounded-2xl border border-secondary/10 bg-secondary/5 p-6">
+          <h3 className="text-lg font-semibold text-secondary">Next of Kin</h3>
+          <p className="mt-1 text-sm text-secondary/70">
+            Provide the details of a trusted contact we can reach in case of emergencies.
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
+            <Input
+              {...register('next_of_kin_name')}
+              type="text"
+              label="Next of Kin Name"
+              error={errors.next_of_kin_name?.message}
+              required
+            />
+
+            <Input
+              {...register('next_of_kin_phone')}
+              type="tel"
+              label="Next of Kin Phone"
+              error={errors.next_of_kin_phone?.message}
+              required
+            />
+          </div>
+        </div>
+
+        {import.meta.env.VITE_TURNSTILE_SITE_KEY && (
+          <div className="rounded-2xl border border-secondary/10 bg-white/80 p-6">
+            <h3 className="text-lg font-semibold text-secondary">Security Verification</h3>
+            <p className="mt-1 text-sm text-secondary/70">
+              Complete the verification step to keep your account secure.
+            </p>
+            <div className="mt-4 flex justify-center">
+              <Turnstile
+                key={turnstileKey}
+                siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                onVerify={handleTurnstileVerify}
+                onError={handleTurnstileError}
+                onExpire={handleTurnstileExpire}
+              />
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="rounded-xl border border-red-200/70 bg-red-50/80 p-4 text-left shadow-sm">
+            <div className="text-sm font-medium text-red-700">{error}</div>
+          </div>
+        )}
+
+        <Button
+          type="submit"
+          className="w-full"
+          loading={loading}
+          disabled={import.meta.env.VITE_TURNSTILE_SITE_KEY && !turnstileToken}
+          variant="gradient"
+          size="lg"
+        >
+          Create Account
+        </Button>
+      </form>
+    </AuthLayout>
   )
 }
