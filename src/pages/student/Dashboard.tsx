@@ -128,38 +128,37 @@ export default function StudentDashboard() {
         setHasDraft(false)
       }
       
-      // Load latest draft from API
-      const draftResponse = await applicationService.list({
-        page: 0,
-        pageSize: 1,
-        status: 'draft',
-        sortBy: 'date',
-        sortOrder: 'desc',
-        mine: true
-      })
+      const [
+        draftResponse,
+        applicationsResponse,
+        programsResponse,
+        intakesResponse
+      ] = await Promise.all([
+        applicationService.list({
+          page: 0,
+          pageSize: 1,
+          status: 'draft',
+          sortBy: 'date',
+          sortOrder: 'desc',
+          mine: true
+        }),
+        applicationService.list({
+          page: 0,
+          pageSize: 50,
+          sortBy: 'date',
+          sortOrder: 'desc',
+          mine: true
+        }),
+        catalogService.getPrograms(),
+        catalogService.getIntakes()
+      ])
 
       if (draftResponse.applications && draftResponse.applications.length > 0) {
         setHasDraft(true)
         setDraftData(draftResponse.applications[0])
       }
 
-      // Load user's applications
-      const applicationsResponse = await applicationService.list({
-        page: 0,
-        pageSize: 50,
-        sortBy: 'date',
-        sortOrder: 'desc',
-        mine: true
-      })
-
       setApplications((applicationsResponse.applications || []) as Application[])
-
-      // Load programs and intakes
-      const [programsResponse, intakesResponse] = await Promise.all([
-        catalogService.getPrograms(),
-        catalogService.getIntakes()
-      ])
-
       setPrograms((programsResponse.programs || []) as Program[])
       setIntakes((intakesResponse.intakes || []) as Intake[])
     } catch (error) {
