@@ -22,6 +22,7 @@ const AdminSettings = React.lazy(() => import('@/pages/admin/Settings'))
 const AdminAnalytics = React.lazy(() => import('@/pages/admin/Analytics'))
 const AIInsights = React.lazy(() => import('@/pages/admin/AIInsights'))
 const WorkflowAutomation = React.lazy(() => import('@/pages/admin/WorkflowAutomation'))
+const AuditTrail = React.lazy(() => import('@/pages/admin/AuditTrail'))
 const PublicApplicationTracker = React.lazy(() => import('@/pages/PublicApplicationTracker'))
 const AdminTest = React.lazy(() => import('@/pages/AdminTest'))
 const NotFoundPage = React.lazy(() => import('@/pages/NotFoundPage'))
@@ -68,6 +69,7 @@ export const routes: RouteConfig[] = [
   { path: '/admin/programs', element: AdminPrograms, guard: 'admin', lazy: true },
   { path: '/admin/intakes', element: AdminIntakes, guard: 'admin', lazy: true },
   { path: '/admin/users', element: AdminUsers, guard: 'admin', lazy: true },
+  { path: '/admin/audit', element: AuditTrail, guard: 'admin', lazy: true },
   { path: '/admin/settings', element: AdminSettings, guard: 'admin', lazy: true },
   { path: '/admin/analytics', element: AdminAnalytics, guard: 'admin', lazy: true },
   { path: '/admin/ai-insights', element: AIInsights, guard: 'admin', lazy: true },

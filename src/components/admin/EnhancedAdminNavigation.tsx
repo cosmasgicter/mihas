@@ -53,6 +53,7 @@ export function EnhancedAdminNavigation() {
     { href: '/admin/users', label: 'Users', icon: Users, emoji: '👥' },
     { href: '/admin/analytics', label: 'Analytics', icon: BarChart3, emoji: '📊' },
     { href: '/admin/workflow', label: 'Automation', icon: Zap, emoji: '⚡', isNew: true },
+    { href: '/admin/audit', label: 'Audit trail', icon: Activity, emoji: '🛡️' },
     { href: '/admin/settings', label: 'Settings', icon: Settings, emoji: '⚙️' },
   ]
 

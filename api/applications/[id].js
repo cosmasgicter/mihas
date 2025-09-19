@@ -1,4 +1,5 @@
 const { supabaseAdminClient, getUserFromRequest } = require('../_lib/supabaseClient')
+const { logAuditEvent } = require('../_lib/auditLogger')
 const {
   checkRateLimit,
   buildRateLimitKey,
@@ -60,7 +61,7 @@ module.exports = async function handler(req, res) {
   }
 }
 
-async function handleGet(req, res, { user, isAdmin }, id) {
+async function handleGet(req, res, { user, isAdmin, roles }, id) {
   try {
     const include = parseIncludeParam(req.query.include)
 
@@ -147,6 +148,21 @@ async function handleGet(req, res, { user, isAdmin }, id) {
 
     const statusHistory = include.has('statusHistory') ? rawHistory : undefined
 
+    await logAuditEvent({
+      req,
+      action: 'applications.detail.view',
+      actorId: user.id,
+      actorEmail: user.email || null,
+      actorRoles: roles,
+      targetTable: 'applications_new',
+      targetId: id,
+      metadata: {
+        include: Array.from(include),
+        isAdmin,
+        returnedDocuments: Array.isArray(documents) ? documents.length : 0
+      }
+    })
+
     return res.status(200).json({
       application,
       documents,
@@ -159,7 +175,7 @@ async function handleGet(req, res, { user, isAdmin }, id) {
   }
 }
 
-async function handlePut(req, res, { user, isAdmin }, id) {
+async function handlePut(req, res, { user, isAdmin, roles }, id) {
   try {
     const updates = req.body || {}
 
@@ -177,6 +193,20 @@ async function handlePut(req, res, { user, isAdmin }, id) {
     if (error) {
       return res.status(400).json({ error: error.message })
     }
+
+    await logAuditEvent({
+      req,
+      action: 'applications.record.update',
+      actorId: user.id,
+      actorEmail: user.email || null,
+      actorRoles: roles,
+      targetTable: 'applications_new',
+      targetId: id,
+      metadata: {
+        fields: Object.keys(updates || {}),
+        isAdmin
+      }
+    })
 
     return res.status(200).json(data)
   } catch (error) {
@@ -211,7 +241,7 @@ async function handlePatch(req, res, context, id) {
   }
 }
 
-async function handleDelete(req, res, { user, isAdmin }, id) {
+async function handleDelete(req, res, { user, isAdmin, roles }, id) {
   try {
     let query = supabaseAdminClient
       .from('applications_new')
@@ -227,6 +257,17 @@ async function handleDelete(req, res, { user, isAdmin }, id) {
       return res.status(400).json({ error: error.message })
     }
 
+    await logAuditEvent({
+      req,
+      action: 'applications.record.delete',
+      actorId: user.id,
+      actorEmail: user.email || null,
+      actorRoles: roles,
+      targetTable: 'applications_new',
+      targetId: id,
+      metadata: { isAdmin }
+    })
+
     return res.status(200).json({ success: true })
   } catch (error) {
     console.error('Application DELETE error', error)
@@ -234,7 +275,7 @@ async function handleDelete(req, res, { user, isAdmin }, id) {
   }
 }
 
-async function verifyDocument(req, res, { user, isAdmin }, id) {
+async function verifyDocument(req, res, { user, isAdmin, roles }, id) {
   if (!isAdmin) {
     return res.status(403).json({ error: 'Access denied' })
   }
@@ -285,6 +326,22 @@ async function verifyDocument(req, res, { user, isAdmin }, id) {
       return res.status(400).json({ error: error.message })
     }
 
+    await logAuditEvent({
+      req,
+      action: 'applications.document.verify',
+      actorId: user.id,
+      actorEmail: user.email || null,
+      actorRoles: roles,
+      targetTable: DOCUMENTS_TABLE,
+      targetId,
+      targetLabel: data?.document_type || documentType || null,
+      metadata: {
+        applicationId: id,
+        status,
+        notes: notes || null
+      }
+    })
+
     return res.status(200).json(data)
   } catch (error) {
     console.error('Document verification error', error)
@@ -292,7 +349,7 @@ async function verifyDocument(req, res, { user, isAdmin }, id) {
   }
 }
 
-async function updateApplicationStatus(req, res, { user, isAdmin }, id) {
+async function updateApplicationStatus(req, res, { user, isAdmin, roles }, id) {
   if (!isAdmin) {
     return res.status(403).json({ error: 'Access denied' })
   }
@@ -365,6 +422,21 @@ async function updateApplicationStatus(req, res, { user, isAdmin }, id) {
       console.error('Failed to adjust intake availability', adjustmentError)
     }
 
+    await logAuditEvent({
+      req,
+      action: 'applications.status.update',
+      actorId: user.id,
+      actorEmail: user.email || null,
+      actorRoles: roles,
+      targetTable: 'applications_new',
+      targetId: id,
+      metadata: {
+        previousStatus: existingApplication.status,
+        newStatus: data?.status || status,
+        notes: notes || null
+      }
+    })
+
     return res.status(200).json(data)
   } catch (error) {
     console.error('Status update error', error)
@@ -372,7 +444,7 @@ async function updateApplicationStatus(req, res, { user, isAdmin }, id) {
   }
 }
 
-async function updatePaymentStatus(req, res, { user, isAdmin }, id) {
+async function updatePaymentStatus(req, res, { user, isAdmin, roles }, id) {
   if (!isAdmin) {
     return res.status(403).json({ error: 'Access denied' })
   }
@@ -438,6 +510,22 @@ async function updatePaymentStatus(req, res, { user, isAdmin }, id) {
         return res.status(500).json({ error: 'Failed to record payment audit entry' })
       }
     }
+
+    await logAuditEvent({
+      req,
+      action: 'applications.payment.update',
+      actorId: user.id,
+      actorEmail: user.email || null,
+      actorRoles: roles,
+      targetTable: 'applications_new',
+      targetId: id,
+      metadata: {
+        paymentStatus,
+        verificationNotes: verificationNotes || null,
+        verifiedAt: updateData.payment_verified_at,
+        paymentVerifiedBy: updateData.payment_verified_by
+      }
+    })
 
     return res.status(200).json({
       ...data,
@@ -539,7 +627,7 @@ async function adjustIntakeAvailability({ previousStatus, newStatus, intakeId, i
   }
 }
 
-async function sendNotification(req, res, { user, isAdmin }, id) {
+async function sendNotification(req, res, { user, isAdmin, roles }, id) {
   if (!isAdmin) {
     return res.status(403).json({ error: 'Access denied' })
   }
@@ -583,6 +671,21 @@ async function sendNotification(req, res, { user, isAdmin }, id) {
       })
       .eq('id', id)
 
+    await logAuditEvent({
+      req,
+      action: 'applications.notification.send',
+      actorId: user.id,
+      actorEmail: user.email,
+      actorRoles: roles,
+      targetTable: 'applications_new',
+      targetId: id,
+      metadata: {
+        title,
+        messageLength: message.length,
+        recipientId: application.user_id
+      }
+    })
+
     return res.status(200).json({ success: true })
   } catch (error) {
     console.error('Notification error', error)
@@ -610,6 +713,22 @@ async function generateAcceptanceLetter(req, res, context, id) {
       render: details => renderAcceptanceLetter({ ...details, admin: context.user })
     })
 
+    await logAuditEvent({
+      req,
+      action: 'applications.document.generate',
+      actorId: context.user.id,
+      actorEmail: context.user?.email || null,
+      actorRoles: context.roles,
+      targetTable: DOCUMENTS_TABLE,
+      targetId: documentRecord?.id || null,
+      targetLabel: 'acceptance_letter',
+      metadata: {
+        applicationId: id,
+        fileUrl: documentRecord?.file_url || null,
+        size: documentRecord?.file_size || null
+      }
+    })
+
     return res.status(200).json(documentRecord)
   } catch (error) {
     if (error instanceof NotFoundError) {
@@ -632,6 +751,22 @@ async function generateFinanceReceipt(req, res, context, id) {
       context,
       documentType: 'finance_receipt',
       render: details => renderFinanceReceipt({ ...details, admin: context.user })
+    })
+
+    await logAuditEvent({
+      req,
+      action: 'applications.document.generate',
+      actorId: context.user.id,
+      actorEmail: context.user?.email || null,
+      actorRoles: context.roles,
+      targetTable: DOCUMENTS_TABLE,
+      targetId: documentRecord?.id || null,
+      targetLabel: 'finance_receipt',
+      metadata: {
+        applicationId: id,
+        fileUrl: documentRecord?.file_url || null,
+        size: documentRecord?.file_size || null
+      }
     })
 
     return res.status(200).json(documentRecord)
@@ -1093,7 +1228,7 @@ function getUserDisplayName(user) {
   )
 }
 
-async function syncGrades(req, res, { user, isAdmin }, id) {
+async function syncGrades(req, res, { user, isAdmin, roles }, id) {
   const { grades } = req.body || {}
   if (!Array.isArray(grades)) {
     return res.status(400).json({ error: 'Grades must be an array' })
@@ -1123,6 +1258,8 @@ async function syncGrades(req, res, { user, isAdmin }, id) {
       .delete()
       .eq('application_id', id)
 
+    let insertedCount = 0
+
     if (grades.length > 0) {
       const gradeRows = grades
         .filter(grade => grade.subject_id)
@@ -1140,8 +1277,25 @@ async function syncGrades(req, res, { user, isAdmin }, id) {
         if (insertError) {
           return res.status(400).json({ error: insertError.message })
         }
+
+        insertedCount = gradeRows.length
       }
     }
+
+    await logAuditEvent({
+      req,
+      action: 'applications.grades.sync',
+      actorId: user.id,
+      actorEmail: user.email || null,
+      actorRoles: roles,
+      targetTable: 'application_grades',
+      targetId: id,
+      metadata: {
+        isAdmin,
+        submittedGrades: Array.isArray(grades) ? grades.length : 0,
+        persistedGrades: insertedCount
+      }
+    })
 
     return res.status(200).json({ success: true })
   } catch (error) {

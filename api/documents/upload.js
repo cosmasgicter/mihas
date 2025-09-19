@@ -1,5 +1,6 @@
 const path = require('path')
 const { supabaseAdminClient, getUserFromRequest } = require('../_lib/supabaseClient')
+const { logAuditEvent } = require('../_lib/auditLogger')
 const {
   checkRateLimit,
   buildRateLimitKey,
@@ -300,6 +301,24 @@ module.exports = async function handler(req, res) {
     if (error) {
       return res.status(400).json({ error: error.message })
     }
+
+    await logAuditEvent({
+      req,
+      action: 'documents.upload',
+      actorId: authContext.user.id,
+      actorEmail: authContext.user.email || null,
+      actorRoles: authContext.roles,
+      targetTable: 'application_documents',
+      targetId: data?.id || null,
+      metadata: {
+        applicationId,
+        documentType,
+        fileName: normalizedFileNameResult.fileName,
+        fileSize: decodedFile.size,
+        mimeType: decodedFile.mimeType,
+        byAdmin: authContext.isAdmin
+      }
+    })
 
     return res.status(201).json(data)
   } catch (error) {

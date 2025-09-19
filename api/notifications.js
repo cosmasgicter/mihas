@@ -1,6 +1,8 @@
 const fetch = require('node-fetch')
 
 const { supabaseAdminClient, getUserFromRequest } = require('./_lib/supabaseClient')
+const { logAuditEvent } = require('./_lib/auditLogger')
+const { hasActiveConsent } = require('./_lib/userConsent')
 const {
   checkRateLimit,
   buildRateLimitKey,
@@ -82,6 +84,22 @@ async function handleSendNotification(req, res) {
     return res.status(400).json({ error: 'userId, title and message are required' })
   }
 
+  const { active: hasConsent } = await hasActiveConsent(userId, 'outreach')
+  if (!hasConsent) {
+    await logAuditEvent({
+      req,
+      action: 'notifications.send.blocked',
+      actorId: authContext.user.id,
+      actorEmail: authContext.user.email || null,
+      actorRoles: authContext.roles,
+      targetTable: 'user_consents',
+      targetId: userId,
+      metadata: { reason: 'missing_outreach_consent', title }
+    })
+
+    return res.status(412).json({ error: 'Active outreach consent required before sending notifications' })
+  }
+
   const { data: notification, error } = await supabaseAdminClient
     .from('notifications')
     .insert({
@@ -98,6 +116,17 @@ async function handleSendNotification(req, res) {
   if (error) {
     return res.status(400).json({ error: error.message })
   }
+
+  await logAuditEvent({
+    req,
+    action: 'notifications.send',
+    actorId: authContext.user.id,
+    actorEmail: authContext.user.email || null,
+    actorRoles: authContext.roles,
+    targetTable: 'notifications',
+    targetId: notification?.id || null,
+    metadata: { userId, type, title }
+  })
 
   return res.status(201).json(notification)
 }
@@ -277,6 +306,30 @@ async function handleDispatchChannel(req, res) {
   }
 
   try {
+    const { active: hasConsent } = await hasActiveConsent(userId, 'outreach')
+    if (!hasConsent) {
+      await logAuditEvent({
+        req,
+        action: 'notifications.channel.blocked',
+        actorId: authContext.user.id,
+        actorEmail: authContext.user.email || null,
+        actorRoles: authContext.roles,
+        targetTable: 'user_consents',
+        targetId: userId,
+        metadata: { channel: normalizedChannel, reason: 'missing_outreach_consent' }
+      })
+
+      await logChannelDelivery({
+        userId,
+        type,
+        channel: normalizedChannel,
+        success: false,
+        status: 'blocked'
+      })
+
+      return res.status(412).json({ error: 'Active outreach consent required before dispatching' })
+    }
+
     const preferences = await fetchUserNotificationPreferences(userId)
 
     if (!hasExplicitOptIn(preferences, normalizedChannel)) {
@@ -286,6 +339,17 @@ async function handleDispatchChannel(req, res) {
         channel: normalizedChannel,
         success: false,
         status: 'blocked'
+      })
+
+      await logAuditEvent({
+        req,
+        action: 'notifications.channel.blocked',
+        actorId: authContext.user.id,
+        actorEmail: authContext.user.email || null,
+        actorRoles: authContext.roles,
+        targetTable: 'user_notification_preferences',
+        targetId: userId,
+        metadata: { channel: normalizedChannel, reason: 'missing_channel_opt_in' }
       })
 
       return res.status(412).json({ error: 'Channel disabled or missing opt-in consent' })
@@ -342,6 +406,22 @@ async function handleDispatchChannel(req, res) {
         messageId
       })
     }
+
+    await logAuditEvent({
+      req,
+      action: 'notifications.channel.dispatch',
+      actorId: authContext.user.id,
+      actorEmail: authContext.user.email || null,
+      actorRoles: authContext.roles,
+      targetTable: 'notification_logs',
+      targetId: userId,
+      metadata: {
+        channel: normalizedChannel,
+        status: providerStatus,
+        messageId,
+        type
+      }
+    })
 
     return res.status(200).json({
       success: true,

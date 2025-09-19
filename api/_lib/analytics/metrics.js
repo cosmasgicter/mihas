@@ -1,4 +1,6 @@
 const { supabaseAdminClient, getUserFromRequest } = require('../supabaseClient')
+const { logAuditEvent } = require('../auditLogger')
+const { listActiveConsentUserIds } = require('../userConsent')
 const {
   checkRateLimit,
   buildRateLimitKey,
@@ -31,32 +33,71 @@ async function handleMetricsRequest(req, res) {
     return res.status(status).json({ error: authContext.error })
   }
 
+  let consentingUserIds = []
   try {
+    consentingUserIds = await listActiveConsentUserIds('analytics')
+  } catch (consentError) {
+    console.error('Failed to resolve analytics consent roster', consentError)
+    return res.status(500).json({ error: 'Failed to resolve analytics consent roster' })
+  }
+
+  if (!consentingUserIds.length) {
+    await logAuditEvent({
+      req,
+      action: 'analytics.metrics.blocked',
+      actorId: authContext.user.id,
+      actorEmail: authContext.user.email || null,
+      actorRoles: authContext.roles,
+      targetTable: 'user_consents',
+      metadata: { reason: 'missing_analytics_consent' }
+    })
+
+    return res.status(412).json({ error: 'Analytics reporting requires active analytics consent' })
+  }
+
+  try {
+    const buildCountQuery = status => {
+      let query = supabaseAdminClient
+        .from('applications_new')
+        .select('id', { count: 'exact', head: true })
+        .in('user_id', consentingUserIds)
+
+      return status ? query.eq('status', status) : query
+    }
+
     const [totalApps, submittedApps, approvedApps, recentApps] = await Promise.all([
-      supabaseAdminClient
-        .from('applications_new')
-        .select('id', { count: 'exact', head: true }),
-      supabaseAdminClient
-        .from('applications_new')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'submitted'),
-      supabaseAdminClient
-        .from('applications_new')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'approved'),
+      buildCountQuery(null),
+      buildCountQuery('submitted'),
+      buildCountQuery('approved'),
       supabaseAdminClient
         .from('applications_new')
         .select('created_at, status, program')
+        .in('user_id', consentingUserIds)
         .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
         .order('created_at', { ascending: false })
     ])
 
-    return res.status(200).json({
+    const payload = {
       totalApplications: Number(totalApps.count || 0),
       submittedApplications: Number(submittedApps.count || 0),
       approvedApplications: Number(approvedApps.count || 0),
       recentApplications: recentApps.data || []
+    }
+
+    await logAuditEvent({
+      req,
+      action: 'analytics.metrics.view',
+      actorId: authContext.user.id,
+      actorEmail: authContext.user.email || null,
+      actorRoles: authContext.roles,
+      targetTable: 'applications_new',
+      metadata: {
+        consentingUsers: consentingUserIds.length,
+        totalApplications: payload.totalApplications
+      }
     })
+
+    return res.status(200).json(payload)
   } catch (error) {
     console.error('Analytics metrics error', error)
     return res.status(500).json({ error: 'Internal server error' })
