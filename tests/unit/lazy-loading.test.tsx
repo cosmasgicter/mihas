@@ -16,13 +16,21 @@ vi.mock('@/contexts/AuthContext', () => ({
 }))
 
 // Mock Supabase
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
+vi.mock('@/lib/supabase', () => {
+  const supabaseClient = {
     auth: {
       getUser: () => Promise.resolve({ data: { user: null }, error: null })
     }
   }
-}))
+
+  const supabaseCallable = vi.fn(async () => supabaseClient)
+  Object.assign(supabaseCallable, supabaseClient)
+
+  return {
+    getSupabaseClient: vi.fn(async () => supabaseClient),
+    supabase: supabaseCallable
+  }
+})
 
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {

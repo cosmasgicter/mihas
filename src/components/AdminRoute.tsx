@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
 import { useRoleQuery, isAdminRole } from '@/hooks/auth/useRoleQuery'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { supabase } from '@/lib/supabase'
+import { getSupabaseClient } from '@/lib/supabase'
 
 interface AdminRouteProps {
   children: React.ReactNode
@@ -18,22 +18,34 @@ export function AdminRoute({ children }: AdminRouteProps) {
   const [sessionChecked, setSessionChecked] = useState(false)
 
   useEffect(() => {
-    // Double-check session on mount
+    let active = true
+
     const checkSession = async () => {
       try {
+        const supabase = await getSupabaseClient()
         const { data: { session } } = await supabase.auth.getSession()
+        if (!active) return
+
         if (session) {
           console.log('Session validated in AdminRoute')
         }
       } catch (error) {
-        console.error('Session check failed:', error)
+        if (active) {
+          console.error('Session check failed:', error)
+        }
       } finally {
-        setSessionChecked(true)
+        if (active) {
+          setSessionChecked(true)
+        }
       }
     }
-    
+
     if (!loading) {
       checkSession()
+    }
+
+    return () => {
+      active = false
     }
   }, [loading])
 

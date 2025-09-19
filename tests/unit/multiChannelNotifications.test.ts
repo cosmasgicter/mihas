@@ -18,7 +18,15 @@ const { notificationServiceMock, dispatchChannelMock } = vi.hoisted(() => {
   }
 })
 
-vi.mock('@/lib/supabase', () => ({ supabase: supabaseMock }))
+vi.mock('@/lib/supabase', () => {
+  const supabaseCallable = vi.fn(async () => supabaseMock)
+  Object.assign(supabaseCallable, supabaseMock)
+
+  return {
+    getSupabaseClient: vi.fn(async () => supabaseMock),
+    supabase: supabaseCallable
+  }
+})
 
 vi.mock('@/services/notifications', () => ({ notificationService: notificationServiceMock }))
 

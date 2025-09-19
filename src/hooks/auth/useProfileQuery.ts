@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { User } from '@supabase/supabase-js'
+import type { User } from '@supabase/supabase-js'
 import { useAuth } from '@/contexts/AuthContext'
 import { getSupabaseClient, UserProfile } from '@/lib/supabase'
 import { sanitizeForDisplay } from '@/lib/sanitize'
@@ -63,7 +63,7 @@ function parseSignupData(user: User) {
 
 async function createUserProfile(user: User): Promise<UserProfile | null> {
   try {
-    const supabase = getSupabaseClient()
+    const supabase = await getSupabaseClient()
     const signupData = parseSignupData(user)
     const metadata = user.user_metadata || {}
 
@@ -118,7 +118,7 @@ export function useProfileQuery(options: UseProfileQueryOptions = {}): ProfileQu
     queryFn: async () => {
       if (!user) return null
 
-      const supabase = getSupabaseClient()
+      const supabase = await getSupabaseClient()
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -148,7 +148,7 @@ export function useProfileQuery(options: UseProfileQueryOptions = {}): ProfileQu
         throw new Error('User not authenticated')
       }
 
-      const supabase = getSupabaseClient()
+      const supabase = await getSupabaseClient()
 
       const allowedFields = [
         'full_name',

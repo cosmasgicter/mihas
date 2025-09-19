@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { AnalyticsService } from '@/lib/analytics'
 
@@ -7,7 +7,11 @@ export function useAnalytics() {
   const sessionId = useRef(Math.random().toString(36).substring(7))
   const pageStartTime = useRef(Date.now())
 
-  const trackPageView = (pagePath: string) => {
+  const trackPageView = useCallback((pagePath: string) => {
+    if (!user) {
+      return
+    }
+
     AnalyticsService.trackEvent({
       user_id: user?.id,
       session_id: sessionId.current,
@@ -15,13 +19,17 @@ export function useAnalytics() {
       action_type: 'page_view',
       metadata: {
         timestamp: new Date().toISOString(),
-        user_agent: navigator.userAgent
+        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'
       }
     })
     pageStartTime.current = Date.now()
-  }
+  }, [user])
 
-  const trackAction = (actionType: string, metadata?: Record<string, any>) => {
+  const trackAction = useCallback((actionType: string, metadata?: Record<string, any>) => {
+    if (!user) {
+      return
+    }
+
     AnalyticsService.trackEvent({
       user_id: user?.id,
       session_id: sessionId.current,
@@ -32,7 +40,7 @@ export function useAnalytics() {
         timestamp: new Date().toISOString()
       }
     })
-  }
+  }, [user])
 
   const trackFormStart = (formName: string) => {
     trackAction('form_start', { form_name: formName })
@@ -54,18 +62,26 @@ export function useAnalytics() {
   }
 
   const trackEligibilityCheck = (passed: boolean, failureReason?: string) => {
-    trackAction('eligibility_check', { 
-      passed, 
-      failure_reason: failureReason 
+    trackAction('eligibility_check', {
+      passed,
+      failure_reason: failureReason
     })
   }
 
   useEffect(() => {
-    // Track page view on mount
+    if (!user) {
+      return
+    }
+
+    // Track page view when a user session is available
     trackPageView(window.location.pathname)
 
     // Track page duration on unmount
     return () => {
+      if (!user) {
+        return
+      }
+
       const duration = Math.floor((Date.now() - pageStartTime.current) / 1000)
       AnalyticsService.trackEvent({
         user_id: user?.id,
@@ -75,7 +91,7 @@ export function useAnalytics() {
         duration_seconds: duration
       })
     }
-  }, [])
+  }, [trackPageView, user])
 
   return {
     trackPageView,
