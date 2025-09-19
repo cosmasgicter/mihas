@@ -14,7 +14,8 @@ import {
   Menu,
   X,
   Home,
-  Plus
+  Plus,
+  Bell
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -78,6 +79,7 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
     { href: '/student/dashboard', label: 'Dashboard', icon: Home },
     { href: '/apply', label: 'New Application', icon: Plus },
     { href: '/settings', label: 'Settings', icon: Settings },
+    { href: '/student/notifications', label: 'Notifications', icon: Bell }
   ]
 
   return (
