@@ -13,25 +13,25 @@ interface AuthLayoutProps {
 }
 
 const defaultHero = (
-  <div className="mx-auto max-w-xl text-center text-white lg:mx-0 lg:text-left">
-    <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-white/80 backdrop-blur">
+  <div className="mx-auto max-w-xl text-center text-slate-900 lg:mx-0 lg:text-left">
+    <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-slate-600 backdrop-blur">
       <span className="h-2 w-2 rounded-full bg-accent" aria-hidden />
       MIHAS Student Portal
     </span>
     <div className="mt-6 space-y-4">
-      <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">Grow your healthcare career with confidence</h1>
-      <p className="text-base leading-relaxed text-white/80">
+      <h1 className="text-4xl font-semibold leading-tight text-slate-900 sm:text-5xl">Grow your healthcare career with confidence</h1>
+      <p className="text-base leading-relaxed text-slate-600">
         Access your personalized portal to monitor applications, manage enrollment tasks, and stay connected with our admissions team every step of the way.
       </p>
     </div>
     <div className="mt-8 grid gap-4 sm:grid-cols-2">
-      <div className="rounded-2xl border border-white/20 bg-white/10 p-4 text-left backdrop-blur">
-        <p className="text-sm font-semibold text-white">24/7 Access</p>
-        <p className="mt-1 text-sm text-white/70">Manage your journey from any device at any time.</p>
+      <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 text-left backdrop-blur">
+        <p className="text-sm font-semibold text-slate-900">24/7 Access</p>
+        <p className="mt-1 text-sm text-slate-600">Manage your journey from any device at any time.</p>
       </div>
-      <div className="rounded-2xl border border-white/20 bg-white/10 p-4 text-left backdrop-blur">
-        <p className="text-sm font-semibold text-white">Dedicated Support</p>
-        <p className="mt-1 text-sm text-white/70">Our advisors are ready to help you take the next step.</p>
+      <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 text-left backdrop-blur">
+        <p className="text-sm font-semibold text-slate-900">Dedicated Support</p>
+        <p className="mt-1 text-sm text-slate-600">Our advisors are ready to help you take the next step.</p>
       </div>
     </div>
   </div>
