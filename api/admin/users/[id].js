@@ -11,7 +11,7 @@ const {
   parseAction,
   parseRequestBody,
   updateAuthUserMetadata
-} = require('./userHelpers')
+} = require('../../_lib/adminUserHelpers')
 
 module.exports = async function handler(req, res) {
   try {

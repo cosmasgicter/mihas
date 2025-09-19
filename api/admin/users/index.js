@@ -1,5 +1,5 @@
 const { supabaseAdminClient, requireUser } = require('../../_lib/supabaseClient')
-const { fetchUserProfile, fetchActiveRole, parseUserId, parseAction } = require('./userHelpers')
+const { fetchUserProfile, fetchActiveRole, parseUserId, parseAction } = require('../../_lib/adminUserHelpers')
 
 module.exports = async function handler(req, res) {
   try {

@@ -4,10 +4,10 @@ import type { MockInstance } from 'vitest'
 
 const nodeRequire = createRequire(import.meta.url)
 const supabaseModulePath = nodeRequire.resolve('../../../api/_lib/supabaseClient.js')
-const helperModulePath = nodeRequire.resolve('../../../api/admin/users/userHelpers.js')
+const helperModulePath = nodeRequire.resolve('../../../api/_lib/adminUserHelpers.js')
 const handlerModulePath = nodeRequire.resolve('../../../api/admin/users/[id].js')
 
-type HelperModule = typeof import('../../../api/admin/users/userHelpers.js')
+type HelperModule = typeof import('../../../api/_lib/adminUserHelpers.js')
 
 interface TestRequest {
   method: string
@@ -87,7 +87,7 @@ function mockSupabaseModule() {
 async function loadHandler(
   configureHelpers?: (stubs: HelperModule, actual: HelperModule) => void
 ) {
-  const actualHelpers = await import('../../../api/admin/users/userHelpers.js')
+  const actualHelpers = await import('../../../api/_lib/adminUserHelpers.js')
   const stubHelpers: HelperModule = {
     fetchUserProfile: actualHelpers.fetchUserProfile,
     fetchActiveRole: actualHelpers.fetchActiveRole,
