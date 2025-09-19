@@ -1,194 +1,152 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  Activity, 
-  TrendingUp, 
-  Users, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  FileText,
+import {
+  Activity,
+  TrendingUp,
+  Users,
+  Clock,
+  CheckCircle,
   Calendar,
-  Bell,
-  Zap,
-  Shield,
-  Database,
   RefreshCw,
   ArrowUp,
   ArrowDown,
-  AlertTriangle
+  AlertTriangle,
+  Gauge,
+  Database
 } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/contexts/AuthContext'
-import { useProfileQuery } from '@/hooks/auth/useProfileQuery'
-import { sanitizeForLog } from '@/lib/sanitize'
 
-interface DashboardMetrics {
-  totalApplications: number
-  todayApplications: number
-  pendingReviews: number
-  approvalRate: number
-  avgProcessingTime: number
-  systemHealth: 'excellent' | 'good' | 'warning' | 'critical'
-  activeUsers: number
+import { Button } from '@/components/ui/Button'
+import { sanitizeForLog } from '@/lib/sanitize'
+import {
+  adminDashboardService,
+  type AdminDashboardMetricsResponse,
+  type AdminDashboardStatusBreakdown,
+  type AdminDashboardPeriodTotals,
+  type AdminDashboardProcessingMetrics
+} from '@/services/admin/dashboard'
+
+const EMPTY_BREAKDOWN: AdminDashboardStatusBreakdown = {
+  total: 0,
+  draft: 0,
+  submitted: 0,
+  underReview: 0,
+  approved: 0,
+  rejected: 0
 }
 
-interface RecentActivity {
-  id: string
-  type: 'application' | 'approval' | 'rejection' | 'system'
-  message: string
-  timestamp: string
-  user?: string
+const EMPTY_PERIOD_TOTALS: AdminDashboardPeriodTotals = {
+  today: 0,
+  last7Days: 0,
+  last30Days: 0
+}
+
+const EMPTY_PROCESSING: AdminDashboardProcessingMetrics = {
+  averageProcessingTimeHours: 0,
+  medianProcessingTimeHours: 0,
+  p95ProcessingTimeHours: 0,
+  throughputPerHour: 0,
+  backlog: 0,
+  activeReviewers: 0
+}
+
+const HEALTH_BADGE = {
+  excellent: {
+    label: 'Excellent',
+    className: 'bg-emerald-500 text-white',
+    description: 'Systems are operating smoothly'
+  },
+  good: {
+    label: 'Good',
+    className: 'bg-blue-500 text-white',
+    description: 'Minor queueing but within targets'
+  },
+  warning: {
+    label: 'Warning',
+    className: 'bg-amber-500 text-white',
+    description: 'Backlog requires attention soon'
+  },
+  critical: {
+    label: 'Critical',
+    className: 'bg-red-500 text-white',
+    description: 'Immediate intervention recommended'
+  }
+} as const
+
+type HealthState = keyof typeof HEALTH_BADGE
+
+function formatHours(hours: number) {
+  if (!Number.isFinite(hours) || hours <= 0) {
+    return '0h'
+  }
+
+  if (hours >= 48) {
+    const days = hours / 24
+    return `${days >= 3 ? Math.round(days) : days.toFixed(1)}d`
+  }
+
+  return `${Math.round(hours)}h`
+}
+
+function formatNumber(value: number) {
+  if (!Number.isFinite(value)) {
+    return '0'
+  }
+
+  return value.toLocaleString()
+}
+
+function formatThroughput(value: number) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return '0 /hr'
+  }
+
+  return `${value.toFixed(2)} /hr`
 }
 
 export function FixedAdminDashboard() {
-  const { user } = useAuth()
-  const { profile } = useProfileQuery()
-  const [metrics, setMetrics] = useState<DashboardMetrics>({
-    totalApplications: 0,
-    todayApplications: 0,
-    pendingReviews: 0,
-    approvalRate: 0,
-    avgProcessingTime: 0,
-    systemHealth: 'good',
-    activeUsers: 0
-  })
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
+  const [dashboardData, setDashboardData] = useState<AdminDashboardMetricsResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const loadMetrics = async () => {
+  const loadDashboard = useCallback(async (options: { showLoading?: boolean; showRefreshing?: boolean } = {}) => {
+    const { showLoading = false, showRefreshing = false } = options
+
+    if (showLoading) {
+      setLoading(true)
+    }
+
+    if (showRefreshing) {
+      setRefreshing(true)
+    }
+
     try {
       setError(null)
-      
-      // Try to use the RPC function first
-      const { data: rpcData, error: rpcError } = await supabase.rpc('get_admin_dashboard_stats')
-      
-      if (!rpcError && rpcData && rpcData.length > 0) {
-        const stats = rpcData[0]
-        setMetrics({
-          totalApplications: Number(stats.total_applications || 0),
-          todayApplications: 0, // Will calculate separately
-          pendingReviews: Number(stats.submitted_applications || 0) + Number(stats.under_review_applications || 0),
-          approvalRate: calculateApprovalRate(stats),
-          avgProcessingTime: Math.floor(Math.random() * 5) + 2, // Placeholder
-          systemHealth: Number(stats.submitted_applications || 0) > 50 ? 'warning' : 'good',
-          activeUsers: Math.floor(Math.random() * 20) + 5 // Placeholder
-        })
-      } else {
-        // Fallback to manual queries
-        console.log('RPC failed, using fallback queries:', sanitizeForLog(rpcError?.message || 'No data'))
-        await loadMetricsFallback()
+      const metrics = await adminDashboardService.getMetrics()
+      setDashboardData(metrics)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      console.error('Failed to load admin dashboard metrics:', sanitizeForLog(message))
+      setError('Failed to load dashboard metrics')
+    } finally {
+      if (showLoading) {
+        setLoading(false)
       }
 
-      // Load today's applications separately
-      await loadTodayApplications()
-      await loadRecentActivity()
-      
-    } catch (error: any) {
-      console.error('Error loading metrics:', sanitizeForLog(error.message))
-      setError('Failed to load dashboard metrics')
-      await loadMetricsFallback()
-    } finally {
-      setLoading(false)
+      if (showRefreshing) {
+        setRefreshing(false)
+      }
     }
-  }
-
-  const calculateApprovalRate = (stats: any) => {
-    const approved = Number(stats.approved_applications || 0)
-    const rejected = Number(stats.rejected_applications || 0)
-    const total = approved + rejected
-    return total > 0 ? Math.round((approved / total) * 100) : 0
-  }
-
-  const loadMetricsFallback = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('applications_new')
-        .select('status, created_at, submitted_at')
-      
-      if (error) throw error
-      
-      const total = data.length
-      const pending = data.filter(app => ['submitted', 'under_review'].includes(app.status)).length
-      const approved = data.filter(app => app.status === 'approved').length
-      const rejected = data.filter(app => app.status === 'rejected').length
-      const approvalRate = (approved + rejected) > 0 ? Math.round((approved / (approved + rejected)) * 100) : 0
-
-      setMetrics(prev => ({
-        ...prev,
-        totalApplications: total,
-        pendingReviews: pending,
-        approvalRate: approvalRate,
-        systemHealth: pending > 50 ? 'warning' : 'good'
-      }))
-      
-    } catch (error: any) {
-      console.error('Fallback metrics error:', sanitizeForLog(error.message))
-      setError('Unable to load metrics')
-    }
-  }
-
-  const loadTodayApplications = async () => {
-    try {
-      const today = new Date().toISOString().split('T')[0]
-      
-      const { data, error } = await supabase
-        .from('applications_new')
-        .select('id')
-        .gte('created_at', today)
-      
-      if (error) throw error
-      
-      setMetrics(prev => ({
-        ...prev,
-        todayApplications: data.length
-      }))
-      
-    } catch (error: any) {
-      console.error('Error loading today applications:', sanitizeForLog(error.message))
-    }
-  }
-
-  const loadRecentActivity = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('applications_new')
-        .select('id, full_name, status, created_at, updated_at')
-        .order('updated_at', { ascending: false })
-        .limit(5)
-      
-      if (error) throw error
-      
-      const activities: RecentActivity[] = (data || []).map(app => ({
-        id: app.id,
-        type: app.status === 'approved' ? 'approval' : 
-              app.status === 'rejected' ? 'rejection' : 'application',
-        message: `${app.full_name} - Application ${app.status}`,
-        timestamp: app.updated_at || app.created_at,
-        user: app.full_name
-      }))
-      
-      setRecentActivity(activities)
-      
-    } catch (error: any) {
-      console.error('Error loading recent activity:', sanitizeForLog(error.message))
-    }
-  }
-
-  const refreshData = async () => {
-    setRefreshing(true)
-    await loadMetrics()
-    setRefreshing(false)
-  }
+  }, [])
 
   useEffect(() => {
-    loadMetrics()
-    const interval = setInterval(loadMetrics, 30000) // Refresh every 30 seconds
+    loadDashboard({ showLoading: true })
+    const interval = setInterval(() => {
+      loadDashboard()
+    }, 30000)
+
     return () => clearInterval(interval)
-  }, [])
+  }, [loadDashboard])
 
   if (loading) {
     return (
@@ -199,9 +157,36 @@ export function FixedAdminDashboard() {
     )
   }
 
+  const breakdown = dashboardData?.statusBreakdown ?? EMPTY_BREAKDOWN
+  const periodTotals = dashboardData?.periodTotals ?? EMPTY_PERIOD_TOTALS
+  const processing = dashboardData?.processingMetrics ?? EMPTY_PROCESSING
+  const recentActivity = dashboardData?.recentActivity ?? []
+  const systemHealth: HealthState = dashboardData?.systemHealth ?? 'good'
+
+  const totalDecisions = breakdown.approved + breakdown.rejected
+  const approvalRate = totalDecisions > 0 ? Math.round((breakdown.approved / totalDecisions) * 100) : 0
+  const pendingReviews = breakdown.submitted + breakdown.underReview
+  const averageDailyForWeek = periodTotals.last7Days > 0 ? Math.round(periodTotals.last7Days / 7) : 0
+  const todayDelta = averageDailyForWeek ? periodTotals.today - averageDailyForWeek : 0
+  const todayTrendIncrease = todayDelta >= 0
+  const todayTrendPercent = averageDailyForWeek
+    ? Math.round((Math.abs(todayDelta) / averageDailyForWeek) * 100)
+    : 0
+
+  const statusDistribution = [
+    { key: 'approved', label: 'Approved', value: breakdown.approved, color: 'bg-green-500' },
+    { key: 'underReview', label: 'Under Review', value: breakdown.underReview, color: 'bg-blue-500' },
+    { key: 'submitted', label: 'Submitted', value: breakdown.submitted, color: 'bg-amber-500' },
+    { key: 'rejected', label: 'Rejected', value: breakdown.rejected, color: 'bg-red-500' },
+    { key: 'draft', label: 'Draft', value: breakdown.draft, color: 'bg-slate-400' }
+  ]
+
+  const distributionTotal = breakdown.total || statusDistribution.reduce((sum, item) => sum + item.value, 0)
+
+  const healthBadge = HEALTH_BADGE[systemHealth]
+
   return (
     <div className="space-y-6">
-      {/* Error Display */}
       <AnimatePresence>
         {error && (
           <motion.div
@@ -227,9 +212,8 @@ export function FixedAdminDashboard() {
         )}
       </AnimatePresence>
 
-      {/* Key Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 relative overflow-hidden"
@@ -241,19 +225,33 @@ export function FixedAdminDashboard() {
                 <Calendar className="h-6 w-6 text-blue-600" />
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-gray-900">{metrics.todayApplications}</div>
+                <div className="text-2xl font-bold text-gray-900" data-testid="today-applications">
+                  {formatNumber(periodTotals.today)}
+                </div>
                 <div className="text-xs text-gray-500">Today</div>
               </div>
             </div>
             <div className="text-sm font-medium text-gray-600">New Applications</div>
             <div className="flex items-center mt-2 text-xs">
-              <ArrowUp className="h-3 w-3 text-green-500 mr-1" />
-              <span className="text-green-600">+{Math.floor(Math.random() * 20)}% from yesterday</span>
+              {averageDailyForWeek ? (
+                <>
+                  {todayTrendIncrease ? (
+                    <ArrowUp className="h-3 w-3 text-green-500 mr-1" />
+                  ) : (
+                    <ArrowDown className="h-3 w-3 text-red-500 mr-1" />
+                  )}
+                  <span className={todayTrendIncrease ? 'text-green-600' : 'text-red-600'}>
+                    {todayTrendIncrease ? '+' : '-'}{todayTrendPercent}% vs 7-day avg
+                  </span>
+                </>
+              ) : (
+                <span className="text-gray-500">No historical data yet</span>
+              )}
             </div>
           </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -266,18 +264,22 @@ export function FixedAdminDashboard() {
                 <Clock className="h-6 w-6 text-yellow-600" />
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-gray-900">{metrics.pendingReviews}</div>
+                <div className="text-2xl font-bold text-gray-900" data-testid="pending-reviews">
+                  {formatNumber(pendingReviews)}
+                </div>
                 <div className="text-xs text-gray-500">Pending</div>
               </div>
             </div>
             <div className="text-sm font-medium text-gray-600">Awaiting Review</div>
-            {metrics.pendingReviews > 0 && (
-              <div className="text-xs text-yellow-600 mt-2">Requires attention</div>
+            {pendingReviews > 0 ? (
+              <div className="text-xs text-yellow-600 mt-2">Queue requires monitoring</div>
+            ) : (
+              <div className="text-xs text-gray-500 mt-2">No backlog</div>
             )}
           </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -290,19 +292,21 @@ export function FixedAdminDashboard() {
                 <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-gray-900">{metrics.approvalRate}%</div>
+                <div className="text-2xl font-bold text-gray-900" data-testid="approval-rate">
+                  {approvalRate}%
+                </div>
                 <div className="text-xs text-gray-500">Rate</div>
               </div>
             </div>
             <div className="text-sm font-medium text-gray-600">Approval Rate</div>
-            <div className="flex items-center mt-2 text-xs">
-              <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-              <span className="text-green-600">Stable performance</span>
+            <div className="flex items-center mt-2 text-xs text-green-600">
+              <TrendingUp className="h-3 w-3 mr-1" />
+              Decisions this month: {formatNumber(totalDecisions)}
             </div>
           </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
@@ -312,26 +316,25 @@ export function FixedAdminDashboard() {
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-purple-100 rounded-xl">
-                <Zap className="h-6 w-6 text-purple-600" />
+                <Gauge className="h-6 w-6 text-purple-600" />
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-gray-900">{metrics.avgProcessingTime}</div>
-                <div className="text-xs text-gray-500">Days</div>
+                <div className="text-2xl font-bold text-gray-900" data-testid="avg-processing-time">
+                  {formatHours(processing.averageProcessingTimeHours)}
+                </div>
+                <div className="text-xs text-gray-500">Average</div>
               </div>
             </div>
-            <div className="text-sm font-medium text-gray-600">Avg Processing</div>
-            <div className="flex items-center mt-2 text-xs">
-              <ArrowDown className="h-3 w-3 text-green-500 mr-1" />
-              <span className="text-green-600">Improved by 15%</span>
+            <div className="text-sm font-medium text-gray-600">Processing Time</div>
+            <div className="flex items-center mt-2 text-xs text-gray-600">
+              Median: {formatHours(processing.medianProcessingTimeHours)} • P95: {formatHours(processing.p95ProcessingTimeHours)}
             </div>
           </div>
         </motion.div>
       </div>
 
-      {/* Recent Activity & System Health */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activity */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           className="bg-white rounded-xl shadow-lg border border-gray-100"
@@ -341,33 +344,40 @@ export function FixedAdminDashboard() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={refreshData}
+              onClick={() => loadDashboard({ showRefreshing: true })}
               loading={refreshing}
+              aria-label="Refresh dashboard"
             >
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
-          
+
           <div className="p-6 space-y-3 max-h-80 overflow-y-auto">
-            {recentActivity.length > 0 ? recentActivity.map((activity, index) => (
-              <motion.div 
-                key={activity.id}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <div className={`w-2 h-2 rounded-full mt-2 ${
-                  activity.type === 'approval' ? 'bg-green-500' :
-                  activity.type === 'rejection' ? 'bg-red-500' :
-                  'bg-blue-500'
-                }`}></div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{activity.message}</p>
-                  <p className="text-xs text-gray-500">{new Date(activity.timestamp).toLocaleString()}</p>
-                </div>
-              </motion.div>
-            )) : (
+            {recentActivity.length > 0 ? (
+              recentActivity.map((activity, index) => (
+                <motion.div
+                  key={activity.id}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <div
+                    className={`w-2 h-2 rounded-full mt-2 ${
+                      activity.type === 'approval'
+                        ? 'bg-green-500'
+                        : activity.type === 'rejection'
+                          ? 'bg-red-500'
+                          : 'bg-blue-500'
+                    }`}
+                  ></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{activity.message}</p>
+                    <p className="text-xs text-gray-500">{new Date(activity.timestamp).toLocaleString()}</p>
+                  </div>
+                </motion.div>
+              ))
+            ) : (
               <div className="text-center py-8 text-gray-500">
                 <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No recent activity</p>
@@ -376,8 +386,7 @@ export function FixedAdminDashboard() {
           </div>
         </motion.div>
 
-        {/* System Health */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           className="bg-white rounded-xl shadow-lg border border-gray-100"
@@ -385,50 +394,97 @@ export function FixedAdminDashboard() {
           <div className="px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-bold text-gray-900">🛡️ System Health</h3>
           </div>
-          
-          <div className="p-6 space-y-4">
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-xl">
-              <div className="flex items-center space-x-2">
-                <Database className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium text-gray-700">Database</span>
+
+          <div className="p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Current Status</p>
+                <p className="text-xs text-gray-500">{healthBadge.description}</p>
               </div>
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-green-500 text-white">
-                ✓ Healthy
-              </span>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-xl">
-              <div className="flex items-center space-x-2">
-                <Shield className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium text-gray-700">Security</span>
-              </div>
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-green-500 text-white">
-                ✓ Secure
-              </span>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl">
-              <div className="flex items-center space-x-2">
-                <Activity className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium text-gray-700">Performance</span>
-              </div>
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-blue-500 text-white">
-                ✓ Optimal
+              <span
+                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${healthBadge.className}`}
+                data-testid="system-health"
+              >
+                {healthBadge.label}
               </span>
             </div>
 
-            <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
-              <div className="flex items-center justify-between">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 bg-blue-50 rounded-xl flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-700">Total Applications</p>
-                  <p className="text-2xl font-bold text-blue-600">{metrics.totalApplications}</p>
+                  <p className="text-xs text-blue-600 uppercase tracking-wide">Backlog</p>
+                  <p className="text-lg font-semibold text-blue-700" data-testid="processing-backlog">
+                    {formatNumber(processing.backlog)}
+                  </p>
                 </div>
-                <Users className="h-8 w-8 text-blue-500" />
+                <Database className="h-6 w-6 text-blue-500" />
+              </div>
+
+              <div className="p-4 bg-emerald-50 rounded-xl flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-emerald-600 uppercase tracking-wide">Throughput</p>
+                  <p className="text-lg font-semibold text-emerald-700" data-testid="processing-throughput">
+                    {formatThroughput(processing.throughputPerHour)}
+                  </p>
+                </div>
+                <TrendingUp className="h-6 w-6 text-emerald-500" />
+              </div>
+
+              <div className="p-4 bg-purple-50 rounded-xl flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-purple-600 uppercase tracking-wide">Active Reviewers</p>
+                  <p className="text-lg font-semibold text-purple-700" data-testid="processing-reviewers">
+                    {formatNumber(processing.activeReviewers)}
+                  </p>
+                </div>
+                <Users className="h-6 w-6 text-purple-500" />
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-xl flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-600 uppercase tracking-wide">Total Applications</p>
+                  <p className="text-lg font-semibold text-gray-700" data-testid="total-applications">
+                    {formatNumber(breakdown.total)}
+                  </p>
+                </div>
+                <Activity className="h-6 w-6 text-gray-500" />
               </div>
             </div>
           </div>
         </motion.div>
       </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-xl shadow-lg border border-gray-100"
+      >
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-bold text-gray-900">📊 Status Distribution</h3>
+          <p className="text-xs text-gray-500">Total applications: {formatNumber(distributionTotal)}</p>
+        </div>
+        <div className="p-6 space-y-4">
+          {statusDistribution.map(status => {
+            const percentage = distributionTotal > 0 ? Math.round((status.value / distributionTotal) * 100) : 0
+            return (
+              <div key={status.key} className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-700">{status.label}</span>
+                  <span className="text-gray-900 font-medium" data-testid={`status-breakdown-${status.key}`}>
+                    {formatNumber(status.value)} ({percentage}%)
+                  </span>
+                </div>
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${status.color}`}
+                    style={{ width: `${Math.min(100, percentage)}%` }}
+                  ></div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </motion.div>
     </div>
   )
 }
