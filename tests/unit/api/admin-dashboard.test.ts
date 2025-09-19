@@ -2,13 +2,22 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { createRequire } from 'module'
 import type { MockInstance } from 'vitest'
 
-const rpcMock = vi.fn()
+const fromMock = vi.fn()
+let selectMock: MockInstance<[string], QueryBuilder>
+let eqMock: MockInstance<[string, unknown], QueryBuilder>
+let maybeSingleMock: MockInstance<[], Promise<{ data: unknown; error: unknown }>>
 const getUserFromRequestMock = vi.fn()
 const nodeRequire = createRequire(import.meta.url)
 const supabaseModulePath = nodeRequire.resolve('../../../api/_lib/supabaseClient.js')
 
 type StatusMock = MockInstance<[number], TestResponse>
 type JsonMock = MockInstance<[unknown], TestResponse>
+type SetHeaderMock = MockInstance<[string, string], TestResponse>
+
+interface QueryBuilder {
+  eq: (column: string, value: unknown) => QueryBuilder
+  maybeSingle: () => Promise<{ data: unknown; error: unknown }>
+}
 
 interface TestRequest {
   method: string
@@ -18,8 +27,10 @@ interface TestRequest {
 interface TestResponse {
   statusCode: number
   body?: unknown
+  headers: Record<string, string>
   status: StatusMock
   json: JsonMock
+  setHeader: SetHeaderMock
 }
 
 function mockSupabaseModule() {
@@ -28,7 +39,7 @@ function mockSupabaseModule() {
     filename: supabaseModulePath,
     loaded: true,
     exports: {
-      supabaseAdminClient: { rpc: rpcMock },
+      supabaseAdminClient: { from: fromMock },
       getUserFromRequest: getUserFromRequestMock
     }
   }
@@ -44,6 +55,7 @@ let handler: Handler
 function createMockResponse(): TestResponse {
   const response = {
     statusCode: 200,
+    headers: {},
     status: vi.fn<[number], TestResponse>(code => {
       response.statusCode = code
       return response
@@ -51,7 +63,11 @@ function createMockResponse(): TestResponse {
     json: vi.fn<[unknown], TestResponse>(payload => {
       response.body = payload
       return response
-    }) as JsonMock
+    }) as JsonMock,
+    setHeader: vi.fn<[string, string], TestResponse>((name, value) => {
+      response.headers[name] = value
+      return response
+    }) as SetHeaderMock
   } as TestResponse
 
   return response
@@ -65,8 +81,23 @@ describe('api/admin/dashboard', () => {
 
   beforeEach(() => {
     mockSupabaseModule()
-    rpcMock.mockReset()
+    fromMock.mockReset()
     getUserFromRequestMock.mockReset()
+
+    maybeSingleMock = vi.fn()
+    selectMock = vi.fn()
+    eqMock = vi.fn()
+
+    const queryBuilder: QueryBuilder = {
+      eq: ((column: string, value: unknown) => {
+        eqMock(column, value)
+        return queryBuilder
+      }) as QueryBuilder['eq'],
+      maybeSingle: maybeSingleMock
+    }
+
+    selectMock.mockReturnValue(queryBuilder)
+    fromMock.mockReturnValue({ select: selectMock })
   })
 
   afterEach(() => {
@@ -77,7 +108,7 @@ describe('api/admin/dashboard', () => {
     clearSupabaseModule()
   })
 
-  it('returns aggregated stats and recent activity from RPC payload', async () => {
+  it('returns aggregated stats and recent activity from cached payload', async () => {
     const overview = {
       status_counts: {
         total: 100,
@@ -122,14 +153,27 @@ describe('api/admin/dashboard', () => {
     }
 
     getUserFromRequestMock.mockResolvedValue({ user: { id: 'admin' }, roles: ['admin'], isAdmin: true })
-    rpcMock.mockResolvedValue({ data: overview, error: null })
+    maybeSingleMock.mockResolvedValue({
+      data: { metrics: overview, generated_at: '2025-02-21T10:00:00Z' },
+      error: null
+    })
 
     const req = { method: 'GET', headers: { authorization: 'Bearer token' } }
     const res = createMockResponse()
 
     await handler(req, res)
 
-    expect(rpcMock).toHaveBeenCalledWith('get_admin_dashboard_overview')
+    expect(fromMock).toHaveBeenCalledWith('admin_dashboard_metrics_cache')
+    expect(selectMock).toHaveBeenCalledWith('metrics, generated_at')
+    expect(eqMock).toHaveBeenCalledWith('id', 'overview')
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'Cache-Control',
+      'public, max-age=30, s-maxage=60, stale-while-revalidate=60'
+    )
+    expect(res.setHeader).toHaveBeenCalledWith('Vary', 'Authorization')
+    expect(res.setHeader).toHaveBeenCalledWith('X-Generated-At', 'Fri, 21 Feb 2025 10:00:00 GMT')
+    expect(res.headers['Vary']).toBe('Authorization')
+    expect(res.headers['X-Generated-At']).toBe('Fri, 21 Feb 2025 10:00:00 GMT')
     expect(res.status).toHaveBeenCalledWith(200)
     expect(res.json).toHaveBeenCalledTimes(1)
 
@@ -149,11 +193,12 @@ describe('api/admin/dashboard', () => {
       type: 'approval',
       message: 'Jane Admin - Application approved'
     })
+    expect(payload.generatedAt).toBe('2025-02-21T10:00:00.000Z')
   })
 
-  it('returns an error response when the RPC fails', async () => {
+  it('returns an error response when the cache lookup fails', async () => {
     getUserFromRequestMock.mockResolvedValue({ user: { id: 'admin' }, roles: ['admin'], isAdmin: true })
-    rpcMock.mockResolvedValue({ data: null, error: { message: 'rpc failure' } })
+    maybeSingleMock.mockResolvedValue({ data: null, error: { message: 'cache failure' } })
 
     const req = { method: 'GET', headers: { authorization: 'Bearer token' } }
     const res = createMockResponse()

@@ -64,6 +64,7 @@ export interface AdminDashboardResponse {
   totalsSnapshot: Record<string, number>
   processingMetrics: AdminDashboardProcessingMetrics
   recentActivity: AdminDashboardActivity[]
+  generatedAt: string | null
 }
 
 const DEFAULT_STATS: AdminDashboardStats = {
@@ -129,6 +130,8 @@ type RawDashboardResponse = {
   totalsSnapshot?: Record<string, unknown>
   processingMetrics?: RawProcessingMetrics
   recentActivity?: unknown
+  generatedAt?: unknown
+  generated_at?: unknown
 }
 
 const toNumber = (value: unknown): number => {
@@ -138,6 +141,24 @@ const toNumber = (value: unknown): number => {
 
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : 0
+}
+
+const toIsoString = (value: unknown): string | null => {
+  if (!value) {
+    return null
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.toISOString()
+  }
+
+  if (typeof value === 'string' || typeof value === 'number') {
+    const isoCandidate = typeof value === 'string' ? value : new Date(value).toISOString()
+    const date = new Date(isoCandidate)
+    return Number.isNaN(date.getTime()) ? null : date.toISOString()
+  }
+
+  return null
 }
 
 const normalizeNumberRecord = (record?: Record<string, unknown>): Record<string, number> => {
@@ -282,7 +303,8 @@ export const createEmptyDashboardResponse = (): AdminDashboardResponse => ({
   periodTotals: {},
   totalsSnapshot: {},
   processingMetrics: { ...DEFAULT_PROCESSING_METRICS },
-  recentActivity: []
+  recentActivity: [],
+  generatedAt: null
 })
 
 export const adminDashboardService = {
@@ -306,6 +328,11 @@ export const adminDashboardService = {
     )
     const processingMetrics = normalizeProcessingMetrics(raw.processingMetrics, rawStats)
     const recentActivity = normalizeRecentActivity(raw.recentActivity)
+    const generatedAt =
+      toIsoString(raw.generatedAt) ??
+      toIsoString(raw.generated_at) ??
+      toIsoString((raw.stats as Record<string, unknown> | undefined)?.generatedAt) ??
+      toIsoString((raw.stats as Record<string, unknown> | undefined)?.generated_at)
 
     return {
       ...createEmptyDashboardResponse(),
@@ -314,7 +341,9 @@ export const adminDashboardService = {
       periodTotals,
       totalsSnapshot,
       processingMetrics,
-      recentActivity
+      recentActivity,
+      generatedAt
     }
   }
 }
+
