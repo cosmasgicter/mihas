@@ -1,8 +1,30 @@
 const { supabaseAdminClient, getUserFromRequest } = require('../_lib/supabaseClient')
+const {
+  checkRateLimit,
+  buildRateLimitKey,
+  getLimiterConfig,
+  attachRateLimitHeaders
+} = require('../_lib/rateLimiter')
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  try {
+    const rateKey = buildRateLimitKey(req, { prefix: 'analytics-metrics' })
+    const rateResult = await checkRateLimit(
+      rateKey,
+      getLimiterConfig('analytics_metrics', { maxAttempts: 30, windowMs: 60_000 })
+    )
+
+    if (rateResult.isLimited) {
+      attachRateLimitHeaders(res, rateResult)
+      return res.status(429).json({ error: 'Too many analytics requests. Please try again later.' })
+    }
+  } catch (rateError) {
+    console.error('Analytics metrics rate limiter error:', rateError)
+    return res.status(503).json({ error: 'Rate limiter unavailable' })
   }
 
   const authContext = await getUserFromRequest(req, { requireAdmin: true })

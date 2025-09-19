@@ -1,4 +1,10 @@
 const { supabaseAdminClient, getUserFromRequest } = require('../_lib/supabaseClient')
+const {
+  checkRateLimit,
+  buildRateLimitKey,
+  getLimiterConfig,
+  attachRateLimitHeaders
+} = require('../_lib/rateLimiter')
 
 const DOCUMENT_BUCKET = 'documents'
 
@@ -14,6 +20,22 @@ function parseIncludeParam(includeParam) {
 }
 
 module.exports = async function handler(req, res) {
+  try {
+    const rateKey = buildRateLimitKey(req, { prefix: 'applications-detail' })
+    const rateResult = await checkRateLimit(
+      rateKey,
+      getLimiterConfig('applications_detail', { maxAttempts: 60, windowMs: 60_000 })
+    )
+
+    if (rateResult.isLimited) {
+      attachRateLimitHeaders(res, rateResult)
+      return res.status(429).json({ error: 'Too many detail requests. Please slow down.' })
+    }
+  } catch (rateError) {
+    console.error('Application detail rate limiter error:', rateError)
+    return res.status(503).json({ error: 'Rate limiter unavailable' })
+  }
+
   const authContext = await getUserFromRequest(req)
   if (authContext.error) {
     return res.status(401).json({ error: authContext.error })

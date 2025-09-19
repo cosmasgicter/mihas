@@ -1,10 +1,32 @@
 const { supabaseAdminClient, getUserFromRequest } = require('./_lib/supabaseClient')
+const {
+  checkRateLimit,
+  buildRateLimitKey,
+  getLimiterConfig,
+  attachRateLimitHeaders
+} = require('./_lib/rateLimiter')
 
 module.exports = async function handler(req, res) {
   const { resource } = req.query
-  
+
   if (!resource || !['subjects', 'programs', 'intakes'].includes(resource)) {
     return res.status(400).json({ error: 'Invalid resource. Use: subjects, programs, or intakes' })
+  }
+
+  try {
+    const rateKey = buildRateLimitKey(req, { prefix: `catalog-${resource}` })
+    const rateResult = await checkRateLimit(
+      rateKey,
+      getLimiterConfig(`catalog_${resource}`, { maxAttempts: 45, windowMs: 60_000 })
+    )
+
+    if (rateResult.isLimited) {
+      attachRateLimitHeaders(res, rateResult)
+      return res.status(429).json({ error: 'Too many catalog requests. Please slow down.' })
+    }
+  } catch (rateError) {
+    console.error('Catalog rate limiter error:', rateError)
+    return res.status(503).json({ error: 'Rate limiter unavailable' })
   }
 
   const authContext = await getUserFromRequest(req, { requireAdmin: req.method !== 'GET' })
