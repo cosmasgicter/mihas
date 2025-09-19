@@ -229,7 +229,7 @@ mihas/
 │   ├── applications/      # Application management
 │   ├── documents/         # Document processing
 │   ├── notifications/     # Notification service
-│   └── analytics/         # Analytics service
+│   └── analytics/         # Analytics router (metrics | predictive-dashboard | telemetry)
 ├── src/
 │   ├── components/        # React components
 │   │   ├── admin/        # Admin dashboard components
