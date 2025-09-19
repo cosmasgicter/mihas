@@ -107,17 +107,17 @@ export function ContinueApplication() {
   if (!draftInfo.exists) {
     return (
       <div className="bg-primary border border-primary/20 rounded-lg p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-primary mb-2">
+            <h2 className="text-lg font-semibold text-white mb-2">
               Ready to Apply?
             </h2>
-            <p className="text-primary">
+            <p className="text-white/90">
               Start your application to join programs at Kalulushi Training Centre or Mukuba Institute of Health and Applied Sciences
             </p>
           </div>
           <Link to="/student/application-wizard">
-            <Button className="bg-primary hover:bg-primary">
+            <Button className="bg-white text-primary hover:bg-white/90">
               <FileText className="h-4 w-4 mr-2" />
               Start New Application
             </Button>
@@ -131,7 +131,7 @@ export function ContinueApplication() {
     <div className={`border rounded-lg p-6 ${
       isExpiringSoon() ? 'bg-yellow-50 border-yellow-200' : 'bg-white border-gray-200'
     }`}>
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex-1">
           <div className="flex items-center space-x-3 mb-3">
             <FileText className="h-6 w-6 text-primary" />
@@ -183,7 +183,7 @@ export function ContinueApplication() {
           )}
         </div>
 
-        <div className="flex space-x-3 ml-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3 sm:ml-6">
           <Button
             variant="outline"
             size="sm"
@@ -199,7 +199,7 @@ export function ContinueApplication() {
           </Button>
           
           <Link to="/student/application-wizard" state={{ continueApplication: true }}>
-            <Button className="bg-primary hover:bg-primary">
+            <Button className="bg-primary text-white hover:bg-primary/90">
               <FileText className="h-4 w-4 mr-2" />
               Continue Application
             </Button>
