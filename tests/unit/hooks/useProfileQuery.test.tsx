@@ -18,7 +18,7 @@ vi.mock('@/contexts/AuthContext', () => ({
 }))
 
 vi.mock('@/lib/supabase', () => ({
-  getSupabaseClient: () => supabaseClientMock
+  getSupabaseClient: vi.fn(async () => supabaseClientMock)
 }))
 
 function createSupabaseClientMock(options: {

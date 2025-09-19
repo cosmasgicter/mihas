@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQueryClient, type QueryKey } from '@tanstack/react-query'
 import type {
   RealtimeChannel,
-  RealtimePostgresChangesPayload
+  RealtimePostgresChangesPayload,
+  SupabaseClient
 } from '@supabase/supabase-js'
 import { getSupabaseClient } from '@/lib/supabase'
 
@@ -378,7 +379,7 @@ export function useAdminRealtimeMetrics(options: AdminRealtimeMetricsOptions = {
   const [error, setError] = useState<string | null>(null)
   const [lastEventAt, setLastEventAt] = useState<number | null>(null)
   const channelRef = useRef<RealtimeChannel | null>(null)
-  const supabase = useMemo(() => getSupabaseClient(), [])
+  const clientRef = useRef<SupabaseClient | null>(null)
 
   const statsQueryKey = options.queryKeys?.applicationsStats ?? DEFAULT_STATS_QUERY_KEY
   const recentActivityKey = options.queryKeys?.applicationsRecentActivity ?? DEFAULT_RECENT_ACTIVITY_KEY
@@ -489,64 +490,91 @@ export function useAdminRealtimeMetrics(options: AdminRealtimeMetricsOptions = {
   }, [options.currentUserId, queryClient])
 
   useEffect(() => {
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current)
-      channelRef.current = null
+    let isMounted = true
+
+    const setupChannel = async () => {
+      try {
+        const supabase = await getSupabaseClient()
+        if (!isMounted) {
+          return
+        }
+
+        clientRef.current = supabase
+
+        if (channelRef.current) {
+          supabase.removeChannel(channelRef.current)
+          channelRef.current = null
+        }
+
+        const channel = supabase.channel(options.channelName ?? DEFAULT_CHANNEL, {
+          config: {
+            broadcast: { ack: false },
+            presence: { key: 'admin-dashboard' }
+          }
+        })
+
+        channel
+          .on('postgres_changes', {
+            schema: 'public',
+            table: 'applications_new',
+            event: '*'
+          }, (payload: RealtimePostgresChangesPayload<AdminApplicationRow>) => {
+            const change: AdminApplicationChange = {
+              type: payload.eventType.toLowerCase() as AdminApplicationChange['type'],
+              targetId: (payload.new?.id ?? payload.old?.id) as string,
+              newRow: payload.new ?? null,
+              oldRow: payload.old ?? null,
+              metricsDelta: deriveMetricsDelta(payload),
+              activity: payload.eventType === 'INSERT'
+                ? mapRowToActivity(payload.new ?? null)
+                : payload.eventType === 'UPDATE'
+                  ? mapRowToActivity(payload.new ?? null)
+                  : undefined
+            }
+
+            updateStatsCache(change.metricsDelta)
+            updateRecentActivityCache(change.activity)
+            updateApplicationsListCache(change)
+            updateWithCountsCache(change)
+
+            options.onChange?.(change)
+
+            setLastEventAt(Date.now())
+          })
+          .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              setIsConnected(true)
+              setError(null)
+            } else if (status === 'CHANNEL_ERROR') {
+              setIsConnected(false)
+              setError('Realtime channel error')
+            } else if (status === 'TIMED_OUT') {
+              setIsConnected(false)
+              setError('Realtime channel timeout')
+            }
+          })
+
+        channelRef.current = channel
+      } catch (error) {
+        if (!isMounted) {
+          return
+        }
+        console.error('Failed to initialize realtime metrics channel:', error)
+        setIsConnected(false)
+        setError('Failed to initialize realtime metrics')
+      }
     }
 
-    const channel = supabase.channel(options.channelName ?? DEFAULT_CHANNEL, {
-      config: {
-        broadcast: { ack: false },
-        presence: { key: 'admin-dashboard' }
-      }
-    })
-
-    channel
-      .on('postgres_changes', {
-        schema: 'public',
-        table: 'applications_new',
-        event: '*'
-      }, (payload: RealtimePostgresChangesPayload<AdminApplicationRow>) => {
-        const change: AdminApplicationChange = {
-          type: payload.eventType.toLowerCase() as AdminApplicationChange['type'],
-          targetId: (payload.new?.id ?? payload.old?.id) as string,
-          newRow: payload.new ?? null,
-          oldRow: payload.old ?? null,
-          metricsDelta: deriveMetricsDelta(payload),
-          activity: payload.eventType === 'INSERT' ? mapRowToActivity(payload.new ?? null) : payload.eventType === 'UPDATE' ? mapRowToActivity(payload.new ?? null) : undefined
-        }
-
-        updateStatsCache(change.metricsDelta)
-        updateRecentActivityCache(change.activity)
-        updateApplicationsListCache(change)
-        updateWithCountsCache(change)
-
-        options.onChange?.(change)
-
-        setLastEventAt(Date.now())
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          setIsConnected(true)
-          setError(null)
-        } else if (status === 'CHANNEL_ERROR') {
-          setIsConnected(false)
-          setError('Realtime channel error')
-        } else if (status === 'TIMED_OUT') {
-          setIsConnected(false)
-          setError('Realtime channel timeout')
-        }
-      })
-
-    channelRef.current = channel
+    setupChannel()
 
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current)
+      isMounted = false
+      if (channelRef.current && clientRef.current) {
+        clientRef.current.removeChannel(channelRef.current)
         channelRef.current = null
       }
     }
-  }, [options.channelName, options.onChange, supabase, updateApplicationsListCache, updateRecentActivityCache, updateStatsCache, updateWithCountsCache])
+  }, [options.channelName, options.onChange, updateApplicationsListCache, updateRecentActivityCache, updateStatsCache, updateWithCountsCache])
 
   return {
     isConnected,

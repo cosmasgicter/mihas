@@ -76,7 +76,7 @@ class ApiClient {
     }
 
     try {
-      const supabase = getSupabaseClient()
+      const supabase = await getSupabaseClient()
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
       if (token) {

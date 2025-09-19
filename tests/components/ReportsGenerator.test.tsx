@@ -20,15 +20,23 @@ vi.mock('@/components/ui/Button', () => ({
   )
 }))
 
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
+vi.mock('@/lib/supabase', () => {
+  const supabaseClient = {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
       gte: vi.fn().mockReturnThis(),
       lte: vi.fn().mockResolvedValue({ data: [], error: null })
     }))
   }
-}))
+
+  const supabaseCallable = vi.fn(async () => supabaseClient)
+  Object.assign(supabaseCallable, supabaseClient)
+
+  return {
+    getSupabaseClient: vi.fn(async () => supabaseClient),
+    supabase: supabaseCallable
+  }
+})
 
 vi.mock('@/lib/documentTemplates', async () => {
   const actual = await vi.importActual<typeof import('@/lib/documentTemplates')>('@/lib/documentTemplates')

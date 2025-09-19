@@ -7,13 +7,21 @@ vi.mock('@/lib/storage', () => ({
   uploadApplicationFile: (...args: unknown[]) => uploadApplicationFileMock(...args)
 }))
 
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
+vi.mock('@/lib/supabase', () => {
+  const supabaseClient = {
     auth: {
       getUser: (...args: unknown[]) => getUserMock(...args)
     }
   }
-}))
+
+  const supabaseCallable = vi.fn(async () => supabaseClient)
+  Object.assign(supabaseCallable, supabaseClient)
+
+  return {
+    getSupabaseClient: vi.fn(async () => supabaseClient),
+    supabase: supabaseCallable
+  }
+})
 
 import { render, cleanup } from '@testing-library/react'
 import { act } from 'react'

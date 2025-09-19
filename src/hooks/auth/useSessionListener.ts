@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { User } from '@supabase/supabase-js'
+import type { User } from '@supabase/supabase-js'
 import { getSupabaseClient } from '@/lib/supabase'
 import { sanitizeForLog } from '@/lib/security'
 import { authPersistence } from '@/lib/authPersistence'
@@ -28,11 +28,12 @@ export function useSessionListener() {
       return
     }
 
-    const supabase = getSupabaseClient()
     let mounted = true
+    let authSubscription: { unsubscribe: () => void } | null = null
 
     async function initializeSession() {
       try {
+        const supabase = await getSupabaseClient()
         const { data: { session } } = await supabase.auth.getSession()
         if (!mounted) return
 
@@ -41,6 +42,28 @@ export function useSessionListener() {
         } else {
           setUser(null)
         }
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          if (!mounted) return
+
+          console.log('Auth session event:', sanitizeForLog(event))
+
+          if (event === 'SIGNED_OUT') {
+            setUser(null)
+            setLoading(false)
+            return
+          }
+
+          if (session?.user) {
+            setUser(session.user)
+          }
+
+          if (!['INITIAL_SESSION', 'TOKEN_REFRESHED'].includes(event)) {
+            setLoading(false)
+          }
+        })
+
+        authSubscription = subscription
       } catch (error) {
         console.error('Session initialization failed:', error)
         if (mounted) {
@@ -55,31 +78,11 @@ export function useSessionListener() {
 
     initializeSession()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!mounted) return
-
-      console.log('Auth session event:', sanitizeForLog(event))
-
-      if (event === 'SIGNED_OUT') {
-        setUser(null)
-        setLoading(false)
-        return
-      }
-
-      if (session?.user) {
-        setUser(session.user)
-      }
-
-      if (!['INITIAL_SESSION', 'TOKEN_REFRESHED'].includes(event)) {
-        setLoading(false)
-      }
-    })
-
     authPersistence.init()
 
     return () => {
       mounted = false
-      subscription.unsubscribe()
+      authSubscription?.unsubscribe()
       authPersistence.cleanup()
     }
   }, [])
@@ -87,7 +90,7 @@ export function useSessionListener() {
   const signIn = useCallback(async (email: string, password: string): Promise<SignInResult> => {
     try {
       console.log('Attempting sign in for:', sanitizeForLog(email))
-      const supabase = getSupabaseClient()
+      const supabase = await getSupabaseClient()
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -116,7 +119,7 @@ export function useSessionListener() {
       return acc
     }, {} as any)
 
-    const supabase = getSupabaseClient()
+    const supabase = await getSupabaseClient()
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -137,7 +140,7 @@ export function useSessionListener() {
   }, [])
 
   const signOut = useCallback(async () => {
-    const supabase = getSupabaseClient()
+    const supabase = await getSupabaseClient()
     await supabase.auth.signOut()
     setUser(null)
   }, [])

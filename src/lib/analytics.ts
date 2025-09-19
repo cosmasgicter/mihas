@@ -1,5 +1,5 @@
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from './supabase'
+import { getSupabaseClient } from './supabase'
 import { ReportExportData, ReportFormat } from './reportExports'
 import { isReportManagerRole } from '@/lib/auth/roles'
 import { sanitizeForLog } from './security'
@@ -57,8 +57,13 @@ export interface AutomatedReport {
 }
 
 export class AnalyticsService {
+  private static async getClient() {
+    return getSupabaseClient()
+  }
+
   // Ensure user is authenticated before making requests
   static async ensureAuthenticated() {
+    const supabase = await this.getClient()
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.access_token) {
       throw new Error('User not authenticated - JWT token missing')
@@ -120,8 +125,9 @@ export class AnalyticsService {
   // Event Tracking
   static async trackEvent(event: AnalyticsEvent) {
     try {
+      const supabase = await this.getClient()
       await this.ensureAuthenticated()
-      
+
       const { error } = await supabase
         .from('user_engagement_metrics')
         .insert({
@@ -141,6 +147,7 @@ export class AnalyticsService {
 
   // Application Statistics CRUD
   static async createApplicationStats(stats: Omit<ApplicationStats, 'id'>) {
+    const supabase = await this.getClient()
     await this.ensureReportManagerAccess()
 
     const { data, error } = await supabase
@@ -163,6 +170,7 @@ export class AnalyticsService {
   }
 
   static async updateApplicationStats(id: string, stats: Partial<ApplicationStats>) {
+    const supabase = await this.getClient()
     await this.ensureReportManagerAccess()
 
     const { data, error } = await supabase
@@ -185,6 +193,7 @@ export class AnalyticsService {
   }
 
   static async deleteApplicationStats(id: string) {
+    const supabase = await this.getClient()
     await this.ensureReportManagerAccess()
 
     const { error } = await supabase
@@ -196,6 +205,7 @@ export class AnalyticsService {
   }
 
   static async getApplicationStatistics(startDate: string, endDate: string): Promise<ApplicationStats[]> {
+    const supabase = await this.getClient()
     const { data, error } = await supabase
       .from('application_statistics')
       .select('*')
@@ -219,6 +229,7 @@ export class AnalyticsService {
 
   // Program Analytics CRUD
   static async createProgramAnalytics(analytics: Omit<ProgramAnalytics, 'id' | 'programName'>) {
+    const supabase = await this.getClient()
     await this.ensureReportManagerAccess()
 
     const { data, error } = await supabase
@@ -239,6 +250,7 @@ export class AnalyticsService {
   }
 
   static async updateProgramAnalytics(id: string, analytics: Partial<ProgramAnalytics>) {
+    const supabase = await this.getClient()
     await this.ensureReportManagerAccess()
 
     const { data, error } = await supabase
@@ -260,6 +272,7 @@ export class AnalyticsService {
   }
 
   static async deleteProgramAnalytics(id: string) {
+    const supabase = await this.getClient()
     await this.ensureReportManagerAccess()
 
     const { error } = await supabase
@@ -271,6 +284,8 @@ export class AnalyticsService {
   }
 
   static async getProgramAnalytics(programId?: string): Promise<ProgramAnalytics[]> {
+    const supabase = await this.getClient()
+
     let query = supabase
       .from('program_analytics')
       .select(`
@@ -299,6 +314,7 @@ export class AnalyticsService {
 
   // Eligibility Analytics CRUD
   static async createEligibilityAnalytics(analytics: Omit<EligibilityAnalytics, 'id'>) {
+    const supabase = await this.getClient()
     await this.ensureReportManagerAccess()
 
     const { data, error } = await supabase
@@ -319,6 +335,7 @@ export class AnalyticsService {
   }
 
   static async updateEligibilityAnalytics(id: string, analytics: Partial<EligibilityAnalytics>) {
+    const supabase = await this.getClient()
     await this.ensureReportManagerAccess()
 
     const { data, error } = await supabase
@@ -340,6 +357,7 @@ export class AnalyticsService {
   }
 
   static async deleteEligibilityAnalytics(id: string) {
+    const supabase = await this.getClient()
     await this.ensureReportManagerAccess()
 
     const { error } = await supabase
@@ -351,6 +369,7 @@ export class AnalyticsService {
   }
 
   static async getEligibilityAnalytics(startDate: string, endDate: string): Promise<EligibilityAnalytics[]> {
+    const supabase = await this.getClient()
     const { data, error } = await supabase
       .from('eligibility_analytics')
       .select('*')
@@ -372,6 +391,7 @@ export class AnalyticsService {
 
   // Automated Reports CRUD
   static async createAutomatedReport(report: Omit<AutomatedReport, 'id' | 'createdAt'>) {
+    const supabase = await this.getClient()
     await this.ensureReportManagerAccess()
 
     const { data: { user } } = await supabase.auth.getUser()

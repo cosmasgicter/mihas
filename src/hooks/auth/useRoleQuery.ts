@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { User } from '@supabase/supabase-js'
+import type { User } from '@supabase/supabase-js'
 import { useAuth } from '@/contexts/AuthContext'
 import { getSupabaseClient } from '@/lib/supabase'
 import { sanitizeForLog } from '@/lib/security'
@@ -56,7 +56,7 @@ export function useRoleQuery(options: UseRoleQueryOptions = {}): RoleQueryResult
         }
       }
 
-      const supabase = getSupabaseClient()
+      const supabase = await getSupabaseClient()
       const { data: { session } } = await supabase.auth.getSession()
       const accessToken = session?.access_token
 
