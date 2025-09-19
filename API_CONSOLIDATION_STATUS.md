@@ -21,7 +21,14 @@ Successfully consolidated from 20+ to 12 serverless functions to meet Vercel Hob
    - `POST /api/notifications?action=application-submitted`
 
 ### Remaining Individual APIs ✅
-4. `/api/analytics/index.js`
+4. `/api/analytics` (router + shared helpers)
+   - **Action Map**
+     - `metrics` → `GET` handled by `handleMetricsRequest`
+     - `predictive-dashboard` → `GET` handled by `handlePredictiveDashboardRequest`
+     - `telemetry`
+       - `GET` handled by `handleTelemetryFetch`
+       - `POST` handled by `handleTelemetryIngest`
+   - **Contract** – `/api/analytics?action=metrics|predictive-dashboard|telemetry`
 5. `/api/applications/[id].js`
 6. `/api/applications/index.js`
 7. `/api/applications/bulk.js`
@@ -39,7 +46,7 @@ Successfully consolidated from 20+ to 12 serverless functions to meet Vercel Hob
 ## Frontend Integration Status ✅
 
 ### API Client Service
-All API calls in `src/services/apiClient.ts` are already using consolidated endpoints:
+The shared API client (`src/services/client.ts`) and feature services already use the consolidated endpoints:
 
 ```typescript
 // Auth endpoints
@@ -77,10 +84,9 @@ const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/
 
 ## Verification Results ✅
 
-### Function Count
+### Function Count & Contract Verification
 ```bash
-$ find api/ -name "*.js" -type f | grep -v "_lib" | wc -l
-12
+$ npm run verify:api-consolidation
 ```
 
 ### No Old API References Found
@@ -121,5 +127,5 @@ The application is ready for deployment with:
 ---
 
 **Status**: ✅ COMPLETE - Ready for production deployment
-**Last Updated**: $(date)
+**Last Updated**: 2025-09-19
 **Functions**: 12/12 Vercel + 1 Supabase Edge Function

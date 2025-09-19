@@ -93,7 +93,7 @@ fetch('https://your-project.supabase.co/functions/v1/mcp-operations?action=schem
 1. `/api/catalog.js` (consolidated)
 2. `/api/auth.js` (consolidated)
 3. `/api/notifications.js` (consolidated)
-4. `/api/analytics/index.js`
+4. `/api/analytics?action=metrics|predictive-dashboard|telemetry` (router consolidates metrics, predictive dashboard, telemetry)
 5. `/api/applications/[id].js`
 6. `/api/applications/index.js`
 7. `/api/applications/bulk.js`
