@@ -1,12 +1,5 @@
+import { NewOfflineQueueItem, OfflineQueueItem, OfflineRecordType } from '@/types/offline'
 import { getSecureId } from './security'
-
-interface OfflineData {
-  id: string
-  type: 'application_draft' | 'document_upload' | 'form_submission'
-  data: any
-  timestamp: number
-  userId: string
-}
 
 class OfflineStorageManager {
   private dbName = 'mihas-offline-db'
@@ -14,10 +7,10 @@ class OfflineStorageManager {
   private db: IDBDatabase | null = null
 
   async init(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       try {
         const request = indexedDB.open(this.dbName, this.version)
-        
+
         request.onerror = () => {
           // Silently handle IndexedDB errors
           resolve()
@@ -26,7 +19,7 @@ class OfflineStorageManager {
           this.db = request.result
           resolve()
         }
-      } catch (error) {
+      } catch {
         // Silently handle any initialization errors
         resolve()
       }
@@ -45,16 +38,16 @@ class OfflineStorageManager {
     })
   }
 
-  async store(data: Omit<OfflineData, 'id' | 'timestamp'>): Promise<string> {
+  async store<TType extends OfflineRecordType>(data: NewOfflineQueueItem<TType>): Promise<string> {
     if (!this.db) throw new Error('Database not initialized')
-    
+
     const id = `${data.type}_${Date.now()}_${getSecureId()}`
-    const offlineData: OfflineData = {
+    const offlineData: OfflineQueueItem<TType> = {
       ...data,
       id,
       timestamp: Date.now()
     }
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['offlineData'], 'readwrite')
       const store = transaction.objectStore('offlineData')
@@ -65,9 +58,9 @@ class OfflineStorageManager {
     })
   }
 
-  async getAll(userId?: string): Promise<OfflineData[]> {
+  async getAll(userId?: string): Promise<OfflineQueueItem[]> {
     if (!this.db) throw new Error('Database not initialized')
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['offlineData'], 'readonly')
       const store = transaction.objectStore('offlineData')
@@ -87,7 +80,7 @@ class OfflineStorageManager {
 
   async remove(id: string): Promise<void> {
     if (!this.db) throw new Error('Database not initialized')
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['offlineData'], 'readwrite')
       const store = transaction.objectStore('offlineData')

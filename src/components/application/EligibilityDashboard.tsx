@@ -1,8 +1,54 @@
-import React, { useState, useEffect } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
-import { TrendingUp, Users, CheckCircle, AlertTriangle, XCircle, Target } from 'lucide-react'
-import { eligibilityEngine } from '../../lib/eligibilityEngine'
-import { supabase } from '../../lib/supabase'
+import React, { useCallback, useEffect, useState } from 'react'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts'
+import { TrendingUp, Users, CheckCircle, Target } from 'lucide-react'
+
+import {
+  DashboardEligibilityAssessment,
+  EligibilityAssessmentWithProgram
+} from '@/types/eligibility'
+import { MissingRequirement } from '@/lib/eligibilityEngine'
+import { supabase } from '@/lib/supabase'
+
+function parseMissingRequirements(
+  value: EligibilityAssessmentWithProgram['missing_requirements']
+): MissingRequirement[] {
+  if (Array.isArray(value)) {
+    return value
+  }
+
+  try {
+    const parsed = JSON.parse(value ?? '[]') as MissingRequirement[]
+    return Array.isArray(parsed) ? parsed : []
+  } catch (error) {
+    console.warn('Failed to parse missing requirements:', error)
+    return []
+  }
+}
+
+function normalizeAssessments(
+  assessments: EligibilityAssessmentWithProgram[]
+): DashboardEligibilityAssessment[] {
+  return assessments.map(assessment => ({
+    id: assessment.id,
+    application_id: assessment.application_id,
+    program_id: assessment.program_id,
+    overall_score: assessment.overall_score,
+    eligibility_status: assessment.eligibility_status,
+    missing_requirements: parseMissingRequirements(assessment.missing_requirements),
+    programs: assessment.programs ?? null
+  }))
+}
 
 interface EligibilityMetrics {
   totalApplications: number
@@ -34,25 +80,20 @@ export function EligibilityDashboard() {
   const [selectedProgram, setSelectedProgram] = useState<string>('all')
   const [programs, setPrograms] = useState<Array<{ id: string; name: string }>>([])
 
-  useEffect(() => {
-    loadDashboardData()
-    loadPrograms()
-  }, [selectedProgram])
-
-  const loadPrograms = async () => {
+  const loadPrograms = useCallback(async () => {
     try {
       const { data } = await supabase
         .from('programs')
         .select('id, name')
         .eq('is_active', true)
-      
-      setPrograms(data || [])
+
+      setPrograms((data as Array<{ id: string; name: string }> | null) ?? [])
     } catch (error) {
       console.error('Failed to load programs:', error)
     }
-  }
+  }, [])
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     setLoading(true)
     try {
       // Get eligibility assessments
@@ -71,7 +112,10 @@ export function EligibilityDashboard() {
       const { data: assessments } = await query
 
       if (assessments) {
-        const metrics = calculateMetrics(assessments)
+        const normalizedAssessments = normalizeAssessments(
+          assessments as EligibilityAssessmentWithProgram[]
+        )
+        const metrics = calculateMetrics(normalizedAssessments)
         setMetrics(metrics)
       }
     } catch (error) {
@@ -79,28 +123,38 @@ export function EligibilityDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedProgram])
 
-  const calculateMetrics = (assessments: any[]): EligibilityMetrics => {
+  useEffect(() => {
+    loadDashboardData()
+    loadPrograms()
+  }, [loadDashboardData, loadPrograms])
+
+  const calculateMetrics = (assessments: DashboardEligibilityAssessment[]): EligibilityMetrics => {
     const totalApplications = assessments.length
     const eligibleCount = assessments.filter(a => a.eligibility_status === 'eligible').length
     const conditionalCount = assessments.filter(a => a.eligibility_status === 'conditional').length
     const notEligibleCount = assessments.filter(a => a.eligibility_status === 'not_eligible').length
-    
+
     const averageScore = assessments.length > 0 
       ? assessments.reduce((sum, a) => sum + a.overall_score, 0) / assessments.length
       : 0
 
     // Program breakdown
-    const programMap = new Map()
+    const programMap = new Map<
+      string,
+      { eligible: number; conditional: number; not_eligible: number; total: number }
+    >()
     assessments.forEach(a => {
       const programName = a.programs?.name || 'Unknown'
       if (!programMap.has(programName)) {
         programMap.set(programName, { eligible: 0, conditional: 0, not_eligible: 0, total: 0 })
       }
-      const stats = programMap.get(programName)
+      const stats = programMap.get(programName)!
       stats.total++
-      stats[a.eligibility_status]++
+      if (a.eligibility_status === 'eligible') stats.eligible++
+      if (a.eligibility_status === 'conditional') stats.conditional++
+      if (a.eligibility_status === 'not_eligible') stats.not_eligible++
     })
 
     const programBreakdown = Array.from(programMap.entries()).map(([program, stats]) => ({
@@ -127,8 +181,7 @@ export function EligibilityDashboard() {
     // Common missing requirements
     const missingReqMap = new Map()
     assessments.forEach(a => {
-      const missing = JSON.parse(a.missing_requirements || '[]')
-      missing.forEach((req: any) => {
+      a.missing_requirements.forEach((req: MissingRequirement) => {
         const key = req.description
         missingReqMap.set(key, (missingReqMap.get(key) || 0) + 1)
       })
@@ -154,8 +207,6 @@ export function EligibilityDashboard() {
       commonMissingRequirements
     }
   }
-
-  const COLORS = ['#10B981', '#F59E0B', '#EF4444', '#6B7280']
 
   if (loading) {
     return (

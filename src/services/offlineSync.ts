@@ -1,12 +1,45 @@
-import { supabase } from '@/lib/supabase'
 import { offlineStorage } from '@/lib/offlineStorage'
 import { sanitizeForLog } from '@/lib/security'
+import { supabase } from '@/lib/supabase'
+import {
+  OfflineApplicationDraftData,
+  OfflineDataPayloadMap,
+  OfflineDocumentUploadData,
+  OfflineFormSubmissionData,
+  OfflineQueueItem,
+  OfflineRecordType
+} from '@/types/offline'
 
-interface OfflineData {
-  form_data: Record<string, any>
-  uploaded_files: any[]
-  current_step: number
+type LocalStorageOfflineEntry<TType extends OfflineRecordType> = {
+  data: OfflineDataPayloadMap[TType]
   timestamp: number
+}
+
+function isOfflineDraftPayload(value: unknown): value is OfflineApplicationDraftData {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const payload = value as Partial<OfflineApplicationDraftData>
+  return (
+    typeof payload.current_step === 'number' &&
+    typeof payload.version === 'number' &&
+    Array.isArray(payload.uploaded_files) &&
+    typeof payload.form_data === 'object'
+  )
+}
+
+function isOfflineSubmissionPayload(value: unknown): value is OfflineFormSubmissionData {
+  return typeof value === 'object' && value !== null
+}
+
+function isOfflineDocumentPayload(value: unknown): value is OfflineDocumentUploadData {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const payload = value as Partial<OfflineDocumentUploadData>
+  return typeof payload.application_id === 'string' && Array.isArray(payload.files)
 }
 
 class OfflineSyncService {
@@ -15,7 +48,11 @@ class OfflineSyncService {
   private maxRetries = 3
 
   // Store data offline
-  async storeOffline(userId: string, type: 'application_draft' | 'document_upload' | 'form_submission', data: any) {
+  async storeOffline<TType extends OfflineRecordType>(
+    userId: string,
+    type: TType,
+    data: OfflineDataPayloadMap[TType]
+  ) {
     try {
       await offlineStorage.store({
         type,
@@ -46,7 +83,7 @@ class OfflineSyncService {
       if (!user) return
 
       const offlineData = await offlineStorage.getAll(user.id)
-      
+
       for (const item of offlineData) {
         try {
           await this.syncToServer(item)
@@ -78,20 +115,36 @@ class OfflineSyncService {
   // Process localStorage fallback data
   private async processLocalStorageData(userId: string) {
     const keys = Object.keys(localStorage).filter(key => key.startsWith(`offline_`) && key.includes(userId))
-    
+
     for (const key of keys) {
       try {
-        const data = JSON.parse(localStorage.getItem(key) || '{}')
-        const type = key.split('_')[1] as 'application_draft' | 'document_upload' | 'form_submission'
-        
+        const serializedEntry = localStorage.getItem(key)
+        if (!serializedEntry) {
+          continue
+        }
+
+        const type = key.split('_')[1] as OfflineRecordType
+        const parsedEntry = JSON.parse(serializedEntry) as Partial<LocalStorageOfflineEntry<typeof type>>
+
+        if (!parsedEntry || typeof parsedEntry.timestamp !== 'number') {
+          localStorage.removeItem(key)
+          continue
+        }
+
+        const payload = this.validateLocalStoragePayload(type, parsedEntry.data)
+        if (!payload) {
+          localStorage.removeItem(key)
+          continue
+        }
+
         await this.syncToServer({
           id: key,
           type,
-          data: data.data,
-          timestamp: data.timestamp,
+          data: payload,
+          timestamp: parsedEntry.timestamp,
           userId
         })
-        
+
         localStorage.removeItem(key)
       } catch (error) {
         console.error(`Failed to sync localStorage data ${key}:`, error)
@@ -101,7 +154,7 @@ class OfflineSyncService {
   }
 
   // Sync data to server
-  private async syncToServer(item: any) {
+  private async syncToServer(item: OfflineQueueItem) {
     switch (item.type) {
       case 'application_draft': {
         const { error: draftError } = await supabase
@@ -138,11 +191,27 @@ class OfflineSyncService {
     }
   }
 
+  private validateLocalStoragePayload<TType extends OfflineRecordType>(
+    type: TType,
+    payload: unknown
+  ): OfflineDataPayloadMap[TType] | null {
+    switch (type) {
+      case 'application_draft':
+        return isOfflineDraftPayload(payload) ? payload : null
+      case 'form_submission':
+        return isOfflineSubmissionPayload(payload) ? payload : null
+      case 'document_upload':
+        return isOfflineDocumentPayload(payload) ? payload : null
+      default:
+        return null
+    }
+  }
+
   // Initialize service with event listeners
   async init() {
     try {
       await offlineStorage.init()
-    } catch (error) {
+    } catch {
       // Silently handle initialization errors
     }
 

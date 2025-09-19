@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { UserProfile, supabase } from '@/lib/supabase'
+import { UserStatsSummary } from '@/types/users'
 import { usersData } from '@/data/users'
 import { sanitizeForLog } from '@/lib/sanitize'
 
@@ -12,10 +13,10 @@ interface CreateUserData {
 }
 
 interface UpdateUserData {
-  full_name?: string
-  email?: string
+  full_name: string
+  email: string
   phone?: string
-  role?: string
+  role: string
 }
 
 interface BulkOperationResult {
@@ -54,7 +55,7 @@ export function useUserManagement() {
       setLoading(true)
       setError(null)
 
-      await updateUserMutation.mutateAsync({ id: userId, data: userData as any })
+      await updateUserMutation.mutateAsync({ id: userId, data: userData })
       return true
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update user'
@@ -154,7 +155,7 @@ export function useUserManagement() {
     }
   }, [])
 
-  const getUserStats = useCallback(async () => {
+  const getUserStats = useCallback(async (): Promise<UserStatsSummary | null> => {
     try {
       const { data, error } = await supabase
         .from('user_profiles')
@@ -162,13 +163,14 @@ export function useUserManagement() {
 
       if (error) throw error
 
-      const stats = data.reduce((acc: Record<string, number>, user) => {
+      const roleData = (data ?? []) as Array<Pick<UserProfile, 'role'>>
+      const stats = roleData.reduce<Record<UserProfile['role'], number>>((acc, user) => {
         acc[user.role] = (acc[user.role] || 0) + 1
         return acc
       }, {})
 
       return {
-        total: data.length,
+        total: roleData.length,
         byRole: stats
       }
     } catch (err: unknown) {

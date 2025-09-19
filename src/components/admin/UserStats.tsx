@@ -1,25 +1,48 @@
-import React, { useEffect, useState } from 'react'
-import { Users, Shield, User, TrendingUp, Calendar } from 'lucide-react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { Calendar, Shield, TrendingUp, User, Users } from 'lucide-react'
+
 import { useUserManagement } from '@/hooks/useUserManagement'
 import { sanitizeForDisplay } from '@/lib/sanitize'
+import { UserProfile } from '@/lib/supabase'
+import { UserStatsSummary } from '@/types/users'
 
 interface UserStatsProps {
-  users: any[]
+  users: UserProfile[]
   className?: string
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  student: 'Students',
+  admissions_officer: 'Admissions Officers',
+  registrar: 'Registrars',
+  finance_officer: 'Finance Officers',
+  academic_head: 'Academic Heads',
+  admin: 'Administrators',
+  super_admin: 'Super Admins'
 }
 
 export function UserStats({ users, className = '' }: UserStatsProps) {
   const { getUserStats } = useUserManagement()
-  const [stats, setStats] = useState<any>(null)
+  const [stats, setStats] = useState<UserStatsSummary | null>(null)
+
+  const recentUsers = useMemo(
+    () =>
+      [...users]
+        .sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
+        .slice(0, 3),
+    [users]
+  )
+
+  const loadStats = useCallback(async () => {
+    const statsData = await getUserStats()
+    setStats(statsData)
+  }, [getUserStats])
 
   useEffect(() => {
     loadStats()
-  }, [users])
-
-  const loadStats = async () => {
-    const statsData = await getUserStats()
-    setStats(statsData)
-  }
+  }, [loadStats])
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -52,16 +75,7 @@ export function UserStats({ users, className = '' }: UserStatsProps) {
   }
 
   const getRoleLabel = (role: string) => {
-    const labels: Record<string, string> = {
-      student: 'Students',
-      admissions_officer: 'Admissions Officers',
-      registrar: 'Registrars',
-      finance_officer: 'Finance Officers',
-      academic_head: 'Academic Heads',
-      admin: 'Administrators',
-      super_admin: 'Super Admins'
-    }
-    return labels[role] || role.replace('_', ' ').toUpperCase()
+    return ROLE_LABELS[role] || role.replace('_', ' ').toUpperCase()
   }
 
   if (!stats) {
@@ -78,10 +92,6 @@ export function UserStats({ users, className = '' }: UserStatsProps) {
       </div>
     )
   }
-
-  const recentUsers = users
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 3)
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -132,7 +142,7 @@ export function UserStats({ users, className = '' }: UserStatsProps) {
         </h3>
         <div className="space-y-3">
           {Object.entries(stats.byRole)
-            .sort(([,a], [,b]) => (b as number) - (a as number))
+            .sort(([, a], [, b]) => b - a)
             .map(([role, count]) => (
               <div key={role} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50">
                 <div className="flex items-center space-x-3">
@@ -141,16 +151,16 @@ export function UserStats({ users, className = '' }: UserStatsProps) {
                 </div>
                 <div className="flex items-center space-x-3">
                   <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getRoleColor(role)}`}>
-                    {count as number} users
+                    {count} users
                   </span>
                   <div className="w-20 bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-500 h-2 rounded-full" 
-                      style={{ width: `${((count as number) / stats.total) * 100}%` }}
+                    <div
+                      className="bg-blue-500 h-2 rounded-full"
+                      style={{ width: `${(count / stats.total) * 100}%` }}
                     ></div>
                   </div>
                   <span className="text-sm text-gray-500 w-12 text-right">
-                    {Math.round(((count as number) / stats.total) * 100)}%
+                    {Math.round((count / stats.total) * 100)}%
                   </span>
                 </div>
               </div>

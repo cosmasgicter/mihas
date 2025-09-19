@@ -1,12 +1,20 @@
-import { useState, useEffect } from 'react'
-import { offlineSyncService } from '@/services/offlineSync'
+import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { offlineSyncService } from '@/services/offlineSync'
+import { OfflineDataPayloadMap, OfflineRecordType } from '@/types/offline'
 
 export function useOfflineSync() {
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [offlineDataCount, setOfflineDataCount] = useState(0)
   const [isSyncing, setIsSyncing] = useState(false)
   const { user } = useAuth()
+
+  const updateOfflineDataCount = useCallback(async () => {
+    if (user) {
+      const count = await offlineSyncService.getOfflineDataCount(user.id)
+      setOfflineDataCount(count)
+    }
+  }, [user])
 
   useEffect(() => {
     const handleOnline = () => {
@@ -31,20 +39,16 @@ export function useOfflineSync() {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
-  }, [user])
-
-  const updateOfflineDataCount = async () => {
-    if (user) {
-      const count = await offlineSyncService.getOfflineDataCount(user.id)
-      setOfflineDataCount(count)
-    }
-  }
+  }, [updateOfflineDataCount, user])
 
   useEffect(() => {
     updateOfflineDataCount()
-  }, [user])
+  }, [updateOfflineDataCount])
 
-  const storeOffline = async (type: 'application_draft' | 'document_upload' | 'form_submission', data: any) => {
+  const storeOffline = async <TType extends OfflineRecordType>(
+    type: TType,
+    data: OfflineDataPayloadMap[TType]
+  ) => {
     if (user) {
       await offlineSyncService.storeOffline(user.id, type, data)
       await updateOfflineDataCount()

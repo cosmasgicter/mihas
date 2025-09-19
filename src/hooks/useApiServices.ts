@@ -1,9 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
+import { Application } from '@/lib/supabase'
 import { applicationService } from '@/services/applications'
 import { documentService } from '@/services/documents'
 import { analyticsService } from '@/services/analytics'
 import { userService } from '@/services/admin/users'
+
+type UserUpdateInput = Parameters<typeof userService.update>[1]
+type RegistrationMetadata = Record<string, unknown>
 
 // Auth hooks
 export const useLogin = () => {
@@ -19,21 +23,21 @@ export const useRegister = () => {
   const { signUp } = useAuth()
 
   return useMutation({
-    mutationFn: ({ email, password, userData }: { email: string; password: string; userData: any }) =>
+    mutationFn: ({ email, password, userData }: { email: string; password: string; userData: RegistrationMetadata }) =>
       signUp(email, password, userData)
   })
 }
 
 // Application hooks
 export const useApplications = () => {
-  return useQuery({
+  return useQuery<Application[] | null>({
     queryKey: ['applications'],
     queryFn: applicationService.getAll
   })
 }
 
 export const useApplication = (id: string) => {
-  return useQuery({
+  return useQuery<Application | null>({
     queryKey: ['applications', id],
     queryFn: () => applicationService.getById(id),
     enabled: !!id
@@ -42,7 +46,7 @@ export const useApplication = (id: string) => {
 
 export const useCreateApplication = () => {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: applicationService.create,
     onSuccess: () => {
@@ -53,9 +57,9 @@ export const useCreateApplication = () => {
 
 export const useUpdateApplication = () => {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => 
+    mutationFn: ({ id, data }: { id: string; data: Partial<Application> }) =>
       applicationService.update(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['applications', id] })
@@ -103,7 +107,7 @@ export const useUpdateUser = () => {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => 
+    mutationFn: ({ id, data }: { id: string; data: UserUpdateInput }) =>
       userService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
