@@ -125,8 +125,20 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks: (id) => {
             if (id.includes('node_modules')) {
-              if (id.includes('react') || id.includes('react-dom')) {
-                return 'vendor'
+              if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom')) {
+                return 'react'
+              }
+              if (id.includes('@tanstack/react-query')) {
+                return 'react-query'
+              }
+              if (id.includes('react-router-dom')) {
+                return 'router'
+              }
+              if (id.includes('react-hook-form')) {
+                return 'forms'
+              }
+              if (id.includes('zustand')) {
+                return 'state'
               }
               if (id.includes('@supabase')) {
                 return 'supabase'
@@ -136,6 +148,24 @@ export default defineConfig(({ mode }) => {
               }
               if (id.includes('@radix-ui')) {
                 return 'ui'
+              }
+              if (id.includes('jspdf') || id.includes('jspdf-autotable') || id.includes('pdf-lib')) {
+                return 'reporting'
+              }
+              if (id.includes('exceljs')) {
+                return 'exceljs'
+              }
+              if (id.includes('/xlsx')) {
+                return 'xlsx'
+              }
+              if (id.includes('date-fns')) {
+                return 'date-utils'
+              }
+              if (id.includes('lucide-react')) {
+                return 'icons'
+              }
+              if (id.includes('dompurify')) {
+                return 'sanitizers'
               }
               return 'vendor'
             }
