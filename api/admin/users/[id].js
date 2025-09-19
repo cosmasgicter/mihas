@@ -3,93 +3,15 @@ const {
   requireUser,
   clearRequestRoleCache
 } = require('../../_lib/supabaseClient')
-
-async function fetchUserProfile(userId) {
-  const { data, error } = await supabaseAdminClient
-    .from('user_profiles')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle()
-
-  if (error && error.code !== 'PGRST116') {
-    throw error
-  }
-
-  return data ?? null
-}
-
-async function syncUserRole(userId, role) {
-  if (!role) {
-    return
-  }
-
-  const { error: deactivateError } = await supabaseAdminClient
-    .from('user_roles')
-    .update({ is_active: false })
-    .eq('user_id', userId)
-    .neq('role', role)
-
-  if (deactivateError && deactivateError.code !== 'PGRST116') {
-    throw deactivateError
-  }
-
-  const { data: existingRole, error: fetchError } = await supabaseAdminClient
-    .from('user_roles')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('role', role)
-    .maybeSingle()
-
-  if (fetchError && fetchError.code !== 'PGRST116') {
-    throw fetchError
-  }
-
-  if (existingRole) {
-    const { error: activateError } = await supabaseAdminClient
-      .from('user_roles')
-      .update({ is_active: true })
-      .eq('id', existingRole.id)
-
-    if (activateError) {
-      throw activateError
-    }
-    return
-  }
-
-  const { error: insertError } = await supabaseAdminClient
-    .from('user_roles')
-    .insert({ user_id: userId, role, is_active: true })
-
-  if (insertError) {
-    throw insertError
-  }
-}
-
-function parseUserId(rawId) {
-  if (Array.isArray(rawId)) {
-    return rawId[0]
-  }
-  if (typeof rawId === 'string') {
-    return rawId
-  }
-  return null
-}
-
-function parseRequestBody(body) {
-  if (!body) {
-    return {}
-  }
-
-  if (typeof body === 'string') {
-    try {
-      return JSON.parse(body)
-    } catch (error) {
-      throw new Error('Invalid JSON body')
-    }
-  }
-
-  return body
-}
+const {
+  fetchUserProfile,
+  fetchActiveRole,
+  syncUserRole,
+  parseUserId,
+  parseAction,
+  parseRequestBody,
+  updateAuthUserMetadata
+} = require('./userHelpers')
 
 module.exports = async function handler(req, res) {
   try {
@@ -100,7 +22,14 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'User ID is required' })
     }
 
+    const action = parseAction(req.query?.action)
+
     if (req.method === 'GET') {
+      if (action === 'role') {
+        const activeRole = await fetchActiveRole(userId)
+        return res.status(200).json(activeRole)
+      }
+
       const profile = await fetchUserProfile(userId)
       if (!profile) {
         return res.status(404).json({ error: 'User not found' })
@@ -122,6 +51,8 @@ module.exports = async function handler(req, res) {
       if (Object.keys(updates).length === 0) {
         return res.status(400).json({ error: 'No valid fields provided for update' })
       }
+
+      await updateAuthUserMetadata(userId, updates)
 
       const { data: updatedProfile, error: updateError } = await supabaseAdminClient
         .from('user_profiles')

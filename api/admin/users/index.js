@@ -1,34 +1,23 @@
 const { supabaseAdminClient, requireUser } = require('../../_lib/supabaseClient')
+const { fetchUserProfile, fetchActiveRole, parseUserId, parseAction } = require('./userHelpers')
 
 module.exports = async function handler(req, res) {
   try {
     const { user, isAdmin } = await requireUser(req, { requireAdmin: true })
     const { id, action } = req.query
+    const userId = parseUserId(id)
+    const normalizedAction = parseAction(action)
 
     if (req.method === 'GET') {
       // Single user lookup
-      if (id) {
-        if (action === 'role') {
-          const { data, error } = await supabaseAdminClient
-            .from('user_roles')
-            .select('*')
-            .eq('user_id', id)
-            .eq('is_active', true)
-            .maybeSingle()
-
-          if (error && error.code !== 'PGRST116') throw error
-          return res.status(200).json(data)
+      if (userId) {
+        if (normalizedAction === 'role') {
+          const activeRole = await fetchActiveRole(userId)
+          return res.status(200).json(activeRole)
         }
 
-        // Get user profile
-        const { data, error } = await supabaseAdminClient
-          .from('user_profiles')
-          .select('*')
-          .eq('user_id', id)
-          .maybeSingle()
-
-        if (error && error.code !== 'PGRST116') throw error
-        return res.status(200).json(data)
+        const profile = await fetchUserProfile(userId)
+        return res.status(200).json(profile)
       }
 
       // List all users
