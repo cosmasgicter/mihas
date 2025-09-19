@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -24,6 +24,7 @@ import { applicationsData } from '@/data/applications'
 import { catalogData } from '@/data/catalog'
 import { useToast } from '@/components/ui/Toast'
 import { createApplicationSlip } from '@/lib/slipService'
+import useApplicationSlip, { SubmittedApplicationSummary } from './applicationWizard/hooks/useApplicationSlip'
 import type { ApplicationSlipData } from '@/lib/applicationSlip'
 
 const wizardSchema = z.object({
@@ -78,20 +79,7 @@ export default function ApplicationWizard() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [applicationId, setApplicationId] = useState<string | null>(null)
-  const [submittedApplication, setSubmittedApplication] = useState<{
-    applicationNumber: string
-    trackingCode: string
-    program: string
-    institution: string
-    intake?: string | null
-    fullName?: string | null
-    email?: string | null
-    phone?: string | null
-    status?: string | null
-    paymentStatus?: string | null
-    submittedAt?: string | null
-    updatedAt?: string | null
-  } | null>(null)
+  const [submittedApplication, setSubmittedApplication] = useState<SubmittedApplicationSummary | null>(null)
 
   const [selectedGrades, setSelectedGrades] = useState<SubjectGrade[]>([])
   const [resultSlipFile, setResultSlipFile] = useState<File | null>(null)
@@ -104,12 +92,6 @@ export default function ApplicationWizard() {
   const [draftSaved, setDraftSaved] = useState(false)
   const [sessionWarning, setSessionWarning] = useState<any>(null)
   const [restoringDraft, setRestoringDraft] = useState(false)
-  const [slipCache, setSlipCache] = useState<{ objectUrl?: string; publicUrl?: string; path?: string; documentId?: string } | null>(null)
-  const [slipLoading, setSlipLoading] = useState(false)
-  const [emailLoading, setEmailLoading] = useState(false)
-  const [persistingSlip, setPersistingSlip] = useState(false)
-  const hasPersistedSlipRef = useRef(false)
-
   const [confirmSubmission, setConfirmSubmission] = useState(false)
   
   // Data hooks
@@ -137,24 +119,6 @@ export default function ApplicationWizard() {
     }
   }, [user, authLoading, navigate])
 
-  useEffect(() => () => {
-    if (slipCache?.objectUrl) {
-      URL.revokeObjectURL(slipCache.objectUrl)
-    }
-  }, [slipCache?.objectUrl])
-
-  useEffect(() => {
-    if (success) return
-    hasPersistedSlipRef.current = false
-    setSlipCache(prev => {
-      if (!prev) return prev
-      if (prev.objectUrl) {
-        URL.revokeObjectURL(prev.objectUrl)
-      }
-      return null
-    })
-  }, [success])
-
   const slipPayload: ApplicationSlipData | null = useMemo(() => {
     if (!submittedApplication) return null
 
@@ -178,58 +142,14 @@ export default function ApplicationWizard() {
     }
   }, [submittedApplication, user?.email])
 
-  useEffect(() => {
-    if (!success || !slipPayload || hasPersistedSlipRef.current) {
-      return
-    }
-
-    let cancelled = false
-
-    const persist = async () => {
-      setPersistingSlip(true)
-      try {
-        const result = await createApplicationSlip(slipPayload, { toast })
-
-        if (cancelled) return
-
-        if (result.error) {
-          toast.showError('Slip unavailable', result.error)
-          return
-        }
-
-        setSlipCache(prev => {
-          if (prev?.objectUrl && result.blob) {
-            URL.revokeObjectURL(prev.objectUrl)
-          }
-
-          const objectUrl = result.blob ? URL.createObjectURL(result.blob) : prev?.objectUrl
-
-          return {
-            objectUrl,
-            publicUrl: result.publicUrl || prev?.publicUrl,
-            path: result.path || prev?.path,
-            documentId: result.documentId || prev?.documentId
-          }
-        })
-
-        hasPersistedSlipRef.current = true
-      } catch (persistError) {
-        if (!cancelled) {
-          console.error('Automatic slip persistence failed:', persistError)
-        }
-      } finally {
-        if (!cancelled) {
-          setPersistingSlip(false)
-        }
-      }
-    }
-
-    persist()
-
-    return () => {
-      cancelled = true
-    }
-  }, [success, slipPayload, toast])
+  const { persistingSlip, slipLoading, emailLoading, handleDownloadSlip, handleEmailSlip } = useApplicationSlip({
+    submittedApplication,
+    slipPayload,
+    success,
+    toast,
+    createApplicationSlip,
+    onEmailUpdate: email => setSubmittedApplication(prev => (prev ? { ...prev, email } : prev))
+  })
 
   const formatPaymentStatusLabel = (status?: string | null) => {
     if (!status) return 'Pending Review'
@@ -262,147 +182,6 @@ export default function ApplicationWizard() {
         return 'Payment submitted — awaiting verification by admissions.'
     }
   }
-
-  const triggerDownload = useCallback((url: string, filename: string) => {
-    const link = document.createElement('a')
-    link.href = url
-    link.download = filename
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }, [])
-
-  const handleDownloadSlip = useCallback(async () => {
-    if (!submittedApplication) {
-      toast.showError('Slip unavailable', 'We could not find your submitted application details.')
-      return
-    }
-
-    const filename = `Application-Slip-${submittedApplication.applicationNumber || submittedApplication.trackingCode}.pdf`
-
-    if (slipCache?.objectUrl) {
-      triggerDownload(slipCache.objectUrl, filename)
-      return
-    }
-
-    if (persistingSlip && !slipCache?.publicUrl) {
-      toast.showInfo('Preparing slip', 'We are still preparing your application slip. Please try again shortly.')
-      return
-    }
-
-    try {
-      setSlipLoading(true)
-
-      if (slipCache?.publicUrl && !slipCache.objectUrl) {
-        const response = await fetch(slipCache.publicUrl)
-        if (!response.ok) {
-          throw new Error('Unable to download stored application slip')
-        }
-        const blob = await response.blob()
-        const objectUrl = URL.createObjectURL(blob)
-        setSlipCache(prev => {
-          if (prev?.objectUrl) {
-            URL.revokeObjectURL(prev.objectUrl)
-          }
-          return { ...prev, objectUrl }
-        })
-        triggerDownload(objectUrl, filename)
-        return
-      }
-
-      if (!slipPayload) {
-        toast.showError('Slip unavailable', 'Missing application data for slip generation.')
-        return
-      }
-
-      const result = await createApplicationSlip(slipPayload, { toast })
-
-      if (result.error) {
-        toast.showError('Download failed', result.error)
-        return
-      }
-
-      const objectUrl = result.blob ? URL.createObjectURL(result.blob) : undefined
-      const downloadUrl = objectUrl || result.publicUrl
-
-      if (!downloadUrl) {
-        toast.showError('Download failed', 'We could not prepare the application slip for download.')
-        return
-      }
-
-      setSlipCache(prev => {
-        if (prev?.objectUrl && objectUrl && prev.objectUrl !== objectUrl) {
-          URL.revokeObjectURL(prev.objectUrl)
-        }
-        return {
-          objectUrl: objectUrl || prev?.objectUrl,
-          publicUrl: result.publicUrl || prev?.publicUrl,
-          path: result.path || prev?.path,
-          documentId: result.documentId || prev?.documentId
-        }
-      })
-
-      triggerDownload(downloadUrl, filename)
-    } catch (downloadError) {
-      console.error('Slip download failed:', downloadError)
-      toast.showError('Download failed', downloadError instanceof Error ? downloadError.message : 'Unable to download slip')
-    } finally {
-      setSlipLoading(false)
-    }
-  }, [submittedApplication, slipCache, persistingSlip, slipPayload, toast, triggerDownload])
-
-  const handleEmailSlip = useCallback(async () => {
-    if (!slipPayload || !submittedApplication) {
-      toast.showError('Slip unavailable', 'Missing application details for slip delivery.')
-      return
-    }
-
-    let emailAddress = submittedApplication.email?.trim() || user?.email || ''
-    if (!emailAddress) {
-      const promptResult = window.prompt('Enter the email address to send your application slip to:')
-      emailAddress = promptResult?.trim() || ''
-    }
-
-    if (!emailAddress) {
-      toast.showError('Email required', 'Please provide an email address to receive the slip.')
-      return
-    }
-
-    const payload: ApplicationSlipData = { ...slipPayload, email: emailAddress }
-
-    try {
-      setEmailLoading(true)
-      const result = await createApplicationSlip(payload, { toast, sendEmail: true })
-
-      if (result.error || result.emailError) {
-        const message = result.error || result.emailError || 'We could not email the slip.'
-        toast.showError('Email failed', message)
-        return
-      }
-
-      setSlipCache(prev => {
-        if (prev?.objectUrl && result.blob) {
-          URL.revokeObjectURL(prev.objectUrl)
-        }
-
-        const objectUrl = result.blob ? URL.createObjectURL(result.blob) : prev?.objectUrl
-
-        return {
-          objectUrl,
-          publicUrl: result.publicUrl || prev?.publicUrl,
-          path: result.path || prev?.path,
-          documentId: result.documentId || prev?.documentId
-        }
-      })
-
-      setSubmittedApplication(prev => (prev ? { ...prev, email: emailAddress } : prev))
-    } catch (emailError) {
-      console.error('Slip email failed:', emailError)
-      toast.showError('Email failed', emailError instanceof Error ? emailError.message : 'Unable to email slip')
-    } finally {
-      setEmailLoading(false)
-    }
-  }, [slipPayload, submittedApplication, toast, user?.email])
 
   // Prevent accidental page refresh when user has unsaved changes
   useEffect(() => {
