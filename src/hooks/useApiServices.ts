@@ -113,11 +113,36 @@ export const useUpdateUser = () => {
 
 export const useDeleteUser = () => {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: userService.remove,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
+    }
+  })
+}
+
+export const useUserPermissions = (userId?: string) => {
+  return useQuery({
+    queryKey: ['user-permissions', userId],
+    queryFn: () => {
+      if (!userId) {
+        return { data: [] }
+      }
+      return userService.getPermissions(userId)
+    },
+    enabled: Boolean(userId)
+  })
+}
+
+export const useUpdateUserPermissions = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, permissions }: { id: string; permissions: string[] }) =>
+      userService.updatePermissions(id, permissions),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['user-permissions', id] })
     }
   })
 }

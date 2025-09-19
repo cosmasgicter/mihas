@@ -12,7 +12,14 @@ import { UserPermissions } from '@/components/admin/UserPermissions'
 import { UserActivityLog } from '@/components/admin/UserActivityLog'
 import { UserExport } from '@/components/admin/UserExport'
 import { UserImport } from '@/components/admin/UserImport'
-import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from '@/hooks/useApiServices'
+import {
+  useUsers,
+  useCreateUser,
+  useUpdateUser,
+  useDeleteUser,
+  useUserPermissions,
+  useUpdateUserPermissions
+} from '@/hooks/useApiServices'
 import { ArrowLeft, Users, Shield, User, Plus, Edit, Trash2, Search, Filter, UserPlus, Settings, Eye, EyeOff, BarChart3, CheckSquare, Square, Lock, Clock, Download, Upload } from 'lucide-react'
 import { sanitizeForLog } from '@/lib/security'
 import { sanitizeForDisplay } from '@/lib/sanitize'
@@ -46,6 +53,7 @@ export default function AdminUsers() {
   const createUserMutation = useCreateUser()
   const updateUserMutation = useUpdateUser()
   const deleteUserMutation = useDeleteUser()
+  const updateUserPermissionsMutation = useUpdateUserPermissions()
   
   const users = usersData?.data || []
   const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([])
@@ -79,6 +87,13 @@ export default function AdminUsers() {
   const [activityLogUserId, setActivityLogUserId] = useState<string | null>(null)
   const [showExportDialog, setShowExportDialog] = useState(false)
   const [showImportDialog, setShowImportDialog] = useState(false)
+
+  const activePermissionsUserId = showPermissionsDialog && permissionsUser ? permissionsUser.user_id : undefined
+  const {
+    data: permissionsData,
+    isLoading: permissionsLoading,
+    refetch: refetchUserPermissions
+  } = useUserPermissions(activePermissionsUserId)
 
   useEffect(() => {
     if (queryError) {
@@ -185,24 +200,27 @@ export default function AdminUsers() {
   }
 
   const openPermissionsDialog = (user: UserProfile) => {
+    setError('')
     setPermissionsUser(user)
     setShowPermissionsDialog(true)
   }
 
   const handlePermissionsSave = async (permissions: string[]) => {
     if (!permissionsUser) return
-    
+
     try {
-      // In a real implementation, you would save permissions to a separate table
-      // For now, we'll just log them
-      console.log('Saving permissions for user:', sanitizeForLog(permissionsUser.user_id), sanitizeForLog(JSON.stringify(permissions)))
-      
-      setShowPermissionsDialog(false)
-      setPermissionsUser(null)
+      await updateUserPermissionsMutation.mutateAsync({
+        id: permissionsUser.user_id,
+        permissions
+      })
+      await refetchUserPermissions()
+      await refetch()
+      setError('')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save permissions'
       console.error('Failed to save permissions:', sanitizeForLog(errorMessage))
       setError(errorMessage)
+      throw err instanceof Error ? err : new Error(errorMessage)
     }
   }
 
@@ -816,6 +834,8 @@ export default function AdminUsers() {
         <UserPermissions
           user={permissionsUser}
           isOpen={showPermissionsDialog}
+          initialPermissions={permissionsData?.data}
+          isLoading={permissionsLoading}
           onClose={() => {
             setShowPermissionsDialog(false)
             setPermissionsUser(null)

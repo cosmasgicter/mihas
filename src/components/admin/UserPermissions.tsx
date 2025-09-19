@@ -1,14 +1,17 @@
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog'
 import { UserProfile } from '@/lib/supabase'
 import { Shield, Lock, Unlock, Settings, Eye, Edit, Trash2, Users, FileText, DollarSign, BarChart3 } from 'lucide-react'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 interface UserPermissionsProps {
   user: UserProfile
   isOpen: boolean
+  initialPermissions?: string[] | null
+  isLoading?: boolean
   onClose: () => void
-  onSave: (permissions: string[]) => void
+  onSave: (permissions: string[]) => Promise<void>
 }
 
 interface Permission {
@@ -53,12 +56,30 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
   super_admin: AVAILABLE_PERMISSIONS.map(p => p.id)
 }
 
-export function UserPermissions({ user, isOpen, onClose, onSave }: UserPermissionsProps) {
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>(
-    ROLE_DEFAULT_PERMISSIONS[user.role] || []
-  )
+export function UserPermissions({ user, isOpen, onClose, onSave, initialPermissions, isLoading }: UserPermissionsProps) {
+  const defaultPermissions = useMemo(() => ROLE_DEFAULT_PERMISSIONS[user.role] || [], [user.role])
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>(() => [...defaultPermissions])
+  const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    if (!isOpen) {
+      return
+    }
+
+    if (Array.isArray(initialPermissions)) {
+      setSelectedPermissions([...initialPermissions])
+      return
+    }
+
+    setSelectedPermissions([...defaultPermissions])
+  }, [initialPermissions, defaultPermissions, isOpen])
+
+  const isBusy = Boolean(isLoading) || isSaving
 
   const handlePermissionToggle = (permissionId: string) => {
+    if (isBusy) {
+      return
+    }
     if (selectedPermissions.includes(permissionId)) {
       setSelectedPermissions(selectedPermissions.filter(id => id !== permissionId))
     } else {
@@ -67,6 +88,9 @@ export function UserPermissions({ user, isOpen, onClose, onSave }: UserPermissio
   }
 
   const handleSelectAllInCategory = (category: string) => {
+    if (isBusy) {
+      return
+    }
     const categoryPermissions = AVAILABLE_PERMISSIONS
       .filter(p => p.category === category)
       .map(p => p.id)
@@ -86,9 +110,20 @@ export function UserPermissions({ user, isOpen, onClose, onSave }: UserPermissio
     }
   }
 
-  const handleSave = () => {
-    onSave(selectedPermissions)
-    onClose()
+  const handleSave = async () => {
+    if (isBusy) {
+      return
+    }
+
+    try {
+      setIsSaving(true)
+      await onSave(selectedPermissions)
+      onClose()
+    } catch {
+      // Errors are surfaced by the parent component's error boundary/UI
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const categories = [...new Set(AVAILABLE_PERMISSIONS.map(p => p.category))]
@@ -114,13 +149,18 @@ export function UserPermissions({ user, isOpen, onClose, onSave }: UserPermissio
             </p>
           </div>
 
-          {categories.map(category => {
-            const categoryPermissions = AVAILABLE_PERMISSIONS.filter(p => p.category === category)
-            const selectedInCategory = categoryPermissions.filter(p => selectedPermissions.includes(p.id)).length
-            const allSelected = selectedInCategory === categoryPermissions.length
+          {isLoading ? (
+            <div className="flex justify-center py-10">
+              <LoadingSpinner size="lg" />
+            </div>
+          ) : (
+            categories.map(category => {
+              const categoryPermissions = AVAILABLE_PERMISSIONS.filter(p => p.category === category)
+              const selectedInCategory = categoryPermissions.filter(p => selectedPermissions.includes(p.id)).length
+              const allSelected = selectedInCategory === categoryPermissions.length
 
-            return (
-              <div key={category} className="border border-gray-200 rounded-lg p-4">
+              return (
+                <div key={category} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-gray-900 flex items-center space-x-2">
                     <span>{category}</span>
@@ -131,6 +171,7 @@ export function UserPermissions({ user, isOpen, onClose, onSave }: UserPermissio
                     size="sm"
                     onClick={() => handleSelectAllInCategory(category)}
                     className="text-xs"
+                    disabled={isBusy}
                   >
                     {allSelected ? (
                       <>
@@ -184,9 +225,10 @@ export function UserPermissions({ user, isOpen, onClose, onSave }: UserPermissio
                     </div>
                   ))}
                 </div>
-              </div>
-            )
-          })}
+                </div>
+              )
+            })
+          )}
         </div>
 
         <DialogFooter>
@@ -195,10 +237,15 @@ export function UserPermissions({ user, isOpen, onClose, onSave }: UserPermissio
               {selectedPermissions.length} of {AVAILABLE_PERMISSIONS.length} permissions selected
             </div>
             <div className="flex space-x-2">
-              <Button variant="outline" onClick={onClose}>
+              <Button variant="outline" onClick={onClose} disabled={isSaving}>
                 Cancel
               </Button>
-              <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white">
+              <Button
+                onClick={handleSave}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={isBusy}
+                loading={isSaving}
+              >
                 Save Permissions
               </Button>
             </div>
