@@ -42,12 +42,34 @@ export default function StudentDashboard() {
   const [hasDraft, setHasDraft] = useState(false)
   const [draftData, setDraftData] = useState<any>(null)
   const hasLoadedRef = useRef(false)
+  const previousUserIdRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (user) {
+    const currentUserId = user?.id ?? null
+
+    if (!currentUserId) {
+      previousUserIdRef.current = null
+      hasLoadedRef.current = false
+      return
+    }
+
+    const userChanged = previousUserIdRef.current !== currentUserId
+
+    if (userChanged || !hasLoadedRef.current) {
+      if (userChanged) {
+        hasLoadedRef.current = false
+      }
+
+      previousUserIdRef.current = currentUserId
       loadDashboardData()
     }
-  }, [user, profile])
+  }, [user?.id])
+
+  useEffect(() => {
+    if (profile && hasLoadedRef.current) {
+      loadDashboardData()
+    }
+  }, [profile])
 
   // Listen for storage changes to update draft status
   useEffect(() => {
