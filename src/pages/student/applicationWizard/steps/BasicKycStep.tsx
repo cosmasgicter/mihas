@@ -7,7 +7,7 @@ import type { UseFormReturn } from 'react-hook-form'
 import { Input } from '@/components/ui/Input'
 import { ProfileCompletionBadge } from '@/components/ui/ProfileAutoPopulationIndicator'
 
-import type { WizardFormData, WizardProgram } from '../types'
+import type { WizardFormData, WizardProgram, WizardIntake } from '../types'
 
 interface BasicKycStepProps {
   form: UseFormReturn<WizardFormData>
@@ -15,6 +15,7 @@ interface BasicKycStepProps {
   completionPercentage: number
   selectedProgram?: WizardFormData['program']
   programs: WizardProgram[]
+  intakes: WizardIntake[]
   title: string
 }
 
@@ -24,6 +25,7 @@ const BasicKycStep = ({
   completionPercentage,
   selectedProgram,
   programs,
+  intakes,
   title
 }: BasicKycStepProps) => {
   const {
@@ -40,6 +42,19 @@ const BasicKycStep = ({
     if (!selectedProgramDetails?.institutions) return undefined
     return selectedProgramDetails.institutions.full_name || selectedProgramDetails.institutions.name || undefined
   }, [selectedProgramDetails])
+
+  const formatDeadline = (date: string | undefined) => {
+    if (!date) return ''
+    try {
+      return new Date(date).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
+    } catch {
+      return ''
+    }
+  }
 
   return (
     <motion.div
@@ -207,12 +222,31 @@ const BasicKycStep = ({
           <select
             {...register('intake')}
             id="intake"
-            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            disabled={intakes.length === 0}
+            className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              intakes.length === 0 ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' : 'bg-white border-gray-300'
+            }`}
           >
             <option value="">Select intake</option>
-            <option value="January 2026">January 2026</option>
-            <option value="July 2026">July 2026</option>
+            {intakes.length === 0 && (
+              <option value="" disabled>
+                Intakes currently unavailable
+              </option>
+            )}
+            {intakes.map(intake => {
+              const label = intake.displayName
+              const deadline = formatDeadline(intake.application_deadline)
+              const optionLabel = deadline ? `${label} — Apply by ${deadline}` : label
+              return (
+                <option key={intake.id} value={label}>
+                  {optionLabel}
+                </option>
+              )
+            })}
           </select>
+          {intakes.length === 0 && (
+            <p className="mt-1 text-sm text-gray-500">Intakes will appear here once enrollment periods are announced.</p>
+          )}
           {errors.intake && <p className="mt-1 text-sm text-red-600">{errors.intake.message}</p>}
         </div>
       </div>
