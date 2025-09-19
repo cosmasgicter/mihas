@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { VariableSizeList as List, type ListChildComponentProps } from 'react-window'
+import { FixedSizeList as List, type ListChildComponentProps } from 'react-window'
 import { sanitizeHtml } from '@/lib/sanitizer'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
@@ -108,24 +108,12 @@ export function ApplicationsTable({
   }, [])
 
   const listRef = useRef<List>(null)
-  const sizeMapRef = useRef<Map<number, number>>(new Map())
-
-  const getSize = useCallback((index: number) => {
-    return sizeMapRef.current.get(index) ?? ESTIMATED_ROW_HEIGHT
-  }, [])
 
   const setSize = useCallback((index: number, size: number) => {
-    if (sizeMapRef.current.get(index) === size) {
-      return
-    }
-    sizeMapRef.current.set(index, size)
-    listRef.current?.resetAfterIndex(index)
+    // Fixed size list doesn't need dynamic sizing
   }, [])
 
-  useEffect(() => {
-    sizeMapRef.current.clear()
-    listRef.current?.resetAfterIndex(0, true)
-  }, [applications.length])
+
 
   const listHeight = useMemo(() => {
     if (applications.length === 0) {
@@ -164,7 +152,7 @@ export function ApplicationsTable({
               ref={listRef}
               height={listHeight}
               itemCount={applications.length}
-              itemSize={getSize}
+              itemSize={ESTIMATED_ROW_HEIGHT}
               width="100%"
               itemData={rowData}
               overscanCount={5}
@@ -215,14 +203,6 @@ export function ApplicationsTable({
 const ApplicationRow: React.FC<ListChildComponentProps<RowData>> = ({ index, style, data }) => {
   const app = data.applications[index]
   const rowRef = useRef<HTMLDivElement | null>(null)
-
-  useLayoutEffect(() => {
-    if (!rowRef.current) return
-    const height = rowRef.current.getBoundingClientRect().height
-    if (height > 0) {
-      data.setSize(index, height)
-    }
-  }, [data, index, app])
 
   if (!app) {
     return null

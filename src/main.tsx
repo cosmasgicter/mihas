@@ -1,13 +1,22 @@
 import { useCallback, useEffect, useRef, type ComponentType } from 'react'
 import { createRoot } from 'react-dom/client'
 import { SpeedInsights } from '@vercel/speed-insights/react'
-import type { Metric } from 'web-vitals'
 import App from './App.tsx'
 import './index.css'
 import { AnalyticsService } from './lib/analytics.ts'
 
 type BaseSpeedInsightsProps = Parameters<typeof SpeedInsights>[0]
-type WebVitalsMetric = Metric & { path?: string; url?: string }
+type WebVitalsMetric = {
+  id: string
+  name: string
+  value: number
+  delta: number
+  rating: 'good' | 'needs-improvement' | 'poor'
+  navigationType: string
+  path?: string
+  url?: string
+  attribution?: any
+}
 const InstrumentedSpeedInsights = SpeedInsights as unknown as ComponentType<BaseSpeedInsightsProps & { onReport?: (metric: WebVitalsMetric) => void }>
 
 const SpeedInsightsReporter = () => {
