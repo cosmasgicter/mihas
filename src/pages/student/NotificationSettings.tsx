@@ -6,6 +6,7 @@ import { AuthenticatedNavigation } from '@/components/ui/AuthenticatedNavigation
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { notificationService } from '@/services/notifications'
+import { userConsentService, type UserConsentRecord } from '@/services/consents'
 import { ArrowLeft, MessageCircle, MessageSquare } from 'lucide-react'
 
 type ChannelKey = 'sms' | 'whatsapp'
@@ -90,6 +91,9 @@ export default function NotificationSettings() {
   const [savingChannel, setSavingChannel] = useState<ChannelKey | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [generalConsents, setGeneralConsents] = useState<Record<string, UserConsentRecord>>({})
+  const [loadingConsents, setLoadingConsents] = useState(true)
+  const [updatingConsent, setUpdatingConsent] = useState<string | null>(null)
 
   const fetchPreferences = useCallback(async () => {
     try {
@@ -106,26 +110,73 @@ export default function NotificationSettings() {
     }
   }, [])
 
+  const fetchConsents = useCallback(async () => {
+    try {
+      setLoadingConsents(true)
+      const response = await userConsentService.list()
+      const mapping: Record<string, UserConsentRecord> = {}
+      response.consents.forEach(consent => {
+        mapping[consent.consentType] = consent
+      })
+      setGeneralConsents(mapping)
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : 'Failed to load consent history'
+      setError(message)
+    } finally {
+      setLoadingConsents(false)
+    }
+  }, [])
+
   useEffect(() => {
     void fetchPreferences()
   }, [fetchPreferences])
 
+  useEffect(() => {
+    void fetchConsents()
+  }, [fetchConsents])
+
   const hasPhoneNumber = Boolean(preferences?.phone)
 
-  const channelSummaries = useMemo(() => ({
-    sms: {
-      optInAt: formatTimestamp(preferences?.sms_opt_in_at),
-      optOutAt: formatTimestamp(preferences?.sms_opt_out_at),
-      optOutReason: preferences?.sms_opt_out_reason,
-      source: preferences?.sms_opt_in_source
-    },
-    whatsapp: {
-      optInAt: formatTimestamp(preferences?.whatsapp_opt_in_at),
-      optOutAt: formatTimestamp(preferences?.whatsapp_opt_out_at),
-      optOutReason: preferences?.whatsapp_opt_out_reason,
-      source: preferences?.whatsapp_opt_in_source
-    }
-  }), [preferences?.sms_opt_in_at, preferences?.sms_opt_in_source, preferences?.sms_opt_out_at, preferences?.sms_opt_out_reason, preferences?.whatsapp_opt_in_at, preferences?.whatsapp_opt_in_source, preferences?.whatsapp_opt_out_at, preferences?.whatsapp_opt_out_reason])
+  const channelSummaries = useMemo(
+    () => ({
+      sms: {
+        optInAt: formatTimestamp(preferences?.sms_opt_in_at),
+        optOutAt: formatTimestamp(preferences?.sms_opt_out_at),
+        optOutReason: preferences?.sms_opt_out_reason,
+        source: preferences?.sms_opt_in_source
+      },
+      whatsapp: {
+        optInAt: formatTimestamp(preferences?.whatsapp_opt_in_at),
+        optOutAt: formatTimestamp(preferences?.whatsapp_opt_out_at),
+        optOutReason: preferences?.whatsapp_opt_out_reason,
+        source: preferences?.whatsapp_opt_in_source
+      }
+    }),
+    [
+      preferences?.sms_opt_in_at,
+      preferences?.sms_opt_in_source,
+      preferences?.sms_opt_out_at,
+      preferences?.sms_opt_out_reason,
+      preferences?.whatsapp_opt_in_at,
+      preferences?.whatsapp_opt_in_source,
+      preferences?.whatsapp_opt_out_at,
+      preferences?.whatsapp_opt_out_reason
+    ]
+  )
+
+  const generalConsentDetails = useMemo(
+    () => ({
+      outreach: {
+        label: 'Outreach & communications',
+        description: 'Allows MIHAS to contact you about your application, offers, and important reminders.'
+      },
+      analytics: {
+        label: 'Analytics & product improvements',
+        description: 'Allows MIHAS to analyze usage patterns to improve student services.'
+      }
+    }),
+    []
+  )
 
   const handleConsentChange = async (channel: ChannelKey, enable: boolean) => {
     if (!preferences) {
@@ -157,6 +208,89 @@ export default function NotificationSettings() {
     } finally {
       setSavingChannel(null)
     }
+  }
+
+  const isGeneralConsentActive = (consentType: keyof typeof generalConsentDetails) =>
+    Boolean(generalConsents[consentType]?.active)
+
+  const handleGeneralConsentUpdate = async (
+    consentType: keyof typeof generalConsentDetails,
+    enable: boolean
+  ) => {
+    setUpdatingConsent(consentType)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const action = enable ? 'grant' : 'revoke'
+      await userConsentService.update(consentType, action, { source: 'student_settings_page' })
+      await fetchConsents()
+      const detail = generalConsentDetails[consentType]
+      setSuccess(
+        enable
+          ? `${detail.label} consent granted.`
+          : `${detail.label} consent revoked.`
+      )
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : 'Failed to update consent'
+      setError(message)
+    } finally {
+      setUpdatingConsent(null)
+    }
+  }
+
+  const renderGeneralConsentCard = (consentType: keyof typeof generalConsentDetails) => {
+    const detail = generalConsentDetails[consentType]
+    const record = generalConsents[consentType]
+    const isActive = isGeneralConsentActive(consentType)
+    const buttonLabel = isActive ? 'Revoke consent' : 'Grant consent'
+
+    return (
+      <motion.div
+        key={consentType}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: consentType === 'outreach' ? 0.05 : 0.15 }}
+        className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">{detail.label}</h3>
+            <p className="mt-1 text-sm text-gray-600">{detail.description}</p>
+          </div>
+          <span
+            className={`px-3 py-1 text-xs font-semibold rounded-full ${
+              isActive
+                ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                : 'bg-gray-100 text-gray-600 border border-gray-200'
+            }`}
+          >
+            {isActive ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+
+        <div className="mt-4 space-y-1 text-xs text-gray-500">
+          <p>
+            Last granted: {record?.grantedAt ? formatTimestamp(record.grantedAt) ?? record.grantedAt : '—'}
+          </p>
+          <p>
+            Last revoked: {record?.revokedAt ? formatTimestamp(record.revokedAt) ?? record.revokedAt : '—'}
+          </p>
+        </div>
+
+        <div className="mt-4 flex justify-end">
+          <Button
+            type="button"
+            variant={isActive ? 'outline' : 'primary'}
+            loading={updatingConsent === consentType}
+            disabled={updatingConsent === consentType}
+            onClick={() => handleGeneralConsentUpdate(consentType, !isActive)}
+          >
+            {updatingConsent === consentType ? 'Saving…' : buttonLabel}
+          </Button>
+        </div>
+      </motion.div>
+    )
   }
 
   const renderChannelCard = (channel: ChannelKey) => {
@@ -304,8 +438,27 @@ export default function NotificationSettings() {
             <LoadingSpinner size="lg" />
           </div>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-2">
-            {(['sms', 'whatsapp'] as ChannelKey[]).map(channel => renderChannelCard(channel))}
+          <div className="space-y-6">
+            <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Data governance consents</h2>
+                  <p className="text-sm text-gray-600">
+                    These consents control how MIHAS can use your information beyond core application processing.
+                  </p>
+                </div>
+                {loadingConsents && <LoadingSpinner size="sm" />}
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                {(Object.keys(generalConsentDetails) as Array<keyof typeof generalConsentDetails>).map(consentType =>
+                  renderGeneralConsentCard(consentType)
+                )}
+              </div>
+            </section>
+
+            <section className="grid gap-6 lg:grid-cols-2">
+              {(['sms', 'whatsapp'] as ChannelKey[]).map(channel => renderChannelCard(channel))}
+            </section>
           </div>
         )}
       </div>

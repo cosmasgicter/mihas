@@ -11,7 +11,8 @@ import {
   Activity,
   Bell,
   Shield,
-  Zap
+  Zap,
+  ScrollText
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 
@@ -77,6 +78,12 @@ export function QuickActionsPanel({ stats }: QuickActionsPanelProps) {
       icon: Shield,
       href: '/admin/security',
       description: 'Security settings'
+    },
+    {
+      title: 'Audit trail',
+      icon: ScrollText,
+      href: '/admin/audit',
+      description: 'Review system activity'
     }
   ]
 

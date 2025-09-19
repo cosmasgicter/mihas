@@ -1,4 +1,5 @@
 const { supabaseAnonClient } = require('./_lib/supabaseClient')
+const { logAuditEvent } = require('./_lib/auditLogger')
 const {
   checkRateLimit,
   buildRateLimitKey,
@@ -53,8 +54,22 @@ module.exports = async function handler(req, res) {
         })
 
         if (loginError) {
+          await logAuditEvent({
+            req,
+            action: 'auth.login.failure',
+            actorEmail: email,
+            metadata: { reason: loginError.message }
+          })
           return res.status(401).json({ error: loginError.message })
         }
+
+        await logAuditEvent({
+          req,
+          action: 'auth.login.success',
+          actorId: loginData.user?.id || null,
+          actorEmail: email,
+          metadata: { hasSession: Boolean(loginData.session) }
+        })
 
         return res.status(200).json({
           user: loginData.user,
@@ -77,8 +92,22 @@ module.exports = async function handler(req, res) {
         })
 
         if (registerError) {
+          await logAuditEvent({
+            req,
+            action: 'auth.register.failure',
+            actorEmail: email,
+            metadata: { reason: registerError.message }
+          })
           return res.status(400).json({ error: registerError.message })
         }
+
+        await logAuditEvent({
+          req,
+          action: 'auth.register.success',
+          actorId: registerData.user?.id || null,
+          actorEmail: email,
+          metadata: { hasSession: Boolean(registerData.session) }
+        })
 
         return res.status(201).json({
           user: registerData.user,

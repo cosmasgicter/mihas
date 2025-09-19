@@ -1,4 +1,6 @@
 const { supabaseAdminClient, getUserFromRequest } = require('../supabaseClient')
+const { logAuditEvent } = require('../auditLogger')
+const { listActiveConsentUserIds } = require('../userConsent')
 const {
   checkRateLimit,
   buildRateLimitKey,
@@ -309,6 +311,28 @@ async function handlePredictiveDashboardRequest(req, res) {
     return res.status(status).json({ error: authContext.error })
   }
 
+  let consentingUserIds = []
+  try {
+    consentingUserIds = await listActiveConsentUserIds('analytics')
+  } catch (consentError) {
+    console.error('Failed to resolve analytics consent roster for predictive dashboard', consentError)
+    return res.status(500).json({ error: 'Failed to resolve analytics consent roster' })
+  }
+
+  if (!consentingUserIds.length) {
+    await logAuditEvent({
+      req,
+      action: 'analytics.predictive.blocked',
+      actorId: authContext.user.id,
+      actorEmail: authContext.user.email || null,
+      actorRoles: authContext.roles,
+      targetTable: 'user_consents',
+      metadata: { reason: 'missing_analytics_consent' }
+    })
+
+    return res.status(412).json({ error: 'Analytics reporting requires active analytics consent' })
+  }
+
   try {
     const [predictiveResult, workflowResult] = await Promise.all([
       fetchPredictiveSummary(),
@@ -325,7 +349,7 @@ async function handlePredictiveDashboardRequest(req, res) {
 
     const generatedAt = predictive.generatedAt || workflow.generatedAt || new Date().toISOString()
 
-    return res.status(200).json({
+    const responseBody = {
       predictive,
       workflow,
       generatedAt,
@@ -333,7 +357,23 @@ async function handlePredictiveDashboardRequest(req, res) {
         predictive: predictiveResult.source,
         workflow: workflowResult.source
       }
+    }
+
+    await logAuditEvent({
+      req,
+      action: 'analytics.predictive.view',
+      actorId: authContext.user.id,
+      actorEmail: authContext.user.email || null,
+      actorRoles: authContext.roles,
+      targetTable: 'analytics_predictive_summary',
+      metadata: {
+        consentingUsers: consentingUserIds.length,
+        sourcePredictive: predictiveResult.source,
+        sourceWorkflow: workflowResult.source
+      }
     })
+
+    return res.status(200).json(responseBody)
   } catch (error) {
     console.error('Predictive dashboard aggregation error:', error)
     return res.status(500).json({ error: 'Internal server error' })

@@ -4,6 +4,7 @@ const {
   getLimiterConfig,
   attachRateLimitHeaders
 } = require('../_lib/rateLimiter')
+const { logAuditEvent } = require('../_lib/auditLogger')
 
 module.exports = async function handler(req, res) {
   const { supabaseAdminClient, getUserFromRequest } = require('../_lib/supabaseClient')
@@ -111,6 +112,21 @@ module.exports = async function handler(req, res) {
     if (generatedAt) {
       res.setHeader('X-Generated-At', new Date(generatedAt).toUTCString())
     }
+
+    await logAuditEvent({
+      req,
+      action: 'admin.dashboard.view',
+      actorId: authContext.user.id,
+      actorEmail: authContext.user.email || null,
+      actorRoles: authContext.roles,
+      targetTable: 'admin_dashboard_metrics_cache',
+      targetId: 'overview',
+      metadata: {
+        generatedAt,
+        statusBreakdownKeys: Object.keys(statusCounts || {}),
+        totalsSnapshotKeys: Object.keys(totals || {})
+      }
+    })
 
     return res.status(200).json({
       stats,

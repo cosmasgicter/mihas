@@ -3,6 +3,7 @@ const {
   requireUser,
   clearRequestRoleCache
 } = require('../../_lib/supabaseClient')
+const { logAuditEvent } = require('../../_lib/auditLogger')
 const {
   fetchUserProfile,
   fetchActiveRole,
@@ -15,7 +16,7 @@ const {
 
 module.exports = async function handler(req, res) {
   try {
-    await requireUser(req, { requireAdmin: true })
+    const { user, roles } = await requireUser(req, { requireAdmin: true })
 
     const userId = parseUserId(req.query?.id)
     if (!userId) {
@@ -27,6 +28,18 @@ module.exports = async function handler(req, res) {
     if (req.method === 'GET') {
       if (action === 'role') {
         const activeRole = await fetchActiveRole(userId)
+
+        await logAuditEvent({
+          req,
+          action: 'admin.users.role.view',
+          actorId: user.id,
+          actorEmail: user.email || null,
+          actorRoles: roles,
+          targetTable: 'user_roles',
+          targetId: userId,
+          metadata: { activeRole: activeRole?.role || null }
+        })
+
         return res.status(200).json(activeRole)
       }
 
@@ -34,6 +47,16 @@ module.exports = async function handler(req, res) {
       if (!profile) {
         return res.status(404).json({ error: 'User not found' })
       }
+      await logAuditEvent({
+        req,
+        action: 'admin.users.view',
+        actorId: user.id,
+        actorEmail: user.email || null,
+        actorRoles: roles,
+        targetTable: 'user_profiles',
+        targetId: userId,
+        metadata: { found: true }
+      })
       return res.status(200).json({ data: profile })
     }
 
@@ -73,6 +96,17 @@ module.exports = async function handler(req, res) {
         clearRequestRoleCache(req)
       }
 
+      await logAuditEvent({
+        req,
+        action: 'admin.users.update',
+        actorId: user.id,
+        actorEmail: user.email || null,
+        actorRoles: roles,
+        targetTable: 'user_profiles',
+        targetId: userId,
+        metadata: { updatedFields: Object.keys(updates) }
+      })
+
       return res.status(200).json({ data: updatedProfile })
     }
 
@@ -106,6 +140,16 @@ module.exports = async function handler(req, res) {
       }
 
       clearRequestRoleCache(req)
+      await logAuditEvent({
+        req,
+        action: 'admin.users.delete',
+        actorId: user.id,
+        actorEmail: user.email || null,
+        actorRoles: roles,
+        targetTable: 'user_profiles',
+        targetId: userId,
+        metadata: { profileEmail: profile.email }
+      })
       return res.status(200).json({ success: true })
     }
 

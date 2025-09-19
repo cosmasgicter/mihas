@@ -3,6 +3,8 @@ const {
   supabaseAdminClient,
   getUserFromRequest
 } = require('../supabaseClient')
+const { logAuditEvent } = require('../auditLogger')
+const { listActiveConsentUserIds } = require('../userConsent')
 const {
   checkRateLimit,
   buildRateLimitKey,
@@ -116,6 +118,28 @@ async function handleTelemetryFetch(req, res) {
     return res.status(status).json({ error: authContext.error })
   }
 
+  let consentingUserIds = []
+  try {
+    consentingUserIds = await listActiveConsentUserIds('analytics')
+  } catch (consentError) {
+    console.error('Failed to resolve analytics consent roster for telemetry fetch', consentError)
+    return res.status(500).json({ error: 'Failed to resolve analytics consent roster' })
+  }
+
+  if (!consentingUserIds.length) {
+    await logAuditEvent({
+      req,
+      action: 'analytics.telemetry.blocked',
+      actorId: authContext.user.id,
+      actorEmail: authContext.user.email || null,
+      actorRoles: authContext.roles,
+      targetTable: 'user_consents',
+      metadata: { reason: 'missing_analytics_consent' }
+    })
+
+    return res.status(412).json({ error: 'Analytics reporting requires active analytics consent' })
+  }
+
   const { service, endpoint, type, level, limit, since, windowMinutes } = req.query
 
   let query = supabaseAdminClient
@@ -211,10 +235,25 @@ async function handleTelemetryFetch(req, res) {
     lastSeen: entry.lastSeen
   }))
 
-  return res.status(200).json({
+  const response = {
     events: data ?? [],
     summary
+  }
+
+  await logAuditEvent({
+    req,
+    action: 'analytics.telemetry.view',
+    actorId: authContext.user.id,
+    actorEmail: authContext.user.email || null,
+    actorRoles: authContext.roles,
+    targetTable: 'api_telemetry',
+    metadata: {
+      consentingUsers: consentingUserIds.length,
+      filters: { service, endpoint, type, level }
+    }
   })
+
+  return res.status(200).json(response)
 }
 
 module.exports = {
