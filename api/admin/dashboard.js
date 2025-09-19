@@ -10,13 +10,22 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { data, error } = await supabaseAdminClient.rpc('get_admin_dashboard_overview')
+    const queryBuilder = supabaseAdminClient.from('admin_dashboard_metrics_cache').select('metrics, generated_at')
+    const { data, error } = await queryBuilder.eq('id', 'overview').maybeSingle()
 
     if (error) {
       throw new Error(error.message || 'Failed to load admin dashboard overview')
     }
 
-    const overview = data || {}
+    const overview = (data?.metrics && typeof data.metrics === 'object' ? data.metrics : {}) || {}
+    const generatedAtSource = data?.generated_at || data?.generatedAt || null
+    let generatedAt = null
+    if (generatedAtSource) {
+      const generatedAtDate = new Date(generatedAtSource)
+      if (!Number.isNaN(generatedAtDate.getTime())) {
+        generatedAt = generatedAtDate.toISOString()
+      }
+    }
     const statusCounts = overview.status_counts || {}
     const totals = overview.totals || {}
     const applicationCounts = overview.application_counts || {}
@@ -74,6 +83,12 @@ module.exports = async function handler(req, res) {
       intake: item.intake
     }))
 
+    res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=60')
+    res.setHeader('Vary', 'Authorization')
+    if (generatedAt) {
+      res.setHeader('X-Generated-At', new Date(generatedAt).toUTCString())
+    }
+
     return res.status(200).json({
       stats,
       recentActivity: activities,
@@ -81,7 +96,8 @@ module.exports = async function handler(req, res) {
       applicationTrends: applicationCounts,
       totalsSnapshot: totals,
       processingMetrics,
-      recentActivityRaw: recentItems
+      recentActivityRaw: recentItems,
+      generatedAt
     })
   } catch (error) {
     console.error('Dashboard API error:', error)
