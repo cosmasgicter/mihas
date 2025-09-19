@@ -88,6 +88,7 @@ class ApiClient {
   async request(endpoint: string, options: RequestInit = {}) {
     const start = Date.now()
     const service = endpoint.split('/')[2] || 'unknown'
+    const method = (options.method ?? 'GET').toString().toUpperCase()
 
     try {
       const authHeaders = await this.getAuthHeaders()
@@ -102,18 +103,30 @@ class ApiClient {
       })
 
       const duration = Date.now() - start
-      monitoring.trackApiCall(service, endpoint, duration, response.ok)
+      monitoring.trackApiCall(service, endpoint, duration, response.ok, {
+        method,
+        statusCode: response.status
+      })
+      monitoring.queueFlush(!response.ok)
 
       if (!response.ok) {
-        monitoring.logError(service, `${response.status}: ${response.statusText}`)
+        monitoring.logError(service, `${response.status}: ${response.statusText}`, {
+          endpoint,
+          method,
+          statusCode: response.status
+        })
         throw new Error(`API Error: ${response.statusText}`)
       }
 
       return this.parseJsonSafely(response, service, endpoint)
     } catch (error) {
       const duration = Date.now() - start
-      monitoring.trackApiCall(service, endpoint, duration, false)
-      monitoring.logError(service, error instanceof Error ? error.message : 'Unknown error')
+      monitoring.trackApiCall(service, endpoint, duration, false, { method })
+      monitoring.logError(service, error instanceof Error ? error : { message: 'Unknown error' }, {
+        endpoint,
+        method
+      })
+      monitoring.queueFlush(true)
       throw error
     }
   }

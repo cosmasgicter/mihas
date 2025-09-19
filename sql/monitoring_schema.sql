@@ -10,6 +10,24 @@ CREATE TABLE IF NOT EXISTS performance_metrics (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- API telemetry ingestion table
+CREATE TABLE IF NOT EXISTS api_telemetry (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  type TEXT NOT NULL CHECK (type IN ('api_call', 'custom_metric', 'error', 'alert')),
+  service TEXT NOT NULL,
+  endpoint TEXT,
+  success BOOLEAN,
+  duration_ms INTEGER,
+  status_code INTEGER,
+  metric_name TEXT,
+  metric_value NUMERIC,
+  level TEXT,
+  message TEXT,
+  metadata JSONB,
+  occurred_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- System alerts table
 CREATE TABLE IF NOT EXISTS system_alerts (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -79,6 +97,9 @@ CREATE TABLE IF NOT EXISTS application_drafts (
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_performance_metrics_metric ON performance_metrics(metric);
 CREATE INDEX IF NOT EXISTS idx_performance_metrics_timestamp ON performance_metrics(timestamp);
+CREATE INDEX IF NOT EXISTS idx_api_telemetry_service_endpoint ON api_telemetry(service, endpoint);
+CREATE INDEX IF NOT EXISTS idx_api_telemetry_occurred_at ON api_telemetry(occurred_at);
+CREATE INDEX IF NOT EXISTS idx_api_telemetry_type ON api_telemetry(type);
 CREATE INDEX IF NOT EXISTS idx_system_alerts_type ON system_alerts(type);
 CREATE INDEX IF NOT EXISTS idx_system_alerts_resolved ON system_alerts(resolved);
 CREATE INDEX IF NOT EXISTS idx_error_logs_timestamp ON error_logs(timestamp);
@@ -89,6 +110,7 @@ CREATE INDEX IF NOT EXISTS idx_maintenance_logs_executed_at ON maintenance_logs(
 
 -- RLS Policies
 ALTER TABLE performance_metrics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE api_telemetry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_alerts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE error_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_feedback ENABLE ROW LEVEL SECURITY;
@@ -98,6 +120,10 @@ ALTER TABLE application_drafts ENABLE ROW LEVEL SECURITY;
 
 -- Admin access to monitoring tables
 CREATE POLICY "Admin access to performance_metrics" ON performance_metrics FOR ALL TO authenticated USING (
+  EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role = 'admin')
+);
+
+CREATE POLICY "Admin access to api telemetry" ON api_telemetry FOR SELECT TO authenticated USING (
   EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role = 'admin')
 );
 
@@ -143,5 +169,6 @@ BEGIN
   DELETE FROM performance_metrics WHERE created_at < NOW() - INTERVAL '30 days';
   DELETE FROM error_logs WHERE created_at < NOW() - INTERVAL '7 days';
   DELETE FROM maintenance_logs WHERE created_at < NOW() - INTERVAL '90 days';
+  DELETE FROM api_telemetry WHERE occurred_at < NOW() - INTERVAL '90 days';
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
