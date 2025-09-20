@@ -137,10 +137,15 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 1000,
       assetsInlineLimit: 0,
       rollupOptions: {
+        external: (id) => id === 'react' || id === 'react-dom',
         output: {
           entryFileNames: 'assets/[name]-[hash].js',
           chunkFileNames: 'assets/[name]-[hash].js',
           assetFileNames: 'assets/[name]-[hash].[ext]',
+          globals: {
+            react: 'React',
+            'react-dom': 'ReactDOM'
+          },
           manualChunks: (id) => {
             // Critical path - keep in main bundle
             if (id.includes('LandingPageOptimized') || id.includes('LandingPageSkeleton')) {
