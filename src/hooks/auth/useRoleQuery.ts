@@ -65,7 +65,7 @@ export function useRoleQuery(options: UseRoleQueryOptions = {}): RoleQueryResult
       }
 
       try {
-        const response = await fetch(`/api/admin/users?id=${user.id}&action=role`, {
+        const response = await fetch(`/api/admin/users/${encodeURIComponent(user.id)}/role`, {
           headers: {
             'Authorization': `Bearer ${accessToken}`
           }
