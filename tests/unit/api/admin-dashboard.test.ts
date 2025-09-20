@@ -13,7 +13,7 @@ const getUserFromRequestMock = vi.fn()
 const nodeRequire = createRequire(import.meta.url)
 const supabaseModulePath = nodeRequire.resolve('../../../api/_lib/supabaseClient.js')
 const auditLoggerModulePath = nodeRequire.resolve('../../../api/_lib/auditLogger.js')
-const handlerModulePath = nodeRequire.resolve('../../../api/admin/index.js')
+const handlerModulePath = nodeRequire.resolve('../../../api/admin/dashboard.js')
 
 type StatusMock = MockInstance<[number], TestResponse>
 type JsonMock = MockInstance<[unknown], TestResponse>
@@ -89,7 +89,7 @@ function createMockResponse(): TestResponse {
   return response
 }
 
-describe('api/admin?action=dashboard', () => {
+describe('api/admin/dashboard', () => {
   beforeEach(async () => {
     mockSupabaseModule()
     fromMock.mockReset()
@@ -119,7 +119,7 @@ describe('api/admin?action=dashboard', () => {
       delete: vi.fn(() => deleteBuilder)
     })
 
-    const module = await import('../../../api/admin/index.js')
+    const module = await import('../../../api/admin/dashboard.js')
     handler = (module.default || module) as Handler
   })
 
@@ -172,17 +172,15 @@ describe('api/admin?action=dashboard', () => {
     }
 
     getUserFromRequestMock.mockResolvedValue({ user: { id: 'admin' }, roles: ['admin'], isAdmin: true })
-    maybeSingleMock
-      .mockResolvedValueOnce({ data: null, error: null })
-      .mockResolvedValueOnce({
-        data: { metrics: overview, generated_at: '2025-02-21T10:00:00Z' },
-        error: null
-      })
+    maybeSingleMock.mockResolvedValueOnce({
+      data: { metrics: overview, generated_at: '2025-02-21T10:00:00Z' },
+      error: null
+    })
 
     const req = {
       method: 'GET',
       headers: { authorization: 'Bearer token' },
-      query: { action: 'dashboard' }
+      query: {}
     }
     const res = createMockResponse()
 
@@ -228,14 +226,12 @@ describe('api/admin?action=dashboard', () => {
 
   it('returns an error response when the cache lookup fails', async () => {
     getUserFromRequestMock.mockResolvedValue({ user: { id: 'admin' }, roles: ['admin'], isAdmin: true })
-    maybeSingleMock
-      .mockResolvedValueOnce({ data: null, error: null })
-      .mockResolvedValueOnce({ data: null, error: { message: 'cache failure' } })
+    maybeSingleMock.mockResolvedValueOnce({ data: null, error: { message: 'cache failure' } })
 
     const req = {
       method: 'GET',
       headers: { authorization: 'Bearer token' },
-      query: { action: 'dashboard' }
+      query: {}
     }
     const res = createMockResponse()
 

@@ -51,19 +51,32 @@ consolidatedAPIs.forEach(api => {
 
 // 3. Check consolidated admin APIs
 console.log('\n🛡️ Checking Admin APIs:');
-const adminIndexPath = path.join('api', 'admin', 'index.js');
-if (fs.existsSync(adminIndexPath)) {
-  const adminIndexContent = fs.readFileSync(adminIndexPath, 'utf8');
-  const hasDashboard = /action === 'dashboard'/.test(adminIndexContent) && adminIndexContent.includes('generatedAt');
-  const hasAuditLog = /action === 'audit-log'/.test(adminIndexContent) && adminIndexContent.includes('normalizeRecord');
+const adminDashboardPath = path.join('api', 'admin', 'dashboard.js');
+if (fs.existsSync(adminDashboardPath)) {
+  const adminDashboardContent = fs.readFileSync(adminDashboardPath, 'utf8');
+  const hasDashboardLogic = adminDashboardContent.includes('admin_dashboard_metrics_cache') && adminDashboardContent.includes('logAuditEvent');
 
-  if (hasDashboard && hasAuditLog) {
-    console.log('✅ api/admin/index.js - Handles dashboard and audit-log actions');
+  if (hasDashboardLogic) {
+    console.log('✅ api/admin/dashboard.js - Dedicated dashboard handler present');
   } else {
-    console.log('❌ api/admin/index.js - Missing dashboard or audit-log handler');
+    console.log('❌ api/admin/dashboard.js - Missing dashboard metrics handler');
   }
 } else {
-  console.log('❌ api/admin/index.js - File not found');
+  console.log('❌ api/admin/dashboard.js - File not found');
+}
+
+const adminAuditPath = path.join('api', 'admin', 'audit-log.js');
+if (fs.existsSync(adminAuditPath)) {
+  const adminAuditContent = fs.readFileSync(adminAuditPath, 'utf8');
+  const hasAuditLogic = adminAuditContent.includes('system_audit_log') && adminAuditContent.includes('normalizeRecord');
+
+  if (hasAuditLogic) {
+    console.log('✅ api/admin/audit-log.js - Dedicated audit log handler present');
+  } else {
+    console.log('❌ api/admin/audit-log.js - Missing audit log handler');
+  }
+} else {
+  console.log('❌ api/admin/audit-log.js - File not found');
 }
 
 const adminUsersPath = path.join('api', 'admin', 'users.js');
@@ -94,8 +107,8 @@ if (fs.existsSync(edgeFunctionPath)) {
 // 4. Check frontend integration
 console.log('\n🎨 Checking Frontend Integration:');
 const frontendChecks = [
-  { name: 'Admin dashboard service', file: 'src/services/admin/dashboard.ts', pattern: /\/api\/admin\?action=dashboard/ },
-  { name: 'Admin audit service', file: 'src/services/admin/audit.ts', pattern: /\/api\/admin\?action=audit-log/ },
+  { name: 'Admin dashboard service', file: 'src/services/admin/dashboard.ts', pattern: /\/api\/admin\/dashboard/ },
+  { name: 'Admin audit service', file: 'src/services/admin/audit.ts', pattern: /\/api\/admin\/audit-log/ },
   { name: 'Admin users service', file: 'src/services/admin/users.ts', pattern: /\/api\/admin\/users\?id=/ }
 ];
 

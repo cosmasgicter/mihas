@@ -36,7 +36,7 @@ async function testAdminLogin() {
     
     // Test API access
     console.log('\n🔍 Testing API access...')
-    const response = await fetch('http://localhost:5173/api/admin?action=dashboard', {
+    const response = await fetch('http://localhost:5173/api/admin/dashboard', {
       headers: {
         'Authorization': `Bearer ${data.session.access_token}`,
         'Content-Type': 'application/json'
