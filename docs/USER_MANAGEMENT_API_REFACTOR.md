@@ -7,13 +7,22 @@ Successfully implemented admin-guarded user management APIs and refactored the f
 
 ### 1. Admin-Guarded API Handlers
 
-#### `/api/admin/users.js`
-- **GET**: Lists all users when no `id` is provided (admin-only)
-- **GET**: Retrieves a specific user when `?id={userId}` is provided
-- **GET**: Supports `?id={userId}&action=role|permissions` for role and permission lookups
+#### `/api/admin/users/index.js`
+- **GET**: Lists all users (admin-only)
 - **POST**: Creates new users with auth account and profile (admin-only)
-- **PUT**: Updates user profile information via `?id={userId}` or `?id={userId}&action=permissions`
-- **DELETE**: Removes user accounts and associated records via `?id={userId}` (admin-only)
+
+#### `/api/admin/users/[id].js`
+- **GET**: Retrieves a specific user profile (admin-only)
+- **PUT**: Updates user profile information for the specified user
+- **DELETE**: Removes user accounts and associated records (admin-only)
+
+#### `/api/admin/users/[id]/role.js`
+- **GET**: Fetches the active role for the specified user
+
+#### `/api/admin/users/[id]/permissions.js`
+- **GET**: Retrieves the saved permission set for the specified user
+- **PUT**: Updates user permissions in a dedicated route
+
 - Uses `supabaseAdminClient` with elevated privileges and centralized role validation
 
 ### 2. Service Layer Updates
@@ -58,12 +67,12 @@ Added React Query hooks:
 ```
 GET    /api/admin/users                               # List all users
 POST   /api/admin/users                               # Create new user
-GET    /api/admin/users?id={id}                       # Get user by ID
-GET    /api/admin/users?id={id}&action=role           # Get active role
-GET    /api/admin/users?id={id}&action=permissions    # Get permissions array
-PUT    /api/admin/users?id={id}                       # Update user profile
-PUT    /api/admin/users?id={id}&action=permissions    # Update permissions
-DELETE /api/admin/users?id={id}                       # Delete user
+GET    /api/admin/users/{id}                          # Get user by ID
+GET    /api/admin/users/{id}/role                     # Get active role
+GET    /api/admin/users/{id}/permissions              # Get permissions array
+PUT    /api/admin/users/{id}                          # Update user profile
+PUT    /api/admin/users/{id}/permissions              # Update permissions
+DELETE /api/admin/users/{id}                          # Delete user
 ```
 
 ## Request/Response Format

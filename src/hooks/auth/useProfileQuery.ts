@@ -126,7 +126,7 @@ export function useProfileQuery(options: UseProfileQueryOptions = {}): ProfileQu
         return null
       }
 
-      const response = await fetch(`/api/admin/users?id=${user.id}`, {
+      const response = await fetch(`/api/admin/users/${encodeURIComponent(user.id)}`, {
         headers: {
           'Authorization': `Bearer ${accessToken}`
         }

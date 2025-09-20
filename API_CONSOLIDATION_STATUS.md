@@ -34,14 +34,15 @@ Successfully consolidated from 20+ to 12 serverless functions to meet Vercel Hob
 10. `/api/admin/index.js`
    - `GET /api/admin?action=dashboard`
    - `GET /api/admin?action=audit-log`
-11. `/api/admin/users.js`
+11. `/api/admin/users/*`
    - `GET /api/admin/users` (list)
-   - `GET /api/admin/users?id={id}` (profile)
-   - `GET /api/admin/users?id={id}&action=role|permissions`
    - `POST /api/admin/users`
-   - `PUT /api/admin/users?id={id}` (profile update)
-   - `PUT /api/admin/users?id={id}&action=permissions`
-   - `DELETE /api/admin/users?id={id}`
+   - `GET /api/admin/users/{id}` (profile)
+   - `PUT /api/admin/users/{id}` (profile update)
+   - `DELETE /api/admin/users/{id}`
+   - `GET /api/admin/users/{id}/role`
+   - `GET /api/admin/users/{id}/permissions`
+   - `PUT /api/admin/users/{id}/permissions`
 12. `/api/documents/upload.js`
 13. `/api/test.js`
 14. `/api/user-consents.js`
