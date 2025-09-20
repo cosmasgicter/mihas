@@ -100,12 +100,17 @@ class MultiDeviceSessionManager {
     
     this.isCheckingSession = true
     try {
-      const { data: sessions } = await supabase
+      const { data: sessions, error } = await supabase
         .from('device_sessions')
         .select('*')
         .eq('user_id', userId)
         .eq('is_active', true)
         .order('last_activity', { ascending: false })
+
+      if (error) {
+        console.warn('Device sessions check failed, continuing:', error.message)
+        return true
+      }
 
       if (!sessions || sessions.length === 0) {
         return false
@@ -138,12 +143,17 @@ class MultiDeviceSessionManager {
 
   async getActiveSessions(userId: string): Promise<DeviceSession[]> {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('device_sessions')
         .select('*')
         .eq('user_id', userId)
         .eq('is_active', true)
         .order('last_activity', { ascending: false })
+
+      if (error) {
+        console.warn('Device sessions table not available:', error.message)
+        return []
+      }
 
       return data || []
     } catch (error) {

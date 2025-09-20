@@ -217,8 +217,8 @@ class HttpTelemetrySink implements TelemetrySink {
 
       if (!response.ok) {
         // In development, API might not be available
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Telemetry API not available in development mode')
+        if (process.env.NODE_ENV === 'development' || response.status === 404) {
+          // Silently ignore telemetry failures in development
           return
         }
         const message = await response.text().catch(() => `${response.status}`)
