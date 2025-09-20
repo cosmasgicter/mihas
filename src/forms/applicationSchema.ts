@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Program, Intake } from '@/lib/supabase'
+import type { Program, Intake } from '@/lib/supabaseTypes'
 
 export const DEFAULT_PROGRAMS: Program[] = [
   {
