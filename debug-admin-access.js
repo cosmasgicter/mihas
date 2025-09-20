@@ -72,7 +72,7 @@ async function debugAdminAccess() {
     // Test API access
     console.log('\n🌐 Testing API Access...')
     try {
-      const response = await fetch('/api/admin?action=dashboard', {
+      const response = await fetch('/api/admin/dashboard', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json'

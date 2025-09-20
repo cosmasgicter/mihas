@@ -309,7 +309,7 @@ export const createEmptyDashboardResponse = (): AdminDashboardResponse => ({
 
 export const adminDashboardService = {
   async getOverview(): Promise<AdminDashboardResponse> {
-    const response = await apiClient.request('/api/admin?action=dashboard')
+    const response = await apiClient.request('/api/admin/dashboard')
 
     if (!response || typeof response !== 'object') {
       return createEmptyDashboardResponse()

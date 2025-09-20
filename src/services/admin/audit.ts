@@ -54,7 +54,7 @@ function buildQuery(params: AuditLogFilters = {}): string {
 export const adminAuditService = {
   async list(params: AuditLogFilters = {}): Promise<AuditLogResponse> {
     const query = buildQuery(params)
-    const url = `/api/admin?action=audit-log${query ? `&${query.slice(1)}` : ''}`
+    const url = `/api/admin/audit-log${query}`
     return apiClient.request(url, {
       method: 'GET'
     })
