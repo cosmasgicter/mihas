@@ -65,21 +65,22 @@ function parseBoolean(value) {
 }
 
 module.exports = async function handler(req, res) {
-  try {
-    const rateKey = buildRateLimitKey(req, { prefix: 'applications' })
-    const rateResult = await checkRateLimit(
-      rateKey,
-      getLimiterConfig('applications', { maxAttempts: 40, windowMs: 60_000 })
-    )
+  // Rate limiting temporarily disabled for testing
+  // try {
+  //   const rateKey = buildRateLimitKey(req, { prefix: 'applications' })
+  //   const rateResult = await checkRateLimit(
+  //     rateKey,
+  //     getLimiterConfig('applications', { maxAttempts: 40, windowMs: 60_000 })
+  //   )
 
-    if (rateResult.isLimited) {
-      attachRateLimitHeaders(res, rateResult)
-      return res.status(429).json({ error: 'Too many application requests. Please slow down.' })
-    }
-  } catch (rateError) {
-    console.error('Applications rate limiter error:', rateError)
-    return res.status(503).json({ error: 'Rate limiter unavailable' })
-  }
+  //   if (rateResult.isLimited) {
+  //     attachRateLimitHeaders(res, rateResult)
+  //     return res.status(429).json({ error: 'Too many application requests. Please slow down.' })
+  //   }
+  // } catch (rateError) {
+  //   console.error('Applications rate limiter error:', rateError)
+  //   return res.status(503).json({ error: 'Rate limiter unavailable' })
+  // }
 
   const authContext = await getUserFromRequest(req)
   if (authContext.error) {

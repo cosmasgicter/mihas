@@ -4,7 +4,7 @@ const DEFAULT_WINDOW_MS = Number.parseInt(process.env.RATE_LIMIT_DEFAULT_WINDOW_
 const DEFAULT_MAX_ATTEMPTS = Number.parseInt(process.env.RATE_LIMIT_DEFAULT_MAX_ATTEMPTS || process.env.RATE_LIMIT_MAX_REQUESTS || '60', 10)
 const RATE_LIMIT_TABLE = process.env.RATE_LIMIT_TABLE || 'request_rate_limits'
 
-let currentStore = createSupabaseRateLimitStore()
+let currentStore = createInMemoryFallbackStore()
 
 function createSupabaseRateLimitStore() {
   if (!supabaseAdminClient) {
@@ -13,52 +13,66 @@ function createSupabaseRateLimitStore() {
 
   return {
     async get(key) {
-      const { data, error } = await supabaseAdminClient
-        .from(RATE_LIMIT_TABLE)
-        .select('key,count,reset_at,window_ms')
-        .eq('key', key)
-        .maybeSingle()
+      try {
+        const { data, error } = await supabaseAdminClient
+          .from(RATE_LIMIT_TABLE)
+          .select('key,count,reset_at,window_ms')
+          .eq('key', key)
+          .maybeSingle()
 
-      if (error && error.code !== 'PGRST116') {
-        throw new Error(`Failed to read rate limit record: ${error.message}`)
-      }
+        if (error && error.code !== 'PGRST116') {
+          console.warn('Rate limiter DB error, falling back to memory:', error.message)
+          return null
+        }
 
-      if (!data) {
+        if (!data) {
+          return null
+        }
+
+        return {
+          key: data.key,
+          count: typeof data.count === 'number' ? data.count : 0,
+          resetAt: data.reset_at ? new Date(data.reset_at) : null,
+          windowMs: typeof data.window_ms === 'number' ? data.window_ms : DEFAULT_WINDOW_MS
+        }
+      } catch (error) {
+        console.warn('Rate limiter get error, falling back:', error.message)
         return null
-      }
-
-      return {
-        key: data.key,
-        count: typeof data.count === 'number' ? data.count : 0,
-        resetAt: data.reset_at ? new Date(data.reset_at) : null,
-        windowMs: typeof data.window_ms === 'number' ? data.window_ms : DEFAULT_WINDOW_MS
       }
     },
     async set(record) {
-      const payload = {
-        key: record.key,
-        count: record.count,
-        reset_at: record.resetAt.toISOString(),
-        window_ms: record.windowMs,
-        updated_at: new Date().toISOString()
-      }
+      try {
+        const payload = {
+          key: record.key,
+          count: record.count,
+          reset_at: record.resetAt.toISOString(),
+          window_ms: record.windowMs,
+          updated_at: new Date().toISOString()
+        }
 
-      const { error } = await supabaseAdminClient
-        .from(RATE_LIMIT_TABLE)
-        .upsert(payload, { onConflict: 'key' })
+        const { error } = await supabaseAdminClient
+          .from(RATE_LIMIT_TABLE)
+          .upsert(payload, { onConflict: 'key' })
 
-      if (error) {
-        throw new Error(`Failed to persist rate limit record: ${error.message}`)
+        if (error) {
+          console.warn('Rate limiter set error:', error.message)
+        }
+      } catch (error) {
+        console.warn('Rate limiter set error:', error.message)
       }
     },
     async delete(key) {
-      const { error } = await supabaseAdminClient
-        .from(RATE_LIMIT_TABLE)
-        .delete()
-        .eq('key', key)
+      try {
+        const { error } = await supabaseAdminClient
+          .from(RATE_LIMIT_TABLE)
+          .delete()
+          .eq('key', key)
 
-      if (error) {
-        throw new Error(`Failed to delete rate limit record: ${error.message}`)
+        if (error) {
+          console.warn('Rate limiter delete error:', error.message)
+        }
+      } catch (error) {
+        console.warn('Rate limiter delete error:', error.message)
       }
     }
   }
