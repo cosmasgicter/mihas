@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import React, { useCallback, useEffect, useRef } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import App from './App.tsx'
