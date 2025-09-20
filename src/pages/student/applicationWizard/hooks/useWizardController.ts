@@ -640,7 +640,7 @@ const useWizardController = (): UseWizardControllerResult => {
         const { getApiBaseUrl } = await import('@/lib/apiConfig')
         const apiBase = getApiBaseUrl()
         const { data: session } = await supabase.auth.getSession()
-        await fetch(`${apiBase}/api/notifications?action=application-submitted`, {
+        await fetch(`${apiBase}/api/notifications/application-submitted`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

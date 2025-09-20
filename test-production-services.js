@@ -43,7 +43,7 @@ async function testServices() {
   // Test Notifications Service
   console.log('4. Testing Notifications Service...')
   try {
-    const notifResponse = await fetch(`${PRODUCTION_URL}/api/notifications?action=send`, {
+    const notifResponse = await fetch(`${PRODUCTION_URL}/api/notifications/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: 'test', type: 'test', title: 'Test', message: 'Test' })

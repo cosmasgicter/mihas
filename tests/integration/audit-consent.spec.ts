@@ -89,13 +89,22 @@ test.describe('Governance consent and audit enforcement', () => {
       })
     })
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const notificationsHandler = require(path.join(projectRoot, 'api/notifications.js'))
+    const dispatchModule = await import(
+      path.join(projectRoot, 'api/notifications/dispatch-channel.js')
+    )
+    const dispatchHandler = (dispatchModule.default ?? dispatchModule) as unknown as (
+      req: IncomingMessage,
+      res: ServerResponse
+    ) => Promise<void>
+
+    if (typeof dispatchHandler !== 'function') {
+      throw new Error('Failed to load dispatch channel handler for test')
+    }
 
     const req = {
       method: 'POST',
       headers: { authorization: 'Bearer test-token' },
-      query: { action: 'dispatch-channel' },
+      query: {},
       body: {
         userId: 'student-123',
         channel: 'sms',
@@ -106,7 +115,7 @@ test.describe('Governance consent and audit enforcement', () => {
 
     const res = createResponse() as unknown as ServerResponse & { body: unknown; status: (code: number) => typeof res; json: (payload: unknown) => typeof res }
 
-    await notificationsHandler(req, res)
+    await dispatchHandler(req, res)
 
     expect(res.statusCode).toBe(412)
     expect(res.body).toMatchObject({ error: expect.stringContaining('consent') })
@@ -144,8 +153,13 @@ test.describe('Governance consent and audit enforcement', () => {
       })
     })
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { handleMetricsRequest } = require(path.join(projectRoot, 'api/_lib/analytics/metrics.js'))
+    const analyticsModule = await import(path.join(projectRoot, 'api/_lib/analytics/metrics.js'))
+    const handleMetricsRequest =
+      (analyticsModule.default ?? analyticsModule).handleMetricsRequest
+
+    if (typeof handleMetricsRequest !== 'function') {
+      throw new Error('Failed to load analytics metrics handler for test')
+    }
 
     const req = {
       headers: { authorization: 'Bearer test-token' },

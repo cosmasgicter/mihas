@@ -93,7 +93,7 @@ async function testNotificationSystem() {
 
     // 4. Test notification API endpoint
     console.log('\n4️⃣ Testing notification API...')
-    const response = await fetch(`${apiBaseUrl}/api/notifications?action=application-submitted`, {
+    const response = await fetch(`${apiBaseUrl}/api/notifications/application-submitted`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
