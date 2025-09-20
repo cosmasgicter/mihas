@@ -138,6 +138,9 @@ export default defineConfig(({ mode }) => {
       assetsInlineLimit: 0,
       rollupOptions: {
         output: {
+          entryFileNames: 'assets/[name]-[hash].js',
+          chunkFileNames: 'assets/[name]-[hash].js',
+          assetFileNames: 'assets/[name]-[hash].[ext]',
           manualChunks: (id) => {
             // Critical path - keep in main bundle
             if (id.includes('LandingPageOptimized') || id.includes('LandingPageSkeleton')) {
