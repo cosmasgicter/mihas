@@ -30,7 +30,7 @@
     "test:notifications": "playwright test tests/integration/test-notification-integration.js",
     "verify:notifications": "node verify-notification-setup.js",
     "test:notification-system": "node test-notification-system.js",
-    "verify:api-consolidation": "node verify-api-consolidation.js"
+    "verify:api-layout": "node verify-api-layout.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

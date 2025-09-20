@@ -1,140 +1,88 @@
-# API Consolidation Status - COMPLETED ✅
+# API Route Status - Multi-function Layout ✅
 
-## Summary Yes
-Successfully consolidated from 20+ to 12 serverless functions to meet Vercel Hobby plan limits. Analytics endpoints have since been split into dedicated routes (metrics, predictive dashboard, telemetry), bringing the total to 14 functions while keeping responsibilities clear.
+## Summary
+The API now uses standalone route files for each action so the project deploys cleanly to Netlify (and other providers that package one function per file). All query-parameter handlers have been removed. Authentication, catalog, notifications, and MCP routes each live in their own file under `api/`.
 
-## Current API Structure (14 Functions)
+## Current API Structure
 
-### Consolidated APIs ✅
-1. **`/api/catalog.js`** - Handles all catalog operations
-   - `GET /api/catalog?resource=subjects`
-   - `GET|POST|PUT|DELETE /api/catalog?resource=programs`
-   - `GET|POST|PUT|DELETE /api/catalog?resource=intakes`
+### Catalog Service (`api/catalog/*`)
+- `/api/catalog/programs` (GET)
+- `/api/catalog/intakes` (GET)
+- `/api/catalog/subjects` (GET)
 
-2. **`/api/auth.js`** - Handles all authentication
-   - `POST /api/auth?action=login`
-   - `POST /api/auth?action=signin`
-   - `POST /api/auth?action=register`
+### Authentication Service (`api/auth/*`)
+- `/api/auth/login` (POST)
+- `/api/auth/signin` (POST)
+- `/api/auth/register` (POST)
 
-3. **`/api/notifications.js`** - Handles all notifications
-   - `POST /api/notifications?action=send`
-   - `POST /api/notifications?action=application-submitted`
+### Notification Service (`api/notifications/*`)
+- `/api/notifications/send` (POST)
+- `/api/notifications/application-submitted` (POST)
+- `/api/notifications/preferences` (POST)
+- `/api/notifications/update-consent` (POST)
 
-### Remaining Individual APIs ✅
-4. `/api/analytics/metrics.js`
-   - `GET /api/analytics/metrics`
-5. `/api/analytics/predictive-dashboard.js`
-   - `GET /api/analytics/predictive-dashboard`
-6. `/api/analytics/telemetry/index.js`
-   - `GET /api/analytics/telemetry`
-   - `POST /api/analytics/telemetry`
-7. `/api/applications/[id].js`
-8. `/api/applications/index.js`
-9. `/api/applications/bulk.js`
-10. `/api/admin/index.js`
-   - `GET /api/admin?action=dashboard`
-   - `GET /api/admin?action=audit-log`
-11. `/api/admin/users/*`
-   - `GET /api/admin/users` (list)
-   - `POST /api/admin/users`
-   - `GET /api/admin/users/{id}` (profile)
-   - `PUT /api/admin/users/{id}` (profile update)
-   - `DELETE /api/admin/users/{id}`
-   - `GET /api/admin/users/{id}/role`
-   - `GET /api/admin/users/{id}/permissions`
-   - `PUT /api/admin/users/{id}/permissions`
-12. `/api/documents/upload.js`
-13. `/api/test.js`
-14. `/api/user-consents.js`
+### Applications & Admin
+- `/api/applications` (GET, POST)
+- `/api/applications/bulk` (POST)
+- `/api/applications/[id]` (GET, PUT)
+- `/api/admin/dashboard` (GET)
+- `/api/admin/audit-log` (GET)
+- `/api/admin/users` (GET, POST)
+- `/api/admin/users/[id]` (GET, PUT, DELETE)
+- `/api/admin/users/[id]/role` (GET)
+- `/api/admin/users/[id]/permissions` (GET, PUT)
 
-## Supabase Edge Functions (1 Function)
-- **`mcp-operations`** - Consolidated MCP operations
-  - `GET /functions/v1/mcp-operations?action=schema`
-  - `POST /functions/v1/mcp-operations?action=query`
+### Analytics & Documents
+- `/api/analytics/metrics` (GET)
+- `/api/analytics/predictive-dashboard` (GET)
+- `/api/analytics/telemetry` (GET, POST)
+- `/api/documents/upload` (POST)
+- `/api/user-consents` (GET, POST)
+- `/api/test` (GET)
+
+### MCP API
+- `/api/mcp/query` (POST)
+- `/api/mcp/schema` (GET)
+- `/api/mcp/schema?table={tableName}` (GET)
+
+## Supabase Integration
+- Supabase service role key is used directly inside the new MCP handlers.
+- The `mcp-operations` edge function is no longer required for application features.
 
 ## Frontend Integration Status ✅
 
-### API Client Service
-The shared API client (`src/services/client.ts`) and feature services already use the consolidated endpoints:
+Key services reference the dedicated routes:
 
 ```typescript
-// Auth endpoints
-auth: {
-  register: () => apiClient.request('/api/auth?action=register', { ... }),
-  login: () => apiClient.request('/api/auth?action=login', { ... }),
-  signin: () => apiClient.request('/api/auth?action=signin', { ... })
-}
+// src/services/auth.ts
+apiClient.request('/api/auth/login', { method: 'POST', body: ... })
+apiClient.request('/api/auth/register', { method: 'POST', body: ... })
+apiClient.request('/api/auth/signin', { method: 'POST', body: ... })
 
-// Catalog endpoints
-catalog: {
-  getPrograms: () => apiClient.request('/api/catalog?resource=programs'),
-  getIntakes: () => apiClient.request('/api/catalog?resource=intakes'),
-  getSubjects: () => apiClient.request('/api/catalog?resource=subjects')
-}
-
-// Notification endpoints
-notifications: {
-  send: () => apiClient.request('/api/notifications?action=send', { ... }),
-  applicationSubmitted: () => apiClient.request('/api/notifications?action=application-submitted', { ... })
-}
+// src/services/mcpService.ts
+MCPService.query('/api/mcp/query')
+MCPService.getSchema('/api/mcp/schema')
+MCPService.getTableInfo('/api/mcp/schema?table=applications')
 ```
 
-### MCP Service
-MCP service in `src/services/mcpService.ts` is using Supabase Edge Function:
+## Verification
 
-```typescript
-const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mcp-operations?action=${action}`, {
-  headers: {
-    'Authorization': `Bearer ${session.access_token}`,
-    ...
-  }
-})
-```
+Run the health check script to confirm the layout:
 
-## Verification Results ✅
-
-### Function Count & Contract Verification
 ```bash
-$ npm run verify:api-consolidation
+npm run verify:api-layout
 ```
 
-### No Old API References Found
-- ❌ No `/api/catalog/grade12-subjects` references
-- ❌ No `/api/catalog/programs` references  
-- ❌ No `/api/catalog/intakes` references
-- ❌ No `/api/auth/login` references
-- ❌ No `/api/auth/signin` references
-- ❌ No `/api/auth/register` references
-- ❌ No `/api/notifications/send` references
-- ❌ No `/api/notifications/application-submitted` references
-- ❌ No `/api/mcp/query` references
-- ❌ No `/api/mcp/schema` references
+It ensures:
+- Required `api/` files exist
+- Consolidated files are removed
+- Tests and docs do not use query-parameter routes
+- MCP service points to `/api/mcp/*`
 
-## Deployment Status ✅
+## Deployment Notes
+- Update smoke tests to call `/api/auth/login`, `/api/catalog/programs`, etc.
+- Netlify deploys each `api/**` file individually with no custom rewrites.
+- Supabase Edge Functions are optional; the API routes cover MCP access directly.
 
-The application is ready for deployment with:
-- **12/12 Vercel functions** (within Hobby plan limit)
-- **1 Supabase Edge Function** (unlimited)
-- **All frontend code updated** to use consolidated endpoints
-- **No breaking changes** for existing functionality
-
-## Next Steps
-
-1. **Deploy to Vercel** - Should now be under the 12 function limit
-2. **Monitor function usage** - Ensure all endpoints work correctly
-3. **Performance testing** - Verify consolidated functions perform well
-4. **Consider future consolidation** - If more functions are needed, additional consolidation is possible
-
-## Benefits Achieved
-
-- ✅ **Reduced complexity** - Fewer API endpoints to maintain
-- ✅ **Cost optimization** - Fits within Vercel Hobby plan limits
-- ✅ **Better organization** - Related functionality grouped together
-- ✅ **Maintained functionality** - No features lost in consolidation
-- ✅ **Future scalability** - Easy to move more functions to Edge Functions if needed
-
----
-
-**Status**: ✅ COMPLETE - Ready for production deployment
+**Status**: ✅ COMPLETE – Multi-function API layout verified
 **Last Updated**: 2025-09-19
-**Functions**: 12/12 Vercel + 1 Supabase Edge Function

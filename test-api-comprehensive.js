@@ -122,6 +122,11 @@ async function testEndpoints() {
       name: 'User Consents (No Auth)',
       path: '/api/user-consents',
       expectedStatus: [401, 403]
+    },
+    {
+      name: 'MCP Schema (No Auth)',
+      path: '/api/mcp/schema',
+      expectedStatus: [401, 403]
     }
   ];
 
@@ -170,6 +175,13 @@ async function testEndpoints() {
       method: 'POST',
       body: { events: [] },
       expectedStatus: [401, 400]
+    },
+    {
+      name: 'MCP Query (No Auth)',
+      path: '/api/mcp/query',
+      method: 'POST',
+      body: { sql: 'select 1' },
+      expectedStatus: [401, 403]
     }
   ];
 

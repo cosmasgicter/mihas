@@ -71,11 +71,13 @@ The MIHAS/KATC Application System is a **fully operational production system** s
 - **Structured file storage** with CDN
 
 ### Microservices
-- **Authentication Service** (`/api/auth`)
+- **Authentication Service** (`/api/auth/login`, `/api/auth/signin`, `/api/auth/register`)
 - **Application Management** (`/api/applications`)
-- **Document Processing** (`/api/documents`)
-- **Notification Service** (`/api/notifications`)
+- **Catalog Service** (`/api/catalog/programs`, `/api/catalog/intakes`, `/api/catalog/subjects`)
+- **Document Processing** (`/api/documents/upload`)
+- **Notification Service** (`/api/notifications/send`, `/api/notifications/application-submitted`, `/api/notifications/preferences`, `/api/notifications/update-consent`)
 - **Analytics Service** (`/api/analytics/metrics`, `/api/analytics/predictive-dashboard`, `/api/analytics/telemetry`)
+- **MCP Service** (`/api/mcp/query`, `/api/mcp/schema`)
 
 ## 📈 Production Statistics
 
@@ -172,10 +174,9 @@ The `vercel dev` command automatically loads environment variables and provides 
 
 #### Supabase Edge Functions
 
-Deploy the Supabase Edge functions after updating environment variables:
+MCP access is handled directly through `/api/mcp/*`. If you use optional Supabase Edge Functions (for example, transactional email), deploy them after configuring environment variables:
 
 ```bash
-supabase functions deploy mcp-operations
 supabase functions deploy send-email
 ```
 
@@ -224,12 +225,15 @@ npm run security-audit
 
 ```
 mihas/
-├── api/                    # Serverless API routes (Vercel)
-│   ├── auth/              # Authentication service
+├── api/                    # Serverless API routes
+│   ├── auth/              # Authentication service (login | signin | register)
+│   ├── catalog/           # Catalog listings (programs | intakes | subjects)
 │   ├── applications/      # Application management
+│   ├── admin/             # Admin dashboard & users
 │   ├── documents/         # Document processing
 │   ├── notifications/     # Notification service
-│   └── analytics/         # Analytics router (metrics | predictive-dashboard | telemetry)
+│   ├── analytics/         # Analytics (metrics | predictive-dashboard | telemetry)
+│   └── mcp/               # MCP SQL + schema endpoints
 ├── src/
 │   ├── components/        # React components
 │   │   ├── admin/        # Admin dashboard components
