@@ -24,9 +24,12 @@ module.exports = async function handler(req, res) {
   //   return res.status(503).json({ error: 'Rate limiter unavailable' })
   // }
 
-  const authContext = await getUserFromRequest(req, { requireAdmin: req.method !== 'GET' })
-  if (authContext.error) {
-    return res.status(401).json({ error: authContext.error })
+  // Allow public access for GET requests
+  if (req.method !== 'GET') {
+    const authContext = await getUserFromRequest(req, { requireAdmin: true })
+    if (authContext.error) {
+      return res.status(401).json({ error: authContext.error })
+    }
   }
 
   switch (req.method) {

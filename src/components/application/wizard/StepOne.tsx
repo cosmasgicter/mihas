@@ -156,9 +156,9 @@ export const StepOne: React.FC<StepOneProps> = ({ register, errors, selectedProg
             className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">Select program</option>
-            <option value="Clinical Medicine">Clinical Medicine</option>
-            <option value="Environmental Health">Environmental Health</option>
-            <option value="Registered Nursing">Registered Nursing</option>
+            <option value="Clinical Medicine">Clinical Medicine (KATC)</option>
+            <option value="Environmental Health">Environmental Health (KATC)</option>
+            <option value="Registered Nursing">Registered Nursing (MIHAS)</option>
           </select>
           {errors.program && (
             <p className="mt-1 text-sm text-red-600">{errors.program.message}</p>
@@ -174,6 +174,8 @@ export const StepOne: React.FC<StepOneProps> = ({ register, errors, selectedProg
             className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">Select intake</option>
+            <option value="January 2025">January 2025</option>
+            <option value="July 2025">July 2025</option>
             <option value="January 2026">January 2026</option>
             <option value="July 2026">July 2026</option>
           </select>
