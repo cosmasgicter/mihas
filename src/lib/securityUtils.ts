@@ -60,12 +60,3 @@ export const createSafeError = (message: string, code?: string): Error => {
   return error
 }
 
-// Content Security Policy nonce generation
-export const generateCSPNonce = (): string => {
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    const array = new Uint8Array(16)
-    crypto.getRandomValues(array)
-    return btoa(String.fromCharCode(...array))
-  }
-  return btoa(Math.random().toString()).substring(0, 16)
-}

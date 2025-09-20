@@ -5,71 +5,9 @@
 
 import { initializeSecurityPatches } from './securityPatches'
 
-/**
- * Content Security Policy configuration
- */
-export const CSP_CONFIG = {
-  'default-src': ["'self'"],
-  'script-src': [
-    "'self'",
-    "'unsafe-inline'", // Required for Vite in development
-    "https://challenges.cloudflare.com", // Cloudflare Turnstile
-    "https://*.supabase.co"
-  ],
-  'style-src': [
-    "'self'",
-    "'unsafe-inline'", // Required for Tailwind CSS
-    "https://fonts.googleapis.com"
-  ],
-  'font-src': [
-    "'self'",
-    "https://fonts.gstatic.com"
-  ],
-  'img-src': [
-    "'self'",
-    "data:",
-    "blob:",
-    "https:",
-    "http:"
-  ],
-  'connect-src': [
-    "'self'",
-    "https://*.supabase.co",
-    "wss://*.supabase.co"
-  ],
-  'object-src': ["'none'"],
-  'base-uri': ["'self'"],
-  'form-action': ["'self'"],
 
-  'upgrade-insecure-requests': []
-}
 
-/**
- * Generate CSP header string
- */
-export function generateCSPHeader(): string {
-  return Object.entries(CSP_CONFIG)
-    .map(([directive, sources]) => {
-      if (sources.length === 0) {
-        return directive.replace(/-/g, '-')
-      }
-      return `${directive.replace(/-/g, '-')} ${sources.join(' ')}`
-    })
-    .join('; ')
-}
 
-/**
- * Security headers configuration
- */
-export const SECURITY_HEADERS = {
-  'Content-Security-Policy': generateCSPHeader(),
-  'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY',
-  'X-XSS-Protection': '1; mode=block',
-  'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
-}
 
 /**
  * Disable dangerous global functions to prevent code injection
@@ -418,8 +356,7 @@ export function initializeSecurity(): void {
   // Apply security patches
   initializeSecurityPatches()
   
-  // Note: CSP is handled by server headers, not meta tags
-  // Meta tag CSP has limitations and can cause issues
+
   
   console.log('Security measures initialized')
 }

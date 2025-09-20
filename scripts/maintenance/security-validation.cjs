@@ -217,14 +217,14 @@ function generateSecurityReport() {
     securityMeasures: {
       functionConstructorBlocked: true,
       evalBlocked: true,
-      cspImplemented: true,
+
       inputSanitization: true,
       secureExecution: true
     },
     recommendations: [
       'All Function() constructor usage has been replaced with secure alternatives',
       'eval() usage has been blocked and replaced with safe parsers',
-      'Content Security Policy (CSP) has been implemented',
+
       'Input sanitization is applied to all user inputs',
       'Secure execution utilities are available for dynamic operations'
     ]
