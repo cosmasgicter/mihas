@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-// import { FixedSizeList as List, type ListChildComponentProps } from 'react-window'
+import React, { useCallback, useMemo } from 'react'
 import { sanitizeHtml } from '@/lib/sanitizer'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
@@ -46,19 +45,10 @@ interface ApplicationsTableProps {
   onLoadMore: () => void | Promise<void>
   onStatusUpdate: (id: string, status: string) => void
   onPaymentStatusUpdate: (id: string, status: string) => void
+  onViewDetails: (id: string) => void
 }
 
-const ESTIMATED_ROW_HEIGHT = 184
 
-type RowData = {
-  applications: ApplicationSummary[]
-  formatDateTime: (value?: string | null) => string | null
-  getStatusBadge: (status: string) => JSX.Element
-  getPaymentBadge: (status: string) => JSX.Element
-  onStatusUpdate: (id: string, status: string) => void
-  onPaymentStatusUpdate: (id: string, status: string) => void
-  setSize: (index: number, size: number) => void
-}
 
 export function ApplicationsTable({
   applications,
@@ -68,7 +58,8 @@ export function ApplicationsTable({
   isLoadingMore,
   onLoadMore,
   onStatusUpdate,
-  onPaymentStatusUpdate
+  onPaymentStatusUpdate,
+  onViewDetails
 }: ApplicationsTableProps) {
   const formatDateTime = useCallback((value?: string | null) => {
     if (!value) return null
@@ -107,31 +98,7 @@ export function ApplicationsTable({
     )
   }, [])
 
-  // const listRef = useRef<List>(null)
 
-  const setSize = useCallback((index: number, size: number) => {
-    // Fixed size list doesn't need dynamic sizing
-  }, [])
-
-
-
-  const listHeight = useMemo(() => {
-    if (applications.length === 0) {
-      return 240
-    }
-    const visibleCount = Math.min(applications.length, 6)
-    return Math.min(Math.max(visibleCount * ESTIMATED_ROW_HEIGHT, 240), 720)
-  }, [applications.length])
-
-  const rowData = useMemo<RowData>(() => ({
-    applications,
-    formatDateTime,
-    getStatusBadge,
-    getPaymentBadge,
-    onStatusUpdate,
-    onPaymentStatusUpdate,
-    setSize
-  }), [applications, formatDateTime, getPaymentBadge, getStatusBadge, onPaymentStatusUpdate, onStatusUpdate, setSize])
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -148,13 +115,17 @@ export function ApplicationsTable({
           </div>
 
           {applications.length > 0 ? (
-            <div style={{ height: listHeight, overflowY: 'auto' }}>
-              {applications.map((app, index) => (
+            <div className="max-h-[720px] overflow-y-auto">
+              {applications.map((app) => (
                 <ApplicationRow
                   key={app.id}
-                  index={index}
-                  style={{ height: ESTIMATED_ROW_HEIGHT }}
-                  data={rowData}
+                  application={app}
+                  formatDateTime={formatDateTime}
+                  getStatusBadge={getStatusBadge}
+                  getPaymentBadge={getPaymentBadge}
+                  onStatusUpdate={onStatusUpdate}
+                  onPaymentStatusUpdate={onPaymentStatusUpdate}
+                  onViewDetails={onViewDetails}
                 />
               ))}
             </div>
@@ -198,19 +169,30 @@ export function ApplicationsTable({
   )
 }
 
-const ApplicationRow: React.FC<{ index: number; style: React.CSSProperties; data: RowData }> = ({ index, style, data }) => {
-  const app = data.applications[index]
-  const rowRef = useRef<HTMLDivElement | null>(null)
+interface ApplicationRowProps {
+  application: ApplicationSummary
+  formatDateTime: (value?: string | null) => string | null
+  getStatusBadge: (status: string) => JSX.Element
+  getPaymentBadge: (status: string) => JSX.Element
+  onStatusUpdate: (id: string, status: string) => void
+  onPaymentStatusUpdate: (id: string, status: string) => void
+  onViewDetails: (id: string) => void
+}
 
-  if (!app) {
-    return null
-  }
-
-  const verifiedAt = app.payment_status === 'verified' ? data.formatDateTime(app.payment_verified_at) : null
-  const ledgerAt = app.payment_status === 'verified' ? data.formatDateTime(app.last_payment_audit_at) : null
+const ApplicationRow: React.FC<ApplicationRowProps> = ({ 
+  application: app, 
+  formatDateTime, 
+  getStatusBadge, 
+  getPaymentBadge, 
+  onStatusUpdate, 
+  onPaymentStatusUpdate,
+  onViewDetails 
+}) => {
+  const verifiedAt = app.payment_status === 'verified' ? formatDateTime(app.payment_verified_at) : null
+  const ledgerAt = app.payment_status === 'verified' ? formatDateTime(app.last_payment_audit_at) : null
 
   return (
-    <div ref={rowRef} style={style} className="border-b border-gray-100 bg-white px-4 sm:px-6 py-4 hover:bg-gray-50">
+    <div className="border-b border-gray-100 bg-white px-4 sm:px-6 py-4 hover:bg-gray-50">
       <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(160px,1fr)_minmax(220px,1.4fr)_minmax(200px,1.2fr)_minmax(170px,1fr)_minmax(220px,1.3fr)_minmax(200px,1fr)_minmax(160px,0.8fr)] md:gap-6">
         <div className="space-y-2">
           <div className="md:hidden text-xs font-semibold uppercase text-gray-500">Application</div>
@@ -235,10 +217,10 @@ const ApplicationRow: React.FC<{ index: number; style: React.CSSProperties; data
 
         <div className="space-y-3">
           <div className="md:hidden text-xs font-semibold uppercase text-gray-500">Status</div>
-          {data.getStatusBadge(app.status)}
+          {getStatusBadge(app.status)}
           <select
             value={app.status}
-            onChange={(e) => data.onStatusUpdate(app.id, e.target.value)}
+            onChange={(e) => onStatusUpdate(app.id, e.target.value)}
             className="block w-full text-xs rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500"
           >
             <option value="draft">Draft</option>
@@ -251,7 +233,7 @@ const ApplicationRow: React.FC<{ index: number; style: React.CSSProperties; data
 
         <div className="space-y-3">
           <div className="md:hidden text-xs font-semibold uppercase text-gray-500">Payment</div>
-          {data.getPaymentBadge(app.payment_status)}
+          {getPaymentBadge(app.payment_status)}
           <div className="text-xs text-gray-500">
             K{app.paid_amount || 0} / K{app.application_fee}
           </div>
@@ -283,7 +265,7 @@ const ApplicationRow: React.FC<{ index: number; style: React.CSSProperties; data
           )}
           <select
             value={app.payment_status}
-            onChange={(e) => data.onPaymentStatusUpdate(app.id, e.target.value)}
+            onChange={(e) => onPaymentStatusUpdate(app.id, e.target.value)}
             className="block w-full text-xs rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500"
           >
             <option value="pending_review">Pending Review</option>
@@ -308,6 +290,12 @@ const ApplicationRow: React.FC<{ index: number; style: React.CSSProperties; data
         <div className="space-y-2 text-sm font-medium">
           <div className="md:hidden text-xs font-semibold uppercase text-gray-500">Actions</div>
           <div className="flex flex-col space-y-1">
+            <button
+              onClick={() => onViewDetails(app.id)}
+              className="text-blue-600 hover:text-blue-900 text-xs text-left"
+            >
+              View Details
+            </button>
             {app.result_slip_url && (
               <a
                 href={app.result_slip_url}

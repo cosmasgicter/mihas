@@ -14,6 +14,7 @@ import { checkEligibility, getRecommendedSubjects } from '@/lib/eligibility'
 import { createApplicationSlip } from '@/lib/slipService'
 import type { ApplicationSlipData } from '@/lib/applicationSlip'
 import { sanitizeForLog } from '@/lib/security'
+import { getSessionToken } from '@/lib/sessionUtils'
 import { supabase } from '@/lib/supabase'
 import { safeJsonParse } from '@/lib/utils'
 
@@ -463,42 +464,80 @@ const useWizardController = (): UseWizardControllerResult => {
         const institutionName =
           selectedProgramDetails?.institutions?.name || selectedProgramDetails?.institutions?.full_name || 'MIHAS'
         const normalizedInstitution = institutionName === 'KATC' ? 'KATC' : 'MIHAS'
-        const { generateApplicationNumber } = await import('@/lib/applicationNumberGenerator')
-        const applicationNumber = generateApplicationNumber({ institution: normalizedInstitution })
-        const trackingCode = `TRK${Math.random().toString(36).substring(2, 8).toUpperCase()}`
 
-        const app = await createApplication.mutateAsync({
-          application_number: applicationNumber,
-          public_tracking_code: trackingCode,
-          full_name: formData.full_name,
-          nrc_number: formData.nrc_number || null,
-          passport_number: formData.passport_number || null,
-          date_of_birth: formData.date_of_birth,
-          sex: formData.sex,
-          phone: formData.phone,
-          email: formData.email,
-          residence_town: formData.residence_town,
-          next_of_kin_name: formData.next_of_kin_name || null,
-          next_of_kin_phone: formData.next_of_kin_phone || null,
-          program: formData.program,
-          intake: formData.intake,
-          institution: normalizedInstitution,
-          status: 'draft'
-        })
+        if (applicationId) {
+          // Update existing application
+          const updatedApp = await updateApplication.mutateAsync({
+            id: applicationId,
+            data: {
+              full_name: formData.full_name,
+              nrc_number: formData.nrc_number || null,
+              passport_number: formData.passport_number || null,
+              date_of_birth: formData.date_of_birth,
+              sex: formData.sex,
+              phone: formData.phone,
+              email: formData.email,
+              residence_town: formData.residence_town,
+              next_of_kin_name: formData.next_of_kin_name || null,
+              next_of_kin_phone: formData.next_of_kin_phone || null,
+              program: formData.program,
+              intake: formData.intake,
+              institution: normalizedInstitution
+            }
+          })
 
-        setApplicationId(app.id)
-        setSubmittedApplication({
-          applicationNumber,
-          trackingCode,
-          program: formData.program,
-          institution: normalizedInstitution,
-          intake: formData.intake,
-          fullName: formData.full_name,
-          email: formData.email,
-          phone: formData.phone,
-          status: 'draft',
-          paymentStatus: 'pending_review'
-        })
+          setSubmittedApplication(prev => ({
+            applicationNumber: updatedApp.application_number,
+            trackingCode: updatedApp.public_tracking_code,
+            program: formData.program,
+            institution: normalizedInstitution,
+            intake: formData.intake,
+            fullName: formData.full_name,
+            email: formData.email,
+            phone: formData.phone,
+            status: updatedApp.status || 'draft',
+            paymentStatus: updatedApp.payment_status || prev?.paymentStatus || 'pending_review'
+          }))
+        } else {
+          // Create new application
+          const { generateApplicationNumber } = await import('@/lib/applicationNumberGenerator')
+          const applicationNumber = generateApplicationNumber({ institution: normalizedInstitution })
+          const trackingCode = `TRK${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+
+          const app = await createApplication.mutateAsync({
+            application_number: applicationNumber,
+            public_tracking_code: trackingCode,
+            full_name: formData.full_name,
+            nrc_number: formData.nrc_number || null,
+            passport_number: formData.passport_number || null,
+            date_of_birth: formData.date_of_birth,
+            sex: formData.sex,
+            phone: formData.phone,
+            email: formData.email,
+            residence_town: formData.residence_town,
+            next_of_kin_name: formData.next_of_kin_name || null,
+            next_of_kin_phone: formData.next_of_kin_phone || null,
+            program: formData.program,
+            intake: formData.intake,
+            institution: normalizedInstitution,
+            status: 'draft'
+          })
+
+          setApplicationId(app.id)
+          setSubmittedApplication({
+            applicationNumber,
+            trackingCode,
+            program: formData.program,
+            institution: normalizedInstitution,
+            intake: formData.intake,
+            fullName: formData.full_name,
+            email: formData.email,
+            phone: formData.phone,
+            status: 'draft',
+            paymentStatus: 'pending_review'
+          })
+        }
+        
         goToStep(currentStepIndex + 1)
       } catch (error) {
         setError(error instanceof Error ? error.message : 'Failed to save application')
@@ -639,17 +678,24 @@ const useWizardController = (): UseWizardControllerResult => {
       try {
         const { getApiBaseUrl } = await import('@/lib/apiConfig')
         const apiBase = getApiBaseUrl()
-        const { data: session } = await supabase.auth.getSession()
-        await fetch(`${apiBase}/api/notifications/application-submitted`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session?.access_token}`
-          },
-          body: JSON.stringify({ applicationId: updatedApp.id, userId: user.id })
-        })
+        const { token, error: sessionError } = await getSessionToken()
+        
+        if (!token) {
+          console.warn('No session token available:', sessionError)
+          toast.warning('Application submitted but notifications may be delayed')
+        } else {
+          await fetch(`${apiBase}/api/notifications/application-submitted`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({ applicationId: updatedApp.id, userId: user.id })
+          })
+        }
       } catch (notificationError) {
         console.warn('Failed to send notifications:', sanitizeForLog(notificationError instanceof Error ? notificationError.message : 'Unknown error'))
+        toast.warning('Application submitted but notifications may be delayed')
       }
 
       try {

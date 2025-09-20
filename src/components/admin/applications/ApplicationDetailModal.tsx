@@ -153,11 +153,11 @@ export function ApplicationDetailModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-0 sm:p-4 z-50">
+      <div className="bg-white w-full h-full sm:rounded-lg sm:max-w-4xl sm:w-full sm:max-h-[90vh] overflow-y-auto">
+        <div className="p-4 sm:p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-secondary">
+            <h2 className="text-lg sm:text-xl font-bold text-secondary">
               Application #{application.application_number}
             </h2>
             <Button
@@ -170,7 +170,7 @@ export function ApplicationDetailModal({
           </div>
         </div>
         
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* Applicant Info */}
           <div>
             <h3 className="text-lg font-medium text-secondary mb-3">Applicant Information</h3>
@@ -287,7 +287,7 @@ export function ApplicationDetailModal({
           </div>
         </div>
         
-        <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
+        <div className="p-4 sm:p-6 border-t border-gray-200 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>

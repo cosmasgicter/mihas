@@ -5,7 +5,8 @@ import {
   FiltersPanel,
   MetricsHeader,
   ApplicationsTable,
-  ApplicationsSkeleton
+  ApplicationsSkeleton,
+  ApplicationDetailModal
 } from '@/components/admin/applications'
 import { useApplicationsData, useApplicationFilters } from '@/hooks/admin'
 import { Button } from '@/components/ui/Button'
@@ -72,6 +73,8 @@ export default function Applications() {
 
   const { showError, showSuccess, showInfo } = useToast()
   const [exportingFormat, setExportingFormat] = useState<'csv' | 'excel' | 'pdf' | null>(null)
+  const [selectedApplication, setSelectedApplication] = useState<string | null>(null)
+  const [showDetails, setShowDetails] = useState(false)
 
   const activeFilters = useMemo(() => ({ ...filters }), [filters])
 
@@ -170,6 +173,21 @@ export default function Applications() {
 
   const isExporting = exportingFormat !== null
 
+  const handleViewDetails = useCallback((applicationId: string) => {
+    setSelectedApplication(applicationId)
+    setShowDetails(true)
+  }, [])
+
+  const handleCloseDetails = useCallback(() => {
+    setShowDetails(false)
+    setSelectedApplication(null)
+  }, [])
+
+  const selectedApp = useMemo(() => {
+    if (!selectedApplication) return null
+    return applications.find(app => app.id === selectedApplication) || null
+  }, [selectedApplication, applications])
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <AdminNavigation />
@@ -262,6 +280,20 @@ export default function Applications() {
                   onLoadMore={loadNextPage}
                   onStatusUpdate={updateStatus}
                   onPaymentStatusUpdate={updatePaymentStatus}
+                  onViewDetails={handleViewDetails}
+                />
+
+                <ApplicationDetailModal
+                  application={selectedApp}
+                  show={showDetails}
+                  updating={null}
+                  onClose={handleCloseDetails}
+                  onSendNotification={() => {}}
+                  onViewDocuments={() => {}}
+                  onViewHistory={() => {}}
+                  onUpdateStatus={updateStatus}
+                  onGenerateAcceptanceLetter={async () => {}}
+                  onGenerateFinanceReceipt={async () => {}}
                 />
               </div>
             )}
