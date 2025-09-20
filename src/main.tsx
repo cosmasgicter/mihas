@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useRef } from 'react'
 import { createRoot } from 'react-dom/client'
 
+// Ensure React is available globally for libraries that expect it
+if (typeof window !== 'undefined') {
+  (window as any).React = React
+}
+
 import App from './App.tsx'
 import './index.css'
 

@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   
   return {
     plugins: [
-      react(),
+      react({}),
       VitePWA({
         registerType: 'autoUpdate',
         devOptions: {
@@ -107,16 +107,28 @@ export default defineConfig(({ mode }) => {
         }
       })
     ],
+
+    define: {
+      global: 'globalThis',
+      'process.env': {}
+    },
+    optimizeDeps: {
+      include: [
+        'react', 
+        'react-dom', 
+        'react/jsx-runtime',
+        'framer-motion',
+        '@radix-ui/react-accordion',
+        '@radix-ui/react-dialog',
+        '@radix-ui/react-dropdown-menu'
+      ],
+      exclude: ['@vite/client', '@vite/env']
+    },
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
       },
-    },
-    define: {
-      global: 'globalThis',
-    },
-    optimizeDeps: {
-      include: ['react', 'react-dom']
+      dedupe: ['react', 'react-dom']
     },
     build: {
       target: 'esnext',
