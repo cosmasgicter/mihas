@@ -1,44 +1,43 @@
-# 🚀 Deployment Checklist - API Consolidation Complete
+# 🚀 Deployment Checklist - Multi-function API Layout
 
 ## ✅ Pre-Deployment Verification
 
-### API Consolidation Status
-- [x] **12 Vercel Functions** (within Hobby plan limit)
-- [x] **2 Supabase Edge Functions** (mcp-operations, send-email)
-- [x] **Frontend Updated** to use consolidated endpoints
-- [x] **No Breaking Changes** - all functionality preserved
+### API Layout Status
+- [x] **Multi-function routes deployed** (one file per endpoint)
+- [x] **Supabase credentials configured**
+- [x] **Frontend updated** to use REST-style endpoints
+- [x] **Smoke tests prepared** for new routes
 
-### Function Count Verification
+### Health Check Script
 ```bash
-npm run verify:api-consolidation
+npm run verify:api-layout
 ```
-Expected output: `✅ Function count is within Vercel Hobby limit`
+Expected output: `✅ API layout matches multi-function Netlify deployment`
 
 ### Current API Structure
 ```
 api/
-├── catalog.js           # Consolidated: subjects, programs, intakes
-├── auth.js             # Consolidated: login, signin, register  
-├── notifications.js    # Consolidated: send, application-submitted
-├── analytics/index.js  # Router: metrics, predictive-dashboard, telemetry actions
-├── applications/[id].js
-├── applications/index.js
-├── applications/bulk.js
-├── admin/index.js      # Consolidated: dashboard, audit-log
-├── admin/users.js      # Consolidated: list/detail/role/permissions CRUD
-├── documents/upload.js
+├── auth/              # login.js | signin.js | register.js
+├── catalog/           # programs/index.js | intakes/index.js | subjects.js
+├── applications/      # index.js | [id].js | bulk.js
+├── admin/             # dashboard.js | audit-log.js | users/*.js
+├── documents/         # upload.js
+├── notifications/     # send.js | application-submitted.js | preferences.js | update-consent.js
+├── analytics/         # metrics.js | predictive-dashboard.js | telemetry/index.js
+├── mcp/               # query.js | schema.js
+├── user-consents.js
 └── test.js
 ```
 
 ## 🔧 Deployment Steps
 
 ### 1. Environment Variables
-Ensure these are set in Vercel:
+Ensure these are set (Vercel, Netlify, or your platform of choice):
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-VITE_API_BASE_URL=https://your-vercel-app.vercel.app
+VITE_API_BASE_URL=https://your-app.netlify.app
 VITE_APP_BASE_URL=https://your-domain.com
 VITE_ANALYTICS_BASE_URL=https://analytics.your-domain.com
 VITE_ANALYTICS_SITE_ID=your_umami_site_id
@@ -50,165 +49,102 @@ VITE_ANALYTICS_SHARE_TOKEN=your_umami_share_token
 npm run build:prod
 ```
 
-### 3. Deploy to Vercel
+### 3. Deploy Application
 ```bash
+# Netlify example
+netlify deploy --prod
+
+# or Vercel
 vercel --prod
 ```
 
-### 4. Deploy Supabase Edge Functions
+### 4. Optional Supabase Edge Functions
+MCP access is handled by `/api/mcp/*`. Deploy any optional functions (for example transactional email) if used:
 ```bash
-supabase functions deploy mcp-operations
 supabase functions deploy send-email
 ```
 
 ## 🧪 Post-Deployment Testing
 
 ### API Endpoint Tests
-Test each consolidated endpoint:
+Run quick cURL checks against the deployed API:
 
 #### Catalog API
 ```bash
-# Test subjects
-curl "https://your-app.vercel.app/api/catalog?resource=subjects"
-
-# Test programs  
-curl "https://your-app.vercel.app/api/catalog?resource=programs"
-
-# Test intakes
-curl "https://your-app.vercel.app/api/catalog?resource=intakes"
+curl "https://your-app.netlify.app/api/catalog/subjects"
+curl "https://your-app.netlify.app/api/catalog/programs"
+curl "https://your-app.netlify.app/api/catalog/intakes"
 ```
 
 #### Auth API
 ```bash
-# Test registration
-curl -X POST "https://your-app.vercel.app/api/auth?action=register" \
+curl -X POST "https://your-app.netlify.app/api/auth/register" \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"password","fullName":"Test User"}'
 
-# Test login
-curl -X POST "https://your-app.vercel.app/api/auth?action=login" \
+curl -X POST "https://your-app.netlify.app/api/auth/login" \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"password"}'
 ```
 
 #### Notifications API
 ```bash
-# Test notification send (requires admin auth)
-curl -X POST "https://your-app.vercel.app/api/notifications?action=send" \
+curl -X POST "https://your-app.netlify.app/api/notifications/send" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{"userId":"user-id","title":"Test","message":"Test message"}'
 ```
 
+#### MCP API
+```bash
+curl "https://your-app.netlify.app/api/mcp/schema" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+curl -X POST "https://your-app.netlify.app/api/mcp/query" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"sql":"select 1"}'
+```
+
 ### Analytics Share Endpoint
 ```bash
-# Validate Umami share token and site configuration
 curl -H "x-umami-share-token: $VITE_ANALYTICS_SHARE_TOKEN" \
   "$VITE_ANALYTICS_BASE_URL/api/share/$VITE_ANALYTICS_SITE_ID/active"
-
-# Optional: Fetch page views for the last 7 days
-curl -H "x-umami-share-token: $VITE_ANALYTICS_SHARE_TOKEN" \
-  "$VITE_ANALYTICS_BASE_URL/api/share/$VITE_ANALYTICS_SITE_ID/pageviews?startAt=$(($(date +%s%3N)-604800000))&endAt=$(date +%s%3N)&unit=day"
 ```
 
-#### MCP Edge Function
-```bash
-# Test schema endpoint
-curl "https://your-project.supabase.co/functions/v1/mcp-operations?action=schema" \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
-
-#### send-email Edge Function
-```bash
-curl -X POST "https://your-project.supabase.co/functions/v1/send-email" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_SERVICE_ROLE_TOKEN" \
-  -d '{
-        "to": "applicant@example.com",
-        "subject": "Application Receipt",
-        "template": "application-receipt",
-        "data": {
-          "applicationNumber": "MIHAS123456",
-          "trackingCode": "TRKABC123",
-          "programName": "Diploma in Nursing",
-          "submissionDate": "2024-09-21",
-          "paymentStatus": "Pending"
-        }
-      }'
-```
-
-### Frontend Integration Tests
-1. **Application Wizard** - Test complete flow
-2. **Admin Dashboard** - Test all admin functions
-3. **Authentication** - Test login/register/logout
-4. **File Uploads** - Test document uploads
-5. **Notifications** - Test in-app notifications
-6. **Email Receipts** - Submit an application and confirm the confirmation email is delivered
+### Frontend Smoke Tests
+1. **Application Wizard** – run through submission flow
+2. **Admin Dashboard** – verify metrics, audit log, and user management
+3. **Authentication** – register, login, logout
+4. **File Uploads** – test `/api/documents/upload`
+5. **Notifications** – trigger send/application-submitted flows
 
 ## 📊 Monitoring & Verification
 
-### Function Usage Monitoring
-Monitor Vercel dashboard for:
-- Function execution count
+### Function Monitoring
+Track your platform dashboard for:
+- Execution count
 - Response times
 - Error rates
 - Memory usage
 
-### Performance Benchmarks
-- **API Response Time**: < 2 seconds
-- **Page Load Time**: < 3 seconds  
-- **Function Cold Start**: < 1 second
-- **Error Rate**: < 1%
-
 ### Health Checks
 ```bash
-# Test API health
-curl "https://your-app.vercel.app/api/test"
-
-# Test Edge Function health  
-curl "https://your-project.supabase.co/functions/v1/mcp-operations?action=schema" \
-  -H "Authorization: Bearer YOUR_TOKEN"
+curl "https://your-app.netlify.app/api/test"
+curl "https://your-app.netlify.app/api/mcp/schema" -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ## 🚨 Rollback Plan
 
-If issues occur:
-
-1. **Revert Vercel Deployment**
-   ```bash
-   vercel rollback
-   ```
-
-2. **Check Function Logs**
-   ```bash
-   vercel logs
-   ```
-
-3. **Monitor Error Rates**
-   - Check Vercel dashboard
-   - Check Supabase logs
-   - Check browser console
+1. Revert deployment (`netlify rollback` / `vercel rollback`)
+2. Inspect logs (`netlify logs` / `vercel logs`)
+3. Monitor Supabase logs for auth or database errors
 
 ## ✅ Success Criteria
 
-- [ ] All 12 functions deploy successfully
-- [ ] No 404 errors on API endpoints
-- [ ] Frontend loads without errors
-- [ ] Authentication works correctly
-- [ ] Application submission works
-- [ ] Admin dashboard functions properly
-- [ ] File uploads work
-- [ ] Notifications are sent
-- [ ] MCP operations function correctly
-
-## 📞 Support Contacts
-
-- **Technical Issues**: Check logs and error messages
-- **Vercel Issues**: Check Vercel dashboard and documentation
-- **Supabase Issues**: Check Supabase dashboard and logs
-
----
-
-**Status**: ✅ Ready for Production Deployment  
-**Last Updated**: $(date)  
-**API Functions**: 12 Vercel + 2 Supabase Edge Functions
+- [ ] All API routes respond with expected status codes
+- [ ] Authentication flows succeed
+- [ ] Applications can be submitted and retrieved
+- [ ] Admin dashboard loads metrics and audit data
+- [ ] Document uploads succeed
+- [ ] MCP schema/query endpoints respond for authorized admins

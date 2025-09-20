@@ -8,7 +8,7 @@ async function testServices() {
   // Test Auth Service
   console.log('1. Testing Auth Service...')
   try {
-    const authResponse = await fetch(`${PRODUCTION_URL}/api/auth?action=login`, {
+    const authResponse = await fetch(`${PRODUCTION_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: 'test@test.com', password: 'wrong' })

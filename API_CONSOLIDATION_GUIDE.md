@@ -1,119 +1,79 @@
-# API Consolidation Guide
+# API Route Layout Guide
 
 ## Summary
-Reduced from 20 to 12 serverless functions to meet Vercel Hobby plan limits.
+The application now uses dedicated serverless functions for each API route to match Netlify's multi-function deployment model. Authentication, catalog, notification, and MCP endpoints have all been restored to clean REST-style paths (`/api/service/action`) so that each behavior maps to its own file in the `api/` directory.
 
-## Changes Made
+## Service Overview
 
-### 1. Consolidated Catalog APIs (3 → 1)
-**Old endpoints:**
-- `/api/catalog/grade12-subjects`
-- `/api/catalog/programs` 
-- `/api/catalog/intakes`
+### Catalog Service (`api/catalog/*`)
+- `GET /api/catalog/programs`
+- `GET /api/catalog/intakes`
+- `GET /api/catalog/subjects`
 
-**New endpoint:**
-- `/api/catalog?resource=subjects` (GET only)
-- `/api/catalog?resource=programs` (GET, POST, PUT, DELETE)
-- `/api/catalog?resource=intakes` (GET, POST, PUT, DELETE)
+Each handler lives in its own file (`api/catalog/programs/index.js`, `api/catalog/intakes/index.js`, `api/catalog/subjects.js`). This keeps read operations isolated and makes future POST/PUT support straightforward.
 
-### 2. Consolidated Auth APIs (3 → 1)
-**Old endpoints:**
-- `/api/auth/login`
-- `/api/auth/signin`
-- `/api/auth/register`
+### Authentication Service (`api/auth/*`)
+- `POST /api/auth/login`
+- `POST /api/auth/signin`
+- `POST /api/auth/register`
 
-**New endpoint:**
-- `/api/auth?action=login` (POST)
-- `/api/auth?action=signin` (POST)
-- `/api/auth?action=register` (POST)
+Each authentication flow has a dedicated function, re-using the shared helpers under `api/_lib`. Rate limiting, logging, and Supabase interactions continue to be handled centrally.
 
-### 3. Consolidated Notifications (2 → 1)
-**Old endpoints:**
-- `/api/notifications/send`
-- `/api/notifications/application-submitted`
+### Notification Service (`api/notifications/*`)
+- `POST /api/notifications/send`
+- `POST /api/notifications/application-submitted`
+- `POST /api/notifications/preferences`
+- `POST /api/notifications/update-consent`
 
-**New endpoint:**
-- `/api/notifications?action=send` (POST)
-- `/api/notifications?action=application-submitted` (POST)
+Splitting the notification flows removes the need for query-parameter routing and mirrors how Netlify packages functions.
 
-### 4. Moved to Supabase Edge Functions
-**Moved:**
-- `/api/mcp/query` → Edge Function: `mcp-operations?action=query`
-- `/api/mcp/schema` → Edge Function: `mcp-operations?action=schema`
+### MCP Service (`api/mcp/*`)
+- `POST /api/mcp/query`
+- `GET /api/mcp/schema`
+- `GET /api/mcp/schema?table={tableName}`
 
-## Frontend Updates Required
+The new MCP endpoints proxy requests to Supabase using the service role key. They enforce admin authentication and emit audit events for traceability.
 
-### Update API calls in your React components:
+## Frontend Integration
+
+Update any remaining code to use the dedicated endpoints:
 
 ```typescript
-// OLD: catalog calls
-fetch('/api/catalog/grade12-subjects')
+// Catalog
 fetch('/api/catalog/programs')
 fetch('/api/catalog/intakes')
+fetch('/api/catalog/subjects')
 
-// NEW: catalog calls
-fetch('/api/catalog?resource=subjects')
-fetch('/api/catalog?resource=programs')
-fetch('/api/catalog?resource=intakes')
+// Authentication
+fetch('/api/auth/login', { method: 'POST', body: JSON.stringify(credentials) })
+fetch('/api/auth/signin', { method: 'POST', body: JSON.stringify(credentials) })
+fetch('/api/auth/register', { method: 'POST', body: JSON.stringify(registration) })
 
-// OLD: auth calls
-fetch('/api/auth/login', { method: 'POST', ... })
-fetch('/api/auth/signin', { method: 'POST', ... })
-fetch('/api/auth/register', { method: 'POST', ... })
+// Notifications
+fetch('/api/notifications/send', { method: 'POST', body: JSON.stringify(payload) })
+fetch('/api/notifications/application-submitted', { method: 'POST', body: JSON.stringify(payload) })
 
-// NEW: auth calls
-fetch('/api/auth?action=login', { method: 'POST', ... })
-fetch('/api/auth?action=signin', { method: 'POST', ... })
-fetch('/api/auth?action=register', { method: 'POST', ... })
-
-// OLD: notification calls
-fetch('/api/notifications/send', { method: 'POST', ... })
-fetch('/api/notifications/application-submitted', { method: 'POST', ... })
-
-// NEW: notification calls
-fetch('/api/notifications?action=send', { method: 'POST', ... })
-fetch('/api/notifications?action=application-submitted', { method: 'POST', ... })
-
-// OLD: MCP calls
-fetch('/api/mcp/query', { method: 'POST', ... })
+// MCP
+fetch('/api/mcp/query', { method: 'POST', body: JSON.stringify({ sql, params }) })
 fetch('/api/mcp/schema')
-
-// NEW: MCP calls (via Supabase Edge Functions)
-fetch('https://your-project.supabase.co/functions/v1/mcp-operations?action=query', { 
-  method: 'POST',
-  headers: { 'Authorization': `Bearer ${token}` },
-  ...
-})
-fetch('https://your-project.supabase.co/functions/v1/mcp-operations?action=schema', {
-  headers: { 'Authorization': `Bearer ${token}` }
-})
+fetch(`/api/mcp/schema?table=${encodeURIComponent(tableName)}`)
 ```
 
-## Remaining Functions (14 total)
-1. `/api/catalog.js` (consolidated)
-2. `/api/auth.js` (consolidated)
-3. `/api/notifications.js` (consolidated)
-4. `/api/analytics/metrics.js`
-5. `/api/analytics/predictive-dashboard.js`
-6. `/api/analytics/telemetry/index.js`
-7. `/api/applications/[id].js`
-8. `/api/applications/index.js`
-9. `/api/applications/bulk.js`
-10. `/api/admin/index.js` (`action=dashboard|audit-log`)
-11. `/api/admin/users.js` (list/detail/role/permissions + mutations)
-12. `/api/documents/upload.js`
-13. `/api/test.js`
-14. `/api/user-consents.js`
+## Verification Checklist
 
-## Supabase Edge Functions (5 total)
-1. `document-upload` (existing)
-2. `turnstile-verify` (existing)
-3. `admin-operations` (existing)
-4. `create-admin-user` (existing)
-5. `mcp-operations` (new - consolidated MCP functions)
+Run the automated verification script to ensure no consolidated routes remain:
 
-## Next Steps
-1. Update frontend API calls to use new consolidated endpoints
-2. Test all functionality to ensure nothing is broken
-3. Deploy to Vercel (should now be under the 12 function limit)
-4. Consider moving more functions to Edge Functions if needed in the future
+```bash
+npm run verify:api-layout
+```
+
+The script checks for:
+- Required route files inside `api/`
+- Removal of deprecated consolidated files (`api/auth.js`, `api/catalog.js`, etc.)
+- Frontend services referencing the new endpoints
+- Tests and documentation free of query-parameter routing
+
+## Deployment Notes
+- Netlify packages each `api/**/index.js` file as an individual function, aligning with the restored layout.
+- Supabase Edge Functions are no longer required for MCP access; the serverless routes call Supabase directly with the service role key.
+- Update deployment checklists and smoke tests to hit the REST endpoints listed above.

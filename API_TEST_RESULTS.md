@@ -46,14 +46,14 @@
 ## ❌ Issues Found (5/12)
 
 ### 1. Catalog Programs
-- **Endpoint**: `/api/catalog?resource=programs`
+- **Endpoint**: `/api/catalog/programs`
 - **Expected**: 200 OK
 - **Actual**: 503 Service Unavailable
 - **Error**: Rate limiter unavailable
 - **Fix**: Rate limiter needs database table or fallback
 
 ### 2. Catalog Subjects
-- **Endpoint**: `/api/catalog?resource=subjects`
+- **Endpoint**: `/api/catalog/subjects`
 - **Expected**: 200 OK
 - **Actual**: 503 Service Unavailable
 - **Error**: Rate limiter unavailable
