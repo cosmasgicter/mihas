@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { FixedSizeList as List, type ListChildComponentProps } from 'react-window'
+// import { FixedSizeList as List, type ListChildComponentProps } from 'react-window'
 import { sanitizeHtml } from '@/lib/sanitizer'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
@@ -107,7 +107,7 @@ export function ApplicationsTable({
     )
   }, [])
 
-  const listRef = useRef<List>(null)
+  // const listRef = useRef<List>(null)
 
   const setSize = useCallback((index: number, size: number) => {
     // Fixed size list doesn't need dynamic sizing
@@ -148,18 +148,16 @@ export function ApplicationsTable({
           </div>
 
           {applications.length > 0 ? (
-            <List
-              ref={listRef}
-              height={listHeight}
-              itemCount={applications.length}
-              itemSize={ESTIMATED_ROW_HEIGHT}
-              width="100%"
-              itemData={rowData}
-              overscanCount={5}
-              itemKey={(index) => applications[index]?.id ?? index}
-            >
-              {ApplicationRow}
-            </List>
+            <div style={{ height: listHeight, overflowY: 'auto' }}>
+              {applications.map((app, index) => (
+                <ApplicationRow
+                  key={app.id}
+                  index={index}
+                  style={{ height: ESTIMATED_ROW_HEIGHT }}
+                  data={rowData}
+                />
+              ))}
+            </div>
           ) : (
             <div className="text-center py-12 text-sm text-gray-500">
               No applications found matching your criteria.
@@ -200,7 +198,7 @@ export function ApplicationsTable({
   )
 }
 
-const ApplicationRow: React.FC<ListChildComponentProps<RowData>> = ({ index, style, data }) => {
+const ApplicationRow: React.FC<{ index: number; style: React.CSSProperties; data: RowData }> = ({ index, style, data }) => {
   const app = data.applications[index]
   const rowRef = useRef<HTMLDivElement | null>(null)
 
