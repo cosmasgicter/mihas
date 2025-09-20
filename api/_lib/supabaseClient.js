@@ -136,6 +136,7 @@ async function getUserFromRequest(req, { requireAdmin = false } = {}) {
 
   const { data, error } = await supabaseAdminClient.auth.getUser(token)
   if (error || !data?.user) {
+    console.error('Auth token validation failed:', error?.message || 'No user data')
     return { error: 'Invalid or expired token' }
   }
 
@@ -145,11 +146,17 @@ async function getUserFromRequest(req, { requireAdmin = false } = {}) {
   try {
     roles = await resolveRoles(req, user)
   } catch (rolesError) {
+    console.error('Role resolution failed for user:', user.id, rolesError.message)
     return { error: rolesError.message }
   }
   const isAdmin = roles.some(role => ADMIN_ROLES.has(role))
 
   if (requireAdmin && !isAdmin) {
+    console.warn('Admin access required but user lacks admin role:', {
+      userId: user.id,
+      userRoles: roles,
+      requiredRoles: Array.from(ADMIN_ROLES)
+    })
     return { error: 'Access denied' }
   }
 

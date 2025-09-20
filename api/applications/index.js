@@ -99,6 +99,13 @@ module.exports = async function handler(req, res) {
 
 async function handleGet(req, res, { user, isAdmin }) {
   try {
+    // Clean query parameters to handle malformed URLs
+    const cleanQuery = {}
+    for (const [key, value] of Object.entries(req.query || {})) {
+      const cleanKey = key.replace(/:.*$/, '')
+      cleanQuery[cleanKey] = Array.isArray(value) ? value[0] : value
+    }
+    
     const {
       page = '0',
       pageSize = DEFAULT_PAGE_SIZE.toString(),
@@ -114,7 +121,7 @@ async function handleGet(req, res, { user, isAdmin }) {
       includeStats = 'false',
       mine = 'false',
       cursor = ''
-    } = req.query
+    } = cleanQuery
 
     const parsedPage = Math.max(parseInt(Array.isArray(page) ? page[0] : page, 10) || 0, 0)
     const parsedPageSizeValue = Array.isArray(pageSize) ? pageSize[0] : pageSize

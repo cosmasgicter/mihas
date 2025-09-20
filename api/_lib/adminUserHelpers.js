@@ -78,10 +78,12 @@ async function syncUserRole(userId, role) {
 
 function parseUserId(rawId) {
   if (Array.isArray(rawId)) {
-    return rawId[0]
+    rawId = rawId[0]
   }
   if (typeof rawId === 'string') {
-    return rawId
+    // Clean malformed IDs (remove anything after colon)
+    const cleanId = rawId.replace(/:.*$/, '').trim()
+    return cleanId || null
   }
   return null
 }

@@ -14,10 +14,16 @@ const DOCUMENTS_TABLE = 'application_documents'
 
 function parseIncludeParam(includeParam) {
   if (!includeParam) return new Set()
+  
+  // Handle malformed parameters like "grades:1"
+  const cleanParam = String(includeParam).replace(/:.*$/, '')
+  
   if (Array.isArray(includeParam)) {
-    return new Set(includeParam.flatMap(value => value.split(',').map(item => item.trim()).filter(Boolean)))
+    return new Set(includeParam.flatMap(value => 
+      String(value).replace(/:.*$/, '').split(',').map(item => item.trim()).filter(Boolean)
+    ))
   }
-  return new Set(includeParam.split(',').map(item => item.trim()).filter(Boolean))
+  return new Set(cleanParam.split(',').map(item => item.trim()).filter(Boolean))
 }
 
 module.exports = async function handler(req, res) {
@@ -42,9 +48,24 @@ module.exports = async function handler(req, res) {
     return res.status(401).json({ error: authContext.error })
   }
 
-  const { id } = req.query
-  if (!id || Array.isArray(id)) {
+  let { id } = req.query
+  
+  // Handle malformed URLs with colons or other artifacts
+  if (Array.isArray(id)) {
+    id = id[0]
+  }
+  if (typeof id === 'string') {
+    id = id.replace(/:.*$/, '').trim()
+  }
+  
+  if (!id || !id.trim()) {
     return res.status(400).json({ error: 'Invalid application id' })
+  }
+  
+  // Validate UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!uuidRegex.test(id)) {
+    return res.status(400).json({ error: 'Invalid application id format' })
   }
 
   switch (req.method) {

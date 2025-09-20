@@ -15,10 +15,17 @@ const {
 module.exports = async function handler(req, res) {
   try {
     const { user, roles } = await requireUser(req, { requireAdmin: true })
-    const userId = parseUserId(req.query?.id)
+    const rawId = req.query?.id
+    const userId = parseUserId(Array.isArray(rawId) ? rawId[0] : String(rawId || '').replace(/:.*$/, ''))
 
-    if (!userId) {
+    if (!userId || !userId.trim()) {
       return res.status(400).json({ error: 'User ID is required' })
+    }
+    
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!uuidRegex.test(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID format' })
     }
 
     if (req.method === 'GET') {
