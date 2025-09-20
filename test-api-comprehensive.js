@@ -76,16 +76,21 @@ async function testEndpoints() {
     {
       name: 'Catalog - Invalid',
       path: '/api/catalog',
-      expectedStatus: [400]
+      expectedStatus: [404]
     },
     {
       name: 'Catalog - Programs',
-      path: '/api/catalog?resource=programs',
+      path: '/api/catalog/programs',
       expectedStatus: [200]
     },
     {
       name: 'Catalog - Subjects',
-      path: '/api/catalog?resource=subjects',
+      path: '/api/catalog/subjects',
+      expectedStatus: [200]
+    },
+    {
+      name: 'Catalog - Intakes',
+      path: '/api/catalog/intakes',
       expectedStatus: [200]
     },
     {
