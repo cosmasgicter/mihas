@@ -89,19 +89,21 @@ fetch('https://your-project.supabase.co/functions/v1/mcp-operations?action=schem
 })
 ```
 
-## Remaining Functions (12/12)
+## Remaining Functions (14 total)
 1. `/api/catalog.js` (consolidated)
 2. `/api/auth.js` (consolidated)
 3. `/api/notifications.js` (consolidated)
-4. `/api/analytics?action=metrics|predictive-dashboard|telemetry` (router consolidates metrics, predictive dashboard, telemetry)
-5. `/api/applications/[id].js`
-6. `/api/applications/index.js`
-7. `/api/applications/bulk.js`
-8. `/api/admin/index.js` (`action=dashboard|audit-log`)
-9. `/api/admin/users.js` (list/detail/role/permissions + mutations)
-10. `/api/documents/upload.js`
-11. `/api/test.js`
-12. `/api/user-consents.js`
+4. `/api/analytics/metrics.js`
+5. `/api/analytics/predictive-dashboard.js`
+6. `/api/analytics/telemetry/index.js`
+7. `/api/applications/[id].js`
+8. `/api/applications/index.js`
+9. `/api/applications/bulk.js`
+10. `/api/admin/index.js` (`action=dashboard|audit-log`)
+11. `/api/admin/users.js` (list/detail/role/permissions + mutations)
+12. `/api/documents/upload.js`
+13. `/api/test.js`
+14. `/api/user-consents.js`
 
 ## Supabase Edge Functions (5 total)
 1. `document-upload` (existing)

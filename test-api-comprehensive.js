@@ -105,12 +105,12 @@ async function testEndpoints() {
     },
     {
       name: 'Analytics Telemetry (No Auth)',
-      path: '/api/analytics?action=telemetry',
+      path: '/api/analytics/telemetry',
       expectedStatus: [401, 403, 503]
     },
     {
       name: 'Analytics Metrics (No Auth)',
-      path: '/api/analytics?action=metrics',
+      path: '/api/analytics/metrics',
       expectedStatus: [401, 403, 503]
     },
     {
@@ -166,7 +166,7 @@ async function testEndpoints() {
     },
     {
       name: 'Analytics Telemetry POST (No Auth)',
-      path: '/api/analytics?action=telemetry',
+      path: '/api/analytics/telemetry',
       method: 'POST',
       body: { events: [] },
       expectedStatus: [401, 400]

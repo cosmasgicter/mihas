@@ -1,9 +1,9 @@
 # API Consolidation Status - COMPLETED ✅
 
 ## Summary Yes
-Successfully consolidated from 20+ to 12 serverless functions to meet Vercel Hobby plan limits.
+Successfully consolidated from 20+ to 12 serverless functions to meet Vercel Hobby plan limits. Analytics endpoints have since been split into dedicated routes (metrics, predictive dashboard, telemetry), bringing the total to 14 functions while keeping responsibilities clear.
 
-## Current API Structure (12 Functions)
+## Current API Structure (14 Functions)
 
 ### Consolidated APIs ✅
 1. **`/api/catalog.js`** - Handles all catalog operations
@@ -21,21 +21,20 @@ Successfully consolidated from 20+ to 12 serverless functions to meet Vercel Hob
    - `POST /api/notifications?action=application-submitted`
 
 ### Remaining Individual APIs ✅
-4. `/api/analytics` (router + shared helpers)
-   - **Action Map**
-     - `metrics` → `GET` handled by `handleMetricsRequest`
-     - `predictive-dashboard` → `GET` handled by `handlePredictiveDashboardRequest`
-     - `telemetry`
-       - `GET` handled by `handleTelemetryFetch`
-       - `POST` handled by `handleTelemetryIngest`
-   - **Contract** – `/api/analytics?action=metrics|predictive-dashboard|telemetry`
-5. `/api/applications/[id].js`
-6. `/api/applications/index.js`
-7. `/api/applications/bulk.js`
-8. `/api/admin/index.js`
+4. `/api/analytics/metrics.js`
+   - `GET /api/analytics/metrics`
+5. `/api/analytics/predictive-dashboard.js`
+   - `GET /api/analytics/predictive-dashboard`
+6. `/api/analytics/telemetry/index.js`
+   - `GET /api/analytics/telemetry`
+   - `POST /api/analytics/telemetry`
+7. `/api/applications/[id].js`
+8. `/api/applications/index.js`
+9. `/api/applications/bulk.js`
+10. `/api/admin/index.js`
    - `GET /api/admin?action=dashboard`
    - `GET /api/admin?action=audit-log`
-9. `/api/admin/users.js`
+11. `/api/admin/users.js`
    - `GET /api/admin/users` (list)
    - `GET /api/admin/users?id={id}` (profile)
    - `GET /api/admin/users?id={id}&action=role|permissions`
@@ -43,9 +42,9 @@ Successfully consolidated from 20+ to 12 serverless functions to meet Vercel Hob
    - `PUT /api/admin/users?id={id}` (profile update)
    - `PUT /api/admin/users?id={id}&action=permissions`
    - `DELETE /api/admin/users?id={id}`
-10. `/api/documents/upload.js`
-11. `/api/test.js`
-12. `/api/user-consents.js`
+12. `/api/documents/upload.js`
+13. `/api/test.js`
+14. `/api/user-consents.js`
 
 ## Supabase Edge Functions (1 Function)
 - **`mcp-operations`** - Consolidated MCP operations

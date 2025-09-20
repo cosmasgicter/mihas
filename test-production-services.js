@@ -56,7 +56,7 @@ async function testServices() {
   // Test Analytics Service
   console.log('5. Testing Analytics Service...')
   try {
-    const analyticsResponse = await fetch(`${PRODUCTION_URL}/api/analytics?action=metrics`)
+    const analyticsResponse = await fetch(`${PRODUCTION_URL}/api/analytics/metrics`)
     console.log(`   Analytics Service: ${analyticsResponse.status} ${analyticsResponse.statusText}`)
   } catch (error) {
     console.log(`   Analytics Service: ERROR - ${error.message}`)
