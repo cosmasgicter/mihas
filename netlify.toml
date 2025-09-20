@@ -5,9 +5,133 @@
 [build.environment]
   NODE_VERSION = "20"
 
+# Auth endpoints
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  from = "/api/auth/login"
+  to = "/.netlify/functions/auth-login"
+  status = 200
+
+[[redirects]]
+  from = "/api/auth/register"
+  to = "/.netlify/functions/auth-register"
+  status = 200
+
+[[redirects]]
+  from = "/api/auth/signin"
+  to = "/.netlify/functions/auth-signin"
+  status = 200
+
+# Application endpoints
+[[redirects]]
+  from = "/api/applications/bulk"
+  to = "/.netlify/functions/applications-bulk"
+  status = 200
+
+[[redirects]]
+  from = "/api/applications/:id"
+  to = "/.netlify/functions/applications-id"
+  status = 200
+
+[[redirects]]
+  from = "/api/applications"
+  to = "/.netlify/functions/applications"
+  status = 200
+
+# Catalog endpoints
+[[redirects]]
+  from = "/api/catalog/programs"
+  to = "/.netlify/functions/catalog-programs"
+  status = 200
+
+[[redirects]]
+  from = "/api/catalog/intakes"
+  to = "/.netlify/functions/catalog-intakes"
+  status = 200
+
+[[redirects]]
+  from = "/api/catalog/subjects"
+  to = "/.netlify/functions/catalog-subjects"
+  status = 200
+
+# Document endpoints
+[[redirects]]
+  from = "/api/documents/upload"
+  to = "/.netlify/functions/documents-upload"
+  status = 200
+
+# Notification endpoints
+[[redirects]]
+  from = "/api/notifications/send"
+  to = "/.netlify/functions/notifications-send"
+  status = 200
+
+[[redirects]]
+  from = "/api/notifications/application-submitted"
+  to = "/.netlify/functions/notifications-application-submitted"
+  status = 200
+
+[[redirects]]
+  from = "/api/notifications/preferences"
+  to = "/.netlify/functions/notifications-preferences"
+  status = 200
+
+[[redirects]]
+  from = "/api/notifications/update-consent"
+  to = "/.netlify/functions/notifications-update-consent"
+  status = 200
+
+# Analytics endpoints
+[[redirects]]
+  from = "/api/analytics/telemetry"
+  to = "/.netlify/functions/analytics-telemetry"
+  status = 200
+
+[[redirects]]
+  from = "/api/analytics/metrics"
+  to = "/.netlify/functions/analytics-metrics"
+  status = 200
+
+[[redirects]]
+  from = "/api/analytics/predictive-dashboard"
+  to = "/.netlify/functions/analytics-predictive-dashboard"
+  status = 200
+
+# MCP endpoints
+[[redirects]]
+  from = "/api/mcp/query"
+  to = "/.netlify/functions/mcp-query"
+  status = 200
+
+[[redirects]]
+  from = "/api/mcp/schema"
+  to = "/.netlify/functions/mcp-schema"
+  status = 200
+
+# Admin endpoints
+[[redirects]]
+  from = "/api/admin/dashboard"
+  to = "/.netlify/functions/admin-dashboard"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/users/:id"
+  to = "/.netlify/functions/admin-users-id"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/users"
+  to = "/.netlify/functions/admin-users"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/audit-log"
+  to = "/.netlify/functions/admin-audit-log"
+  status = 200
+
+# User consent endpoint
+[[redirects]]
+  from = "/api/user-consents"
+  to = "/.netlify/functions/user-consents"
   status = 200
 
 [[redirects]]

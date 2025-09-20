@@ -95,3 +95,5 @@ audit-report.json
 *.tmp
 *.temp
 .temp/
+# Local Netlify folder
+.netlify
