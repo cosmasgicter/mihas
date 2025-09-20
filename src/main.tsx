@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useRef, type ComponentType } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import App from './App.tsx'
 import './index.css'
-import { AnalyticsService } from './lib/analytics.ts'
 
 type WebVitalsMetric = {
   id: string
@@ -40,13 +39,16 @@ const WebVitalsReporter = () => {
       ...(metric.attribution ? { attribution: metric.attribution } : {})
     }
 
-    void AnalyticsService.trackEvent({
-      action_type: 'web_vitals',
-      page_path: metric.path ?? (typeof window !== 'undefined' ? window.location.pathname : '/'),
-      metadata: {
-        metric: metadata
-      }
-    })
+    // Lazy load analytics service
+    import('./lib/analytics.ts').then(({ AnalyticsService }) => {
+      void AnalyticsService.trackEvent({
+        action_type: 'web_vitals',
+        page_path: metric.path ?? (typeof window !== 'undefined' ? window.location.pathname : '/'),
+        metadata: {
+          metric: metadata
+        }
+      })
+    }).catch(() => {})
   }, [])
 
   useEffect(() => {

@@ -1,4 +1,6 @@
-const { supabaseAdminClient, getUserFromRequest } = require('../../_lib/supabaseClient')
+const fs = require('fs')
+
+const fixedContent = `const { supabaseAdminClient, getUserFromRequest } = require('../../_lib/supabaseClient')
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -32,4 +34,7 @@ module.exports = async function handler(req, res) {
     default:
       return res.status(405).json({ error: 'Method not allowed' })
   }
-}
+}`
+
+fs.writeFileSync('/home/cosmas/Documents/Visual Code/mihas/api/catalog/programs/index.js', fixedContent)
+console.log('Fixed programs endpoint')

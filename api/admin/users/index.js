@@ -6,6 +6,15 @@ const { logAuditEvent } = require('../../_lib/auditLogger')
 
 module.exports = async function handler(req, res) {
   try {
+    // Add CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end()
+    }
+
     const { user, roles } = await requireUser(req, { requireAdmin: true })
 
     if (req.method === 'GET') {

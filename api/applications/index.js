@@ -65,6 +65,15 @@ function parseBoolean(value) {
 }
 
 module.exports = async function handler(req, res) {
+  // Add CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end()
+  }
+
   // Rate limiting temporarily disabled for testing
   // try {
   //   const rateKey = buildRateLimitKey(req, { prefix: 'applications' })
@@ -92,6 +101,8 @@ module.exports = async function handler(req, res) {
       return handleGet(req, res, authContext)
     case 'POST':
       return handlePost(req, res, authContext)
+    case 'OPTIONS':
+      return res.status(200).end()
     default:
       return res.status(405).json({ error: 'Method not allowed' })
   }
@@ -101,9 +112,21 @@ async function handleGet(req, res, { user, isAdmin }) {
   try {
     // Clean query parameters to handle malformed URLs
     const cleanQuery = {}
-    for (const [key, value] of Object.entries(req.query || {})) {
-      const cleanKey = key.replace(/:.*$/, '')
-      cleanQuery[cleanKey] = Array.isArray(value) ? value[0] : value
+    const rawQuery = req.query || {}
+    
+    // Handle malformed URLs with &amp; entities
+    let queryString = req.url?.split('?')[1] || ''
+    if (queryString.includes('&amp;')) {
+      queryString = queryString.replace(/&amp;/g, '&')
+      const params = new URLSearchParams(queryString)
+      for (const [key, value] of params.entries()) {
+        cleanQuery[key] = value
+      }
+    } else {
+      for (const [key, value] of Object.entries(rawQuery)) {
+        const cleanKey = key.replace(/:.*$/, '')
+        cleanQuery[cleanKey] = Array.isArray(value) ? value[0] : value
+      }
     }
     
     const {

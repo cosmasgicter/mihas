@@ -115,7 +115,7 @@ export function ApplicationsTable({
           </div>
 
           {applications.length > 0 ? (
-            <div className="max-h-[720px] overflow-y-auto">
+            <div className="overflow-y-auto sm:max-h-[60vh] lg:max-h-[720px]">
               {applications.map((app) => (
                 <ApplicationRow
                   key={app.id}
@@ -193,26 +193,26 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({
 
   return (
     <div className="border-b border-gray-100 bg-white px-4 sm:px-6 py-4 hover:bg-gray-50">
-      <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(160px,1fr)_minmax(220px,1.4fr)_minmax(200px,1.2fr)_minmax(170px,1fr)_minmax(220px,1.3fr)_minmax(200px,1fr)_minmax(160px,0.8fr)] md:gap-6">
-        <div className="space-y-2">
+      <div className="flex flex-col gap-3 sm:gap-4 md:grid md:grid-cols-[minmax(160px,1fr)_minmax(220px,1.4fr)_minmax(200px,1.2fr)_minmax(170px,1fr)_minmax(220px,1.3fr)_minmax(200px,1fr)_minmax(160px,0.8fr)] md:gap-6">
+        <div className="space-y-1 sm:space-y-2">
           <div className="md:hidden text-xs font-semibold uppercase text-gray-500">Application</div>
-          <div className="text-sm font-medium text-gray-900">{app.application_number}</div>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm font-medium text-gray-900 break-words">{app.application_number}</div>
+          <div className="text-xs sm:text-sm text-gray-500">
             {new Date(app.submitted_at || app.created_at).toLocaleDateString()}
           </div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-1 sm:space-y-2">
           <div className="md:hidden text-xs font-semibold uppercase text-gray-500">Student</div>
-          <div className="text-sm font-medium text-gray-900">{app.full_name}</div>
-          <div className="text-sm text-gray-500">{app.email}</div>
-          <div className="text-sm text-gray-500">{app.phone}</div>
+          <div className="text-sm font-medium text-gray-900 break-words">{app.full_name}</div>
+          <div className="text-xs sm:text-sm text-gray-500 break-all">{app.email}</div>
+          <div className="text-xs sm:text-sm text-gray-500">{app.phone}</div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-1 sm:space-y-2">
           <div className="md:hidden text-xs font-semibold uppercase text-gray-500">Program</div>
-          <div className="text-sm font-medium text-gray-900">{app.program}</div>
-          <div className="text-sm text-gray-500">{app.institution} • {app.intake}</div>
+          <div className="text-sm font-medium text-gray-900 break-words">{app.program}</div>
+          <div className="text-xs sm:text-sm text-gray-500 break-words">{app.institution} • {app.intake}</div>
         </div>
 
         <div className="space-y-3">
@@ -274,12 +274,12 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({
           </select>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-1 sm:space-y-2">
           <div className="md:hidden text-xs font-semibold uppercase text-gray-500">Subjects</div>
-          <div className="text-sm text-gray-900">{app.total_subjects} subjects</div>
+          <div className="text-xs sm:text-sm text-gray-900">{app.total_subjects} subjects</div>
           {app.grades_summary && (
             <div
-              className="text-xs text-gray-500 max-w-xs truncate"
+              className="text-xs text-gray-500 truncate"
               title={sanitizeHtml(app.grades_summary)}
             >
               {sanitizeHtml(app.grades_summary)}
@@ -287,7 +287,7 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({
           )}
         </div>
 
-        <div className="space-y-2 text-sm font-medium">
+        <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm font-medium">
           <div className="md:hidden text-xs font-semibold uppercase text-gray-500">Actions</div>
           <div className="flex flex-col space-y-1">
             <button

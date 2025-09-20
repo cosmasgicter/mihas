@@ -1,13 +1,16 @@
-import React, { Suspense } from 'react'
+import React, { Suspense, lazy } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { AdminRoute } from '@/components/AdminRoute'
 import { ToastProvider } from '@/components/ui/Toast'
-import { LoadingFallback } from '@/components/ui/LoadingFallback'
+import { LandingPageSkeleton } from '@/components/ui/LandingPageSkeleton'
+import { PerformanceMonitor } from '@/components/ui/PerformanceMonitor'
 import { routes, type RouteConfig } from '@/routes/config'
-import { AnalyticsTracker } from '@/components/analytics/AnalyticsTracker'
+
+// Lazy load analytics tracker
+const AnalyticsTracker = lazy(() => import('@/components/analytics/AnalyticsTracker').then(m => ({ default: m.AnalyticsTracker })))
 
 
 
@@ -35,7 +38,7 @@ const renderRoute = (route: RouteConfig) => {
   } else {
     const Component = element as React.ComponentType
     routeElement = lazy ? (
-      <Suspense fallback={<LoadingFallback />}>
+      <Suspense fallback={<LandingPageSkeleton />}>
         <Component />
       </Suspense>
     ) : <Component />
@@ -57,22 +60,22 @@ function App() {
       <AuthProvider>
         <ToastProvider>
           <Router>
-            <AnalyticsTracker>
-              <div className="min-h-screen bg-gray-50">
-                <Routes>
-                  {routes.map((route) => (
-                    <Route
-                      key={route.path}
-                      path={route.path}
-                      element={renderRoute(route)}
-                    />
-                  ))}
-                </Routes>
-              </div>
-            </AnalyticsTracker>
-
+            <div className="min-h-screen bg-gray-50">
+              <Routes>
+                {routes.map((route) => (
+                  <Route
+                    key={route.path}
+                    path={route.path}
+                    element={renderRoute(route)}
+                  />
+                ))}
+              </Routes>
+            </div>
+            <Suspense fallback={null}>
+              <AnalyticsTracker />
+            </Suspense>
+            {process.env.NODE_ENV === 'development' && <PerformanceMonitor />}
           </Router>
-
         </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>

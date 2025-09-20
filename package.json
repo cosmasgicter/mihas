@@ -8,6 +8,8 @@
     "build": "tsc && vite build",
     "build:prod": "tsc && vite build --mode production",
     "build:analyze": "tsc && vite build --mode production && npx vite-bundle-analyzer dist/stats.html",
+    "build:performance": "npm run build:prod && npm run preview & sleep 3 && curl -w '@curl-format.txt' -o /dev/null -s 'http://localhost:4173' && pkill -f 'vite preview'",
+    "check:images": "node scripts/check-image-sizes.js",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "deploy": "netlify deploy",

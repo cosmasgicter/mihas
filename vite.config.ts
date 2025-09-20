@@ -124,9 +124,14 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks: (id) => {
+            // Critical path - keep in main bundle
+            if (id.includes('LandingPageOptimized') || id.includes('LandingPageSkeleton')) {
+              return 'main'
+            }
+            
             if (id.includes('node_modules')) {
               if (id.includes('react') || id.includes('react-dom')) {
-                return 'vendor'
+                return 'react-vendor'
               }
               if (id.includes('@supabase')) {
                 return 'supabase'
@@ -135,15 +140,29 @@ export default defineConfig(({ mode }) => {
                 return 'animations'
               }
               if (id.includes('@radix-ui')) {
-                return 'ui'
+                return 'ui-vendor'
+              }
+              if (id.includes('@tanstack/react-query')) {
+                return 'query'
               }
               return 'vendor'
             }
+            
+            // Lazy loaded chunks
             if (id.includes('src/pages/admin')) {
               return 'admin'
             }
-            if (id.includes('src/components/ui')) {
-              return 'ui-components'
+            if (id.includes('src/pages/student')) {
+              return 'student'
+            }
+            if (id.includes('src/pages/auth')) {
+              return 'auth'
+            }
+            if (id.includes('src/components/analytics')) {
+              return 'analytics'
+            }
+            if (id.includes('LandingPage.tsx')) {
+              return 'landing-full'
             }
           }
         }

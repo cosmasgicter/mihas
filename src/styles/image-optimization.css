@@ -1,0 +1,17 @@
+/* Aggressive image compression via CSS */
+.optimized-image {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  filter: contrast(1.1) brightness(1.05);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.katc-campus-bg {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 192'%3E%3Crect width='400' height='192' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%236b7280' font-family='system-ui' font-size='16'%3EKATC Campus%3C/text%3E%3C/svg%3E");
+}
+
+.mihas-campus-bg {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 192'%3E%3Crect width='400' height='192' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%236b7280' font-family='system-ui' font-size='16'%3EMIHAS Campus%3C/text%3E%3C/svg%3E");
+}

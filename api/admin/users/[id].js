@@ -1,6 +1,7 @@
 const {
   supabaseAdminClient,
   requireUser,
+  getUserFromRequest,
   clearRequestRoleCache
 } = require('../../_lib/supabaseClient')
 const { logAuditEvent } = require('../../_lib/auditLogger')
@@ -14,9 +15,26 @@ const {
 
 module.exports = async function handler(req, res) {
   try {
-    const { user, roles } = await requireUser(req, { requireAdmin: true })
-    const rawId = req.query?.id
-    const userId = parseUserId(Array.isArray(rawId) ? rawId[0] : String(rawId || '').replace(/:.*$/, ''))
+    // Add CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, DELETE, OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end()
+    }
+
+    // Extract user ID from URL path
+    let userId = null
+    if (req.query?.id) {
+      userId = parseUserId(req.query.id)
+    } else if (req.url) {
+      // Extract from URL path like /api/admin/users/[id]
+      const pathMatch = req.url.match(/\/api\/admin\/users\/([^?]+)/)
+      if (pathMatch) {
+        userId = parseUserId(pathMatch[1])
+      }
+    }
 
     if (!userId || !userId.trim()) {
       return res.status(400).json({ error: 'User ID is required' })
@@ -28,7 +46,23 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid user ID format' })
     }
 
+    // Check authentication first
+    const authResult = await getUserFromRequest(req, { requireAdmin: true })
+    if (authResult.error) {
+      console.log('Authentication failed:', authResult.error, 'for user ID:', userId)
+      return res.status(401).json({ error: authResult.error })
+    }
+    
+    const { user, roles } = authResult
+
     if (req.method === 'GET') {
+      // Check if the requesting user can access this profile
+      const canAccessProfile = roles.some(role => ['super_admin', 'admin'].includes(role)) || user.id === userId
+      
+      if (!canAccessProfile) {
+        return res.status(403).json({ error: 'Access denied: Cannot access this user profile' })
+      }
+      
       const profile = await fetchUserProfile(userId)
       if (!profile) {
         return res.status(404).json({ error: 'User not found' })

@@ -1,7 +1,7 @@
 import React from 'react'
 
 // Import critical pages directly for faster loading
-import LandingPage from '@/pages/LandingPage'
+import LandingPageOptimized from '@/pages/LandingPageOptimized'
 import SignInPage from '@/pages/auth/SignInPage'
 import SignUpPage from '@/pages/auth/SignUpPage'
 
@@ -42,7 +42,7 @@ export interface RouteConfig {
 
 export const routes: RouteConfig[] = [
   // Public routes
-  { path: '/', element: LandingPage, guard: 'public' },
+  { path: '/', element: LandingPageOptimized, guard: 'public' },
   { path: '/track-application', element: PublicApplicationTracker, guard: 'public', lazy: true },
   { path: '/auth/signin', element: SignInPage, guard: 'public' },
   { path: '/signin', element: SignInPage, guard: 'public' },
