@@ -115,6 +115,9 @@ export default defineConfig(({ mode }) => {
     define: {
       global: 'globalThis',
     },
+    optimizeDeps: {
+      include: ['react', 'react-dom']
+    },
     build: {
       target: 'esnext',
       minify: isProduction ? 'terser' : false,
