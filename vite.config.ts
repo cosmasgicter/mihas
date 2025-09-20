@@ -120,6 +120,7 @@ export default defineConfig(({ mode }) => {
       minify: isProduction ? 'terser' : false,
       sourcemap: !isProduction,
       chunkSizeWarningLimit: 1000,
+      assetsInlineLimit: 0,
       rollupOptions: {
         output: {
           manualChunks: (id) => {
