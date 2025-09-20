@@ -65,7 +65,7 @@ The MIHAS/KATC Application System is a **fully operational production system** s
 
 ### Backend Architecture
 - **Supabase** (PostgreSQL + Auth + Storage)
-- **Vercel API Routes** (Serverless microservices)
+- **Netlify Functions** (Serverless microservices)
 - **Row Level Security (RLS)** for data protection
 - **Real-time subscriptions** for live updates
 - **Structured file storage** with CDN
@@ -93,7 +93,7 @@ The MIHAS/KATC Application System is a **fully operational production system** s
 ### Prerequisites
 - Node.js 18+ and npm
 - Supabase account and project
-- Vercel account (for API deployment)
+- Netlify account (for deployment)
 
 ### Installation
 
@@ -159,18 +159,11 @@ NODE_ENV=development
 For full-stack development with microservices:
 
 ```bash
-# Login to Vercel (one-time setup)
-npx vercel login
-npx vercel link
-
-# Start API development server
-npm run dev:api
-
-# Or start frontend only
+# Start development server
 npm run dev
 ```
 
-The `vercel dev` command automatically loads environment variables and provides the same runtime as production.
+For local API development, you can use `netlify dev` after setting up Netlify CLI.
 
 #### Supabase Edge Functions
 
@@ -214,8 +207,8 @@ npm run build:analyze
 # Preview production build
 npm run preview
 
-# Deploy to Vercel
-npx vercel --prod
+# Deploy to Netlify
+netlify deploy --prod
 
 # Security audit
 npm run security-audit

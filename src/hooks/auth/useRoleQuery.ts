@@ -76,7 +76,22 @@ export function useRoleQuery(options: UseRoleQueryOptions = {}): RoleQueryResult
         }
 
         if (!response.ok) {
+          // In development, API might not be available
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('API not available in development mode')
+            return null
+          }
           throw new Error(response.statusText || 'Failed to load user role')
+        }
+
+        const contentType = response.headers.get('content-type')
+        if (!contentType?.includes('application/json')) {
+          // API returned HTML instead of JSON (likely 404 page)
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('API not available in development mode')
+            return null
+          }
+          throw new Error('Invalid response format')
         }
 
         const data = await response.json()
@@ -85,6 +100,10 @@ export function useRoleQuery(options: UseRoleQueryOptions = {}): RoleQueryResult
           permissions: Array.isArray(data?.permissions) ? data.permissions : null
         } as AuthUserRole
       } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Role query failed in development:', error)
+          return null
+        }
         console.error('Error loading user role:', sanitizeForLog(error instanceof Error ? error.message : error))
         throw error
       }

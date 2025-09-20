@@ -68,12 +68,12 @@ export const calculateProfileCompletion = (profile: any, metadata: any) => {
 export const useProfileAutoPopulation = (setValue?: any) => {
   const { user } = useAuth()
   const { profile } = useProfileQuery()
-  const metadata = getUserMetadata(user)
-  const completionPercentage = calculateProfileCompletion(profile, metadata)
   
   useEffect(() => {
     if (user && setValue && typeof setValue === 'function') {
       try {
+        const metadata = getUserMetadata(user)
+        
         // Auto-populate form fields with best available data
         const email = user.email || ''
         const fullName = getBestValue(profile?.full_name, metadata.full_name, email.split('@')[0] || '')
@@ -103,14 +103,16 @@ export const useProfileAutoPopulation = (setValue?: any) => {
         
         console.log('Profile auto-population completed:', {
           hasProfile: !!profile,
-          hasMetadata: Object.keys(metadata).length > 0,
-          completionPercentage
+          hasMetadata: Object.keys(metadata).length > 0
         })
       } catch (error) {
         console.error('Error in profile auto-population:', error)
       }
     }
-  }, [user, profile, setValue, metadata])
+  }, [user?.id, profile?.id, setValue])
+  
+  const metadata = getUserMetadata(user)
+  const completionPercentage = calculateProfileCompletion(profile, metadata)
   
   return { 
     user, 

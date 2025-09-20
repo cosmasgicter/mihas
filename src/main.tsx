@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useRef, type ComponentType } from 'react'
 import { createRoot } from 'react-dom/client'
-import { SpeedInsights } from '@vercel/speed-insights/react'
+
 import App from './App.tsx'
 import './index.css'
 import { AnalyticsService } from './lib/analytics.ts'
 
-type BaseSpeedInsightsProps = Parameters<typeof SpeedInsights>[0]
 type WebVitalsMetric = {
   id: string
   name: string
@@ -17,9 +16,8 @@ type WebVitalsMetric = {
   url?: string
   attribution?: any
 }
-const InstrumentedSpeedInsights = SpeedInsights as unknown as ComponentType<BaseSpeedInsightsProps & { onReport?: (metric: WebVitalsMetric) => void }>
 
-const SpeedInsightsReporter = () => {
+const WebVitalsReporter = () => {
   const reportedMetrics = useRef(new Set<string>())
 
   const handleReport = useCallback((metric: WebVitalsMetric) => {
@@ -56,46 +54,25 @@ const SpeedInsightsReporter = () => {
       return
     }
 
-    const handleCustomEvent = (event: Event) => {
-      const detail = (event as CustomEvent<WebVitalsMetric>).detail
-      if (detail) {
-        handleReport(detail)
-      }
-    }
-
-    window.addEventListener('vercel-speed-insights:core-web-vital', handleCustomEvent as EventListener)
-    window.addEventListener('vercel-speed-insights:report', handleCustomEvent as EventListener)
-
-    return () => {
-      window.removeEventListener('vercel-speed-insights:core-web-vital', handleCustomEvent as EventListener)
-      window.removeEventListener('vercel-speed-insights:report', handleCustomEvent as EventListener)
-    }
-  }, [handleReport])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    void import('web-vitals').then(({ onCLS, onFID, onINP, onLCP, onTTFB }) => {
-      onCLS(handleReport)
-      onFID(handleReport)
-      onINP(handleReport)
-      onLCP(handleReport)
-      onTTFB(handleReport)
+    void import('web-vitals').then((webVitals) => {
+      if (webVitals.onCLS) webVitals.onCLS(handleReport)
+      if (webVitals.onINP) webVitals.onINP(handleReport)
+      if (webVitals.onLCP) webVitals.onLCP(handleReport)
+      if (webVitals.onTTFB) webVitals.onTTFB(handleReport)
+      // onFID is deprecated, use onINP instead
     }).catch((error) => {
       console.error('Failed to load web-vitals metrics', error)
     })
   }, [handleReport])
 
-  return <InstrumentedSpeedInsights onReport={handleReport} />
+  return null
 }
 
 // Render immediately for better performance
 createRoot(document.getElementById('root')!).render(
   <>
     <App />
-    <SpeedInsightsReporter />
+    <WebVitalsReporter />
   </>
 )
 

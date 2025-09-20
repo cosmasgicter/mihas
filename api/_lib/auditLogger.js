@@ -34,7 +34,7 @@ function extractRequestContext(req) {
 
   const userAgentHeader = req.headers?.['user-agent'] || req.headers?.['user_agent'] || null
   const requestIdHeader =
-    req.headers?.['x-request-id'] || req.headers?.['x-vercel-id'] || req.headers?.['cf-ray'] || null
+    req.headers?.['x-request-id'] || req.headers?.['cf-ray'] || null
 
   return {
     request_ip: ipAddress || null,

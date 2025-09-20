@@ -207,16 +207,29 @@ class HttpTelemetrySink implements TelemetrySink {
       return
     }
 
-    const response = await fetch(`${this.baseUrl}/api/analytics/telemetry`, {
-      method: 'POST',
-      headers: await this.buildHeaders(),
-      body: JSON.stringify({ events }),
-      keepalive: typeof navigator !== 'undefined' && 'sendBeacon' in navigator ? true : undefined
-    })
+    try {
+      const response = await fetch(`${this.baseUrl}/api/analytics/telemetry`, {
+        method: 'POST',
+        headers: await this.buildHeaders(),
+        body: JSON.stringify({ events }),
+        keepalive: typeof navigator !== 'undefined' && 'sendBeacon' in navigator ? true : undefined
+      })
 
-    if (!response.ok) {
-      const message = await response.text().catch(() => `${response.status}`)
-      throw new Error(`Failed to persist telemetry: ${message}`)
+      if (!response.ok) {
+        // In development, API might not be available
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Telemetry API not available in development mode')
+          return
+        }
+        const message = await response.text().catch(() => `${response.status}`)
+        throw new Error(`Failed to persist telemetry: ${message}`)
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Telemetry persist failed in development:', error)
+        return
+      }
+      throw error
     }
   }
 

@@ -8,7 +8,7 @@ import { ToastProvider } from '@/components/ui/Toast'
 import { LoadingFallback } from '@/components/ui/LoadingFallback'
 import { routes, type RouteConfig } from '@/routes/config'
 import { AnalyticsTracker } from '@/components/analytics/AnalyticsTracker'
-import { Analytics } from '@vercel/analytics/react'
+
 
 
 // Optimized query client for better performance
@@ -70,7 +70,7 @@ function App() {
                 </Routes>
               </div>
             </AnalyticsTracker>
-            <Analytics />
+
           </Router>
 
         </ToastProvider>

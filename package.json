@@ -4,12 +4,14 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "vite",
+    "dev:netlify": "netlify dev",
     "build": "tsc && vite build",
     "build:prod": "tsc && vite build --mode production",
     "build:analyze": "tsc && vite build --mode production && npx vite-bundle-analyzer dist/stats.html",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "dev:api": "vercel dev",
+    "deploy": "netlify deploy",
+    "deploy:prod": "netlify deploy --prod",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
@@ -53,8 +55,6 @@
     "@tanstack/react-query": "^5.87.4",
     "@types/dompurify": "^3.0.5",
     "@types/react-window": "^1.8.8",
-    "@vercel/analytics": "^1.5.0",
-    "@vercel/speed-insights": "^1.2.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.20",
     "clsx": "^2.1.1",
@@ -102,7 +102,6 @@
     "jsdom": "^27.0.0",
     "terser": "^5.32.0",
     "typescript-eslint": "^8.44.0",
-    "vercel": "^48.0.2",
     "vitest": "^3.2.4"
   }
 }
