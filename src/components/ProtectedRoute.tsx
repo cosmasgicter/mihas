@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { supabase } from '@/lib/supabase'
+import { supabase, isSupabaseConfigured } from '@/lib/supabase'
+import { SupabaseConfigError } from '@/components/SupabaseConfigError'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -11,6 +12,7 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth()
   const [sessionChecked, setSessionChecked] = useState(false)
+  const supabaseAvailable = isSupabaseConfigured
 
   useEffect(() => {
     // Double-check session on mount
@@ -26,11 +28,20 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         setSessionChecked(true)
       }
     }
-    
+
+    if (!supabaseAvailable) {
+      setSessionChecked(true)
+      return
+    }
+
     if (!loading) {
       checkSession()
     }
-  }, [loading])
+  }, [loading, supabaseAvailable])
+
+  if (!supabaseAvailable) {
+    return <SupabaseConfigError />
+  }
 
   if (loading || !sessionChecked) {
     return (

@@ -5,9 +5,10 @@ import { sanitizeForLog } from './security'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
-}
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
+
+export const SUPABASE_CONFIG_ERROR_MESSAGE =
+  'Supabase client is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
 
 const AUTH_STORAGE_KEY = 'mihas-auth-token'
 
@@ -51,7 +52,15 @@ function resolveStorage(adapter?: SupportedStorage) {
   return { storage: memoryStorage, isServerStorage: true }
 }
 
+function assertSupabaseConfigured(): void {
+  if (!isSupabaseConfigured) {
+    throw new Error(SUPABASE_CONFIG_ERROR_MESSAGE)
+  }
+}
+
 export function createSupabaseClient(options: SupabaseFactoryOptions = {}): SupabaseClient {
+  assertSupabaseConfigured()
+
   const { storage, isServerStorage } = resolveStorage(options.storage)
   const shouldRecreateClient =
     !supabaseClient || (!isServerStorage && usingServerStorage)
@@ -106,7 +115,9 @@ export function createSupabaseClient(options: SupabaseFactoryOptions = {}): Supa
   return supabaseClient!
 }
 
-export const getSupabaseClient = createSupabaseClient
+export function getSupabaseClient(options?: SupabaseFactoryOptions) {
+  return createSupabaseClient(options)
+}
 
 function initializeBrowserAuthHandlers(client: SupabaseClient, storage: SupportedStorage) {
   if (authHandlersInitialized || typeof window === 'undefined') {
@@ -183,6 +194,7 @@ async function retryTokenRefresh(client: SupabaseClient) {
 
 export const supabase = new Proxy({}, {
   get(_target, prop) {
+    assertSupabaseConfigured()
     const client = createSupabaseClient()
     const value = (client as any)[prop]
     if (typeof value === 'function') {
@@ -191,6 +203,7 @@ export const supabase = new Proxy({}, {
     return value
   },
   set(_target, prop, value) {
+    assertSupabaseConfigured()
     const client = createSupabaseClient()
     (client as any)[prop] = value
     return true

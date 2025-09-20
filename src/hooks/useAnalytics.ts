@@ -1,13 +1,19 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { AnalyticsService } from '@/lib/analytics'
+import { isSupabaseConfigured } from '@/lib/supabase'
 
 export function useAnalytics() {
   const { user } = useAuth()
   const sessionId = useRef(Math.random().toString(36).substring(7))
   const pageStartTime = useRef(Date.now())
+  const analyticsEnabled = isSupabaseConfigured
 
-  const trackPageView = (pagePath: string) => {
+  const trackPageView = useCallback((pagePath: string) => {
+    if (!analyticsEnabled) {
+      return
+    }
+
     AnalyticsService.trackEvent({
       user_id: user?.id,
       session_id: sessionId.current,
@@ -19,9 +25,13 @@ export function useAnalytics() {
       }
     })
     pageStartTime.current = Date.now()
-  }
+  }, [analyticsEnabled, user?.id])
 
-  const trackAction = (actionType: string, metadata?: Record<string, any>) => {
+  const trackAction = useCallback((actionType: string, metadata?: Record<string, any>) => {
+    if (!analyticsEnabled) {
+      return
+    }
+
     AnalyticsService.trackEvent({
       user_id: user?.id,
       session_id: sessionId.current,
@@ -32,7 +42,7 @@ export function useAnalytics() {
         timestamp: new Date().toISOString()
       }
     })
-  }
+  }, [analyticsEnabled, user?.id])
 
   const trackFormStart = (formName: string) => {
     trackAction('form_start', { form_name: formName })
@@ -61,8 +71,12 @@ export function useAnalytics() {
   }
 
   useEffect(() => {
-    // Track page view on mount
-    trackPageView(window.location.pathname)
+    if (!analyticsEnabled) {
+      return
+    }
+
+    const currentPath = window.location.pathname
+    trackPageView(currentPath)
 
     // Track page duration on unmount
     return () => {
@@ -70,12 +84,12 @@ export function useAnalytics() {
       AnalyticsService.trackEvent({
         user_id: user?.id,
         session_id: sessionId.current,
-        page_path: window.location.pathname,
+        page_path: currentPath,
         action_type: 'page_duration',
         duration_seconds: duration
       })
     }
-  }, [])
+  }, [analyticsEnabled, trackPageView, user?.id])
 
   return {
     trackPageView,
