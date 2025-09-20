@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useMemo } from 'react'
 import { User } from '@supabase/supabase-js'
-import { useSessionListener, type SignInResult, type SignUpResult } from '@/hooks/auth/useSessionListener'
+import { useSessionListener, type SignInResult, type SignUpResult, AUTH_CONFIGURATION_MESSAGE } from '@/hooks/auth/useSessionListener'
+import { isSupabaseConfigured } from '@/lib/supabase'
+import { SupabaseConfigError } from '@/components/SupabaseConfigError'
 
 interface AuthContextType {
   user: User | null
@@ -15,6 +17,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { user, loading, signIn, signUp, signOut } = useSessionListener()
 
+  const disabledValue = useMemo<AuthContextType>(() => ({
+    user: null,
+    loading: false,
+    signIn: async () => ({ error: AUTH_CONFIGURATION_MESSAGE }),
+    signUp: async () => ({ error: AUTH_CONFIGURATION_MESSAGE }),
+    signOut: async () => {}
+  }), [])
+
   const value = useMemo(() => ({
     user,
     loading,
@@ -22,6 +32,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signOut
   }), [user, loading, signIn, signUp, signOut])
+
+  if (!isSupabaseConfigured) {
+    return (
+      <AuthContext.Provider value={disabledValue}>
+        <SupabaseConfigError />
+      </AuthContext.Provider>
+    )
+  }
 
   return (
     <AuthContext.Provider value={value}>

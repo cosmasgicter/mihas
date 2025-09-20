@@ -1,8 +1,20 @@
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from './supabase'
+import { supabase, isSupabaseConfigured, SUPABASE_CONFIG_ERROR_MESSAGE } from './supabase'
 import { ReportExportData, ReportFormat } from './reportExports'
 import { isReportManagerRole } from '@/lib/auth/roles'
 import { sanitizeForLog } from './security'
+
+function ensureAnalyticsEnabled(context: string): boolean {
+  if (isSupabaseConfigured) {
+    return true
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn(`Supabase configuration missing. Skipping analytics ${context}.`)
+  }
+
+  return false
+}
 
 export interface AnalyticsEvent {
   user_id?: string
@@ -59,6 +71,10 @@ export interface AutomatedReport {
 export class AnalyticsService {
   // Ensure user is authenticated before making requests
   static async ensureAuthenticated() {
+    if (!isSupabaseConfigured) {
+      throw new Error(SUPABASE_CONFIG_ERROR_MESSAGE)
+    }
+
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.access_token) {
       throw new Error('User not authenticated - JWT token missing')
@@ -120,9 +136,13 @@ export class AnalyticsService {
   // Event Tracking
   static async trackEvent(event: AnalyticsEvent) {
     try {
+      if (!ensureAnalyticsEnabled('event tracking')) {
+        return
+      }
+
       // Allow anonymous tracking for web vitals and basic events
       const { data: { session } } = await supabase.auth.getSession()
-      
+
       const { error } = await supabase
         .from('user_engagement_metrics')
         .insert({

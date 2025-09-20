@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
-import { getSupabaseClient } from '@/lib/supabase'
+import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase'
 import { sanitizeForLog } from '@/lib/security'
 import { authPersistence } from '@/lib/authPersistence'
 import { secureDisplay } from '@/lib/secureDisplay'
 import { sanitizeForDisplay } from '@/lib/sanitize'
+
+export const AUTH_CONFIGURATION_MESSAGE =
+  'Authentication is currently unavailable because Supabase is not configured.'
 
 export type SignInResult = {
   session?: any
@@ -23,6 +26,12 @@ export function useSessionListener() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setLoading(false)
+      setUser(null)
+      return
+    }
+
     if (typeof window === 'undefined') {
       setLoading(false)
       return
@@ -85,6 +94,10 @@ export function useSessionListener() {
   }, [])
 
   const signIn = useCallback(async (email: string, password: string): Promise<SignInResult> => {
+    if (!isSupabaseConfigured) {
+      return { error: AUTH_CONFIGURATION_MESSAGE }
+    }
+
     try {
       console.log('Attempting sign in for:', sanitizeForLog(email))
       const supabase = getSupabaseClient()
@@ -111,6 +124,10 @@ export function useSessionListener() {
   }, [])
 
   const signUp = useCallback(async (email: string, password: string, userData: any): Promise<SignUpResult> => {
+    if (!isSupabaseConfigured) {
+      return { error: AUTH_CONFIGURATION_MESSAGE }
+    }
+
     const sanitizedUserData = Object.entries(userData || {}).reduce((acc, [key, value]) => {
       acc[key] = typeof value === 'string' ? secureDisplay.text(value) : value
       return acc
@@ -137,6 +154,11 @@ export function useSessionListener() {
   }, [])
 
   const signOut = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      setUser(null)
+      return
+    }
+
     const supabase = getSupabaseClient()
     await supabase.auth.signOut()
     setUser(null)
