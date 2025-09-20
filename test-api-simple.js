@@ -44,7 +44,7 @@ async function testEndpoints() {
   const endpoints = [
     '/api/test',
     '/api/catalog',
-    '/api/analytics?action=telemetry',
+    '/api/analytics/telemetry',
     '/api/applications',
     '/api/admin/users',
     '/api/notifications'

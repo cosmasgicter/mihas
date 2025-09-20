@@ -22,7 +22,7 @@ test.describe('Microservices API Tests', () => {
   })
 
   test('Analytics service - metrics endpoint', async ({ request }) => {
-    const response = await request.get(`${API_BASE}/api/analytics?action=metrics`)
+    const response = await request.get(`${API_BASE}/api/analytics/metrics`)
     expect(response.status()).toBe(401)
   })
 

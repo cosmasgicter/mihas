@@ -29,12 +29,12 @@
 - **Note**: Expected behavior - no auth header
 
 ### 5. Analytics Telemetry (Authentication Required)
-- **Endpoint**: `/api/analytics?action=telemetry`
+- **Endpoint**: `/api/analytics/telemetry`
 - **Status**: ✅ 503 Service Unavailable
 - **Note**: Expected behavior - rate limiter issue
 
 ### 6. Analytics Metrics (Authentication Required)
-- **Endpoint**: `/api/analytics?action=metrics`
+- **Endpoint**: `/api/analytics/metrics`
 - **Status**: ✅ 503 Service Unavailable
 - **Note**: Expected behavior - rate limiter issue
 
@@ -74,7 +74,7 @@
 - **Fix**: Same rate limiter issue
 
 ### 5. Analytics Telemetry POST
-- **Endpoint**: `/api/analytics?action=telemetry` (POST)
+- **Endpoint**: `/api/analytics/telemetry` (POST)
 - **Expected**: 401/400
 - **Actual**: 503 Service Unavailable
 - **Error**: Rate limiter unavailable

@@ -43,7 +43,7 @@ export async function fetchPredictiveDashboardMetrics(): Promise<PredictiveDashb
       return null
     }
 
-    const response = await fetch('/api/analytics?action=predictive-dashboard', {
+    const response = await fetch('/api/analytics/predictive-dashboard', {
       headers: {
         'Authorization': `Bearer ${accessToken}`
       }
