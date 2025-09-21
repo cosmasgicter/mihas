@@ -459,7 +459,7 @@ export default function StudentDashboard() {
                             </div>
                           </div>
                           
-                          <Link to={`/application/${application.id}`}>
+                          <Link to={`/student/application/${application.id}`}>
                             <Button 
                               variant="outline" 
                               size="sm"

@@ -10,6 +10,7 @@ const StudentDashboard = React.lazy(() => import('@/pages/student/Dashboard'))
 const AuthCallbackPage = React.lazy(() => import('@/pages/auth/AuthCallbackPage'))
 const ApplicationWizard = React.lazy(() => import('@/pages/student/ApplicationWizard'))
 const ApplicationStatus = React.lazy(() => import('@/pages/student/ApplicationStatus'))
+const ApplicationDetail = React.lazy(() => import('@/pages/student/ApplicationDetail'))
 const StudentSettings = React.lazy(() => import('@/pages/student/Settings'))
 const StudentNotificationSettings = React.lazy(() => import('@/pages/student/NotificationSettings'))
 const AdminDashboard = React.lazy(() => import('@/pages/admin/Dashboard'))
@@ -58,6 +59,7 @@ export const routes: RouteConfig[] = [
   { path: '/apply', element: ApplicationWizard, guard: 'auth', lazy: true },
   { path: '/student/application-wizard', element: ApplicationWizard, guard: 'auth', lazy: true },
   { path: '/application/:id', element: ApplicationStatus, guard: 'auth', lazy: true },
+  { path: '/student/application/:id', element: ApplicationDetail, guard: 'auth', lazy: true },
   { path: '/settings', element: StudentSettings, guard: 'auth', lazy: true },
   { path: '/student/notifications', element: StudentNotificationSettings, guard: 'auth', lazy: true },
   

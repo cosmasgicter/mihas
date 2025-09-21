@@ -280,3 +280,63 @@ Response with status 200 in 4 ms.
 ⬥ Rewrote URL to /.netlify/functions/analytics-telemetry
 Request from ::1: POST /.netlify/functions/analytics-telemetry
 Response with status 202 in 559 ms.
+⬥ Rewrote URL to /.netlify/functions/admin-dashboard
+Request from ::1: OPTIONS /.netlify/functions/admin-dashboard
+Response with status 200 in 3 ms.
+⬥ Rewrote URL to /.netlify/functions/admin-dashboard
+Request from ::1: GET /.netlify/functions/admin-dashboard
+Failed to record audit event {
+  error: {
+    code: '22P02',
+    details: null,
+    hint: null,
+    message: 'invalid input syntax for type uuid: "overview"'
+  },
+  action: 'admin.dashboard.view'
+}
+Response with status 200 in 2102 ms.
+⬥ Rewrote URL to /.netlify/functions/analytics-telemetry
+Request from ::1: OPTIONS /.netlify/functions/analytics-telemetry
+Response with status 200 in 11 ms.
+⬥ Rewrote URL to /.netlify/functions/analytics-telemetry
+Request from ::1: POST /.netlify/functions/analytics-telemetry
+Response with status 202 in 619 ms.
+⬥ Rewrote URL to /.netlify/functions/analytics-predictive-dashboard
+Request from ::1: OPTIONS /.netlify/functions/analytics-predictive-dashboard
+Response with status 200 in 2 ms.
+⬥ Rewrote URL to /.netlify/functions/analytics-predictive-dashboard
+Request from ::1: GET /.netlify/functions/analytics-predictive-dashboard
+Workflow summary view failed: {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.security_status_summary'",
+  message: "Could not find the table 'public.workflow_metrics_summary' in the schema cache"
+}
+Predictive summary view failed: {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.admin_application_summary'",
+  message: "Could not find the table 'public.analytics_predictive_summary' in the schema cache"
+}
+Response with status 200 in 3097 ms.
+⬥ Rewrote URL to /.netlify/functions/admin-dashboard
+Request from ::1: OPTIONS /.netlify/functions/admin-dashboard
+Response with status 200 in 3 ms.
+⬥ Rewrote URL to /.netlify/functions/admin-dashboard
+Request from ::1: GET /.netlify/functions/admin-dashboard
+Failed to record audit event {
+  error: {
+    code: '22P02',
+    details: null,
+    hint: null,
+    message: 'invalid input syntax for type uuid: "overview"'
+  },
+  action: 'admin.dashboard.view'
+}
+Response with status 200 in 1988 ms.
+⬥ Rewrote URL to /.netlify/functions/analytics-telemetry
+Request from ::1: OPTIONS /.netlify/functions/analytics-telemetry
+Response with status 200 in 3 ms.
+⬥ Rewrote URL to /.netlify/functions/analytics-telemetry
+Request from ::1: POST /.netlify/functions/analytics-telemetry
+Response with status 202 in 589 ms.
