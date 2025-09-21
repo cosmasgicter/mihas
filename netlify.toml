@@ -24,6 +24,12 @@
   force = true
 
 [[redirects]]
+  from = "/api/notifications/dispatch-channel"
+  to = "/.netlify/functions/notifications-dispatch-channel"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200

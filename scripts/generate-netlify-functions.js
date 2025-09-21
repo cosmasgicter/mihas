@@ -66,6 +66,7 @@ const endpoints = [
   { path: 'catalog/subjects.js', name: 'catalog-subjects' },
   { path: 'documents/upload.js', name: 'documents-upload' },
   { path: 'notifications/send.js', name: 'notifications-send' },
+  { path: 'notifications/dispatch-channel.js', name: 'notifications-dispatch-channel' },
   { path: 'notifications/application-submitted.js', name: 'notifications-application-submitted' },
   { path: 'notifications/preferences.js', name: 'notifications-preferences' },
   { path: 'notifications/update-consent.js', name: 'notifications-update-consent' },
