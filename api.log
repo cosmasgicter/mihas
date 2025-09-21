@@ -1,0 +1,298 @@
+[dotenv@17.2.2] injecting env (30) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+Loaded route: /api/admin/audit-log
+Loaded route: /api/admin/dashboard
+Loaded route: /api/admin/users/:id/permissions
+Loaded route: /api/admin/users/:id/role
+Loaded route: /api/admin/users/:id
+Loaded route: /api/admin/users
+Loaded route: /api/analytics/metrics
+Loaded route: /api/analytics/predictive-dashboard
+Loaded route: /api/analytics/telemetry
+Loaded route: /api/applications/:id
+Loaded route: /api/applications/bulk
+Loaded route: /api/applications
+Loaded route: /api/auth/login
+Loaded route: /api/auth/register
+Loaded route: /api/auth/signin
+Loaded route: /api/catalog/intakes
+Loaded route: /api/catalog/programs
+Loaded route: /api/catalog/subjects
+Loaded route: /api/documents/upload
+Loaded route: /api/mcp/query
+Loaded route: /api/mcp/schema
+Loaded route: /api/notifications/application-submitted
+Loaded route: /api/notifications/dispatch-channel
+Loaded route: /api/notifications/preferences
+Loaded route: /api/notifications/send
+Loaded route: /api/notifications/update-consent
+Loaded route: /api/test
+Loaded route: /api/user-consents
+Local API server running on http://localhost:8888
+Available routes:
+- GET /api/health
+Press Ctrl+C to stop
+GET /api/applications - Headers: {
+  host: 'localhost:8888',
+  connection: 'keep-alive',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI2ZTE0N2VhZC1lMzRkLTQxZTItYmMwNS0zNThhNjUzZmY2MzMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDU4OTc5LCJpYXQiOjE3NTg0NTUzNzksImVtYWlsIjoiY29zbWFza2FuY2hlcGE4QGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJjb3NtYXNrYW5jaGVwYThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZ1bGxfbmFtZSI6IlNvbG9tb24gTmdvbWEiLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInNpZ251cF9kYXRhIjoie1wiZW1haWxcIjpcImNvc21hc2thbmNoZXBhOEBnbWFpbC5jb21cIixcInBhc3N3b3JkXCI6XCJCZWFub2xhMjAyNVwiLFwiZnVsbF9uYW1lXCI6XCJTb2xvbW9uIE5nb21hXCIsXCJwaG9uZVwiOlwiKzI2MDk2NjIyMjk5OVwiLFwiZGF0ZV9vZl9iaXJ0aFwiOlwiMjAwNi0wMS0wMlwiLFwiZ2VuZGVyXCI6XCJNYWxlXCIsXCJuYXRpb25hbGl0eVwiOlwiWmFtYmlhblwiLFwiYWRkcmVzc1wiOlwiMTgyLzQ5XFxuT0ZGIE1BSU4gUk9BRFxcblZBTExFWSBWSUVXXCIsXCJjaXR5XCI6XCJMVVNBS0FcIixcImNvdW50cnlcIjpcIlphbWJpYVwiLFwiZW1lcmdlbmN5X2NvbnRhY3RfbmFtZVwiOlwiV0lMTElBTSBaVUxVXCIsXCJlbWVyZ2VuY3lfY29udGFjdF9waG9uZVwiOlwiMDk3NzU2MjA0N1wifSIsInN1YiI6IjZlMTQ3ZWFkLWUzNGQtNDFlMi1iYzA1LTM1OGE2NTNmZjYzMyJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU1Mzc5fV0sInNlc3Npb25faWQiOiIyZmE4NzQ2ZS01NjhjLTRiNjktYmYwMi01ODMwMmRlMGJlNDIiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.qy5ozDte1N7VJ7NCmZa2xUE1XjEB6HVAC3r_aFwdB0g',
+  accept: '*/*',
+  'accept-language': '*',
+  'sec-fetch-mode': 'cors',
+  'user-agent': 'node',
+  'accept-encoding': 'gzip, deflate'
+}
+GET /api/applications - Headers: {
+  host: 'localhost:8888',
+  connection: 'keep-alive',
+  'sec-ch-ua-platform': '"Linux"',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI2ZTE0N2VhZC1lMzRkLTQxZTItYmMwNS0zNThhNjUzZmY2MzMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDU4NTkxLCJpYXQiOjE3NTg0NTQ5OTEsImVtYWlsIjoiY29zbWFza2FuY2hlcGE4QGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJjb3NtYXNrYW5jaGVwYThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZ1bGxfbmFtZSI6IlNvbG9tb24gTmdvbWEiLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInNpZ251cF9kYXRhIjoie1wiZW1haWxcIjpcImNvc21hc2thbmNoZXBhOEBnbWFpbC5jb21cIixcInBhc3N3b3JkXCI6XCJCZWFub2xhMjAyNVwiLFwiZnVsbF9uYW1lXCI6XCJTb2xvbW9uIE5nb21hXCIsXCJwaG9uZVwiOlwiKzI2MDk2NjIyMjk5OVwiLFwiZGF0ZV9vZl9iaXJ0aFwiOlwiMjAwNi0wMS0wMlwiLFwiZ2VuZGVyXCI6XCJNYWxlXCIsXCJuYXRpb25hbGl0eVwiOlwiWmFtYmlhblwiLFwiYWRkcmVzc1wiOlwiMTgyLzQ5XFxuT0ZGIE1BSU4gUk9BRFxcblZBTExFWSBWSUVXXCIsXCJjaXR5XCI6XCJMVVNBS0FcIixcImNvdW50cnlcIjpcIlphbWJpYVwiLFwiZW1lcmdlbmN5X2NvbnRhY3RfbmFtZVwiOlwiV0lMTElBTSBaVUxVXCIsXCJlbWVyZ2VuY3lfY29udGFjdF9waG9uZVwiOlwiMDk3NzU2MjA0N1wifSIsInN1YiI6IjZlMTQ3ZWFkLWUzNGQtNDFlMi1iYzA1LTM1OGE2NTNmZjYzMyJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU0OTkxfV0sInNlc3Npb25faWQiOiIyYzg2N2FkNy1mYTFjLTQ5YTEtYTM5Mi05MmZiMDA1NTNkYTAiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.7ULvldj3XR-IbI0CctTb5hDjbsgW1woDLcz9rT1hy-4',
+  'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+  'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+  dnt: '1',
+  'content-type': 'application/json',
+  'sec-ch-ua-mobile': '?0',
+  accept: '*/*',
+  origin: 'http://localhost:5173',
+  'sec-fetch-site': 'same-site',
+  'sec-fetch-mode': 'cors',
+  'sec-fetch-dest': 'empty',
+  referer: 'http://localhost:5173/',
+  'accept-encoding': 'gzip, deflate, br, zstd',
+  'accept-language': 'en-US,en;q=0.9',
+  'if-none-match': 'W/"49e-Ld+oQ0iz3nkgZx+DqDz09HYgBwk"'
+}
+GET /api/applications - Headers: {
+  host: 'localhost:8888',
+  connection: 'keep-alive',
+  'sec-ch-ua-platform': '"Linux"',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI2ZTE0N2VhZC1lMzRkLTQxZTItYmMwNS0zNThhNjUzZmY2MzMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDU4NTkxLCJpYXQiOjE3NTg0NTQ5OTEsImVtYWlsIjoiY29zbWFza2FuY2hlcGE4QGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJjb3NtYXNrYW5jaGVwYThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZ1bGxfbmFtZSI6IlNvbG9tb24gTmdvbWEiLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInNpZ251cF9kYXRhIjoie1wiZW1haWxcIjpcImNvc21hc2thbmNoZXBhOEBnbWFpbC5jb21cIixcInBhc3N3b3JkXCI6XCJCZWFub2xhMjAyNVwiLFwiZnVsbF9uYW1lXCI6XCJTb2xvbW9uIE5nb21hXCIsXCJwaG9uZVwiOlwiKzI2MDk2NjIyMjk5OVwiLFwiZGF0ZV9vZl9iaXJ0aFwiOlwiMjAwNi0wMS0wMlwiLFwiZ2VuZGVyXCI6XCJNYWxlXCIsXCJuYXRpb25hbGl0eVwiOlwiWmFtYmlhblwiLFwiYWRkcmVzc1wiOlwiMTgyLzQ5XFxuT0ZGIE1BSU4gUk9BRFxcblZBTExFWSBWSUVXXCIsXCJjaXR5XCI6XCJMVVNBS0FcIixcImNvdW50cnlcIjpcIlphbWJpYVwiLFwiZW1lcmdlbmN5X2NvbnRhY3RfbmFtZVwiOlwiV0lMTElBTSBaVUxVXCIsXCJlbWVyZ2VuY3lfY29udGFjdF9waG9uZVwiOlwiMDk3NzU2MjA0N1wifSIsInN1YiI6IjZlMTQ3ZWFkLWUzNGQtNDFlMi1iYzA1LTM1OGE2NTNmZjYzMyJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU0OTkxfV0sInNlc3Npb25faWQiOiIyYzg2N2FkNy1mYTFjLTQ5YTEtYTM5Mi05MmZiMDA1NTNkYTAiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.7ULvldj3XR-IbI0CctTb5hDjbsgW1woDLcz9rT1hy-4',
+  'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+  'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+  dnt: '1',
+  'content-type': 'application/json',
+  'sec-ch-ua-mobile': '?0',
+  accept: '*/*',
+  origin: 'http://localhost:5173',
+  'sec-fetch-site': 'same-site',
+  'sec-fetch-mode': 'cors',
+  'sec-fetch-dest': 'empty',
+  referer: 'http://localhost:5173/',
+  'accept-encoding': 'gzip, deflate, br, zstd',
+  'accept-language': 'en-US,en;q=0.9',
+  'if-none-match': 'W/"477-wNhcONRn92zfj2D5omCC0DnfOs0"'
+}
+GET /api/applications - Headers: {
+  host: 'localhost:8888',
+  connection: 'keep-alive',
+  'sec-ch-ua-platform': '"Linux"',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI2ZTE0N2VhZC1lMzRkLTQxZTItYmMwNS0zNThhNjUzZmY2MzMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDU4NTkxLCJpYXQiOjE3NTg0NTQ5OTEsImVtYWlsIjoiY29zbWFza2FuY2hlcGE4QGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJjb3NtYXNrYW5jaGVwYThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZ1bGxfbmFtZSI6IlNvbG9tb24gTmdvbWEiLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInNpZ251cF9kYXRhIjoie1wiZW1haWxcIjpcImNvc21hc2thbmNoZXBhOEBnbWFpbC5jb21cIixcInBhc3N3b3JkXCI6XCJCZWFub2xhMjAyNVwiLFwiZnVsbF9uYW1lXCI6XCJTb2xvbW9uIE5nb21hXCIsXCJwaG9uZVwiOlwiKzI2MDk2NjIyMjk5OVwiLFwiZGF0ZV9vZl9iaXJ0aFwiOlwiMjAwNi0wMS0wMlwiLFwiZ2VuZGVyXCI6XCJNYWxlXCIsXCJuYXRpb25hbGl0eVwiOlwiWmFtYmlhblwiLFwiYWRkcmVzc1wiOlwiMTgyLzQ5XFxuT0ZGIE1BSU4gUk9BRFxcblZBTExFWSBWSUVXXCIsXCJjaXR5XCI6XCJMVVNBS0FcIixcImNvdW50cnlcIjpcIlphbWJpYVwiLFwiZW1lcmdlbmN5X2NvbnRhY3RfbmFtZVwiOlwiV0lMTElBTSBaVUxVXCIsXCJlbWVyZ2VuY3lfY29udGFjdF9waG9uZVwiOlwiMDk3NzU2MjA0N1wifSIsInN1YiI6IjZlMTQ3ZWFkLWUzNGQtNDFlMi1iYzA1LTM1OGE2NTNmZjYzMyJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU0OTkxfV0sInNlc3Npb25faWQiOiIyYzg2N2FkNy1mYTFjLTQ5YTEtYTM5Mi05MmZiMDA1NTNkYTAiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.7ULvldj3XR-IbI0CctTb5hDjbsgW1woDLcz9rT1hy-4',
+  'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+  'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+  dnt: '1',
+  'content-type': 'application/json',
+  'sec-ch-ua-mobile': '?0',
+  accept: '*/*',
+  origin: 'http://localhost:5173',
+  'sec-fetch-site': 'same-site',
+  'sec-fetch-mode': 'cors',
+  'sec-fetch-dest': 'empty',
+  referer: 'http://localhost:5173/',
+  'accept-encoding': 'gzip, deflate, br, zstd',
+  'accept-language': 'en-US,en;q=0.9',
+  'if-none-match': 'W/"1612-luLre98TC/+8mrv2euqTc2aVozQ"'
+}
+GET /api/applications - Headers: {
+  host: 'localhost:8888',
+  connection: 'keep-alive',
+  'sec-ch-ua-platform': '"Linux"',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI2ZTE0N2VhZC1lMzRkLTQxZTItYmMwNS0zNThhNjUzZmY2MzMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDU4NTkxLCJpYXQiOjE3NTg0NTQ5OTEsImVtYWlsIjoiY29zbWFza2FuY2hlcGE4QGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJjb3NtYXNrYW5jaGVwYThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZ1bGxfbmFtZSI6IlNvbG9tb24gTmdvbWEiLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInNpZ251cF9kYXRhIjoie1wiZW1haWxcIjpcImNvc21hc2thbmNoZXBhOEBnbWFpbC5jb21cIixcInBhc3N3b3JkXCI6XCJCZWFub2xhMjAyNVwiLFwiZnVsbF9uYW1lXCI6XCJTb2xvbW9uIE5nb21hXCIsXCJwaG9uZVwiOlwiKzI2MDk2NjIyMjk5OVwiLFwiZGF0ZV9vZl9iaXJ0aFwiOlwiMjAwNi0wMS0wMlwiLFwiZ2VuZGVyXCI6XCJNYWxlXCIsXCJuYXRpb25hbGl0eVwiOlwiWmFtYmlhblwiLFwiYWRkcmVzc1wiOlwiMTgyLzQ5XFxuT0ZGIE1BSU4gUk9BRFxcblZBTExFWSBWSUVXXCIsXCJjaXR5XCI6XCJMVVNBS0FcIixcImNvdW50cnlcIjpcIlphbWJpYVwiLFwiZW1lcmdlbmN5X2NvbnRhY3RfbmFtZVwiOlwiV0lMTElBTSBaVUxVXCIsXCJlbWVyZ2VuY3lfY29udGFjdF9waG9uZVwiOlwiMDk3NzU2MjA0N1wifSIsInN1YiI6IjZlMTQ3ZWFkLWUzNGQtNDFlMi1iYzA1LTM1OGE2NTNmZjYzMyJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU0OTkxfV0sInNlc3Npb25faWQiOiIyYzg2N2FkNy1mYTFjLTQ5YTEtYTM5Mi05MmZiMDA1NTNkYTAiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.7ULvldj3XR-IbI0CctTb5hDjbsgW1woDLcz9rT1hy-4',
+  'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+  'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+  dnt: '1',
+  'content-type': 'application/json',
+  'sec-ch-ua-mobile': '?0',
+  accept: '*/*',
+  origin: 'http://localhost:5173',
+  'sec-fetch-site': 'same-site',
+  'sec-fetch-mode': 'cors',
+  'sec-fetch-dest': 'empty',
+  referer: 'http://localhost:5173/',
+  'accept-encoding': 'gzip, deflate, br, zstd',
+  'accept-language': 'en-US,en;q=0.9',
+  'if-none-match': 'W/"1614-PVxPOoZVrRzbbyUaH7VLHgy9jAk"'
+}
+GET /api/applications - Headers: {
+  host: 'localhost:8888',
+  connection: 'keep-alive',
+  'sec-ch-ua-platform': '"Linux"',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI2ZTE0N2VhZC1lMzRkLTQxZTItYmMwNS0zNThhNjUzZmY2MzMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDU4NTkxLCJpYXQiOjE3NTg0NTQ5OTEsImVtYWlsIjoiY29zbWFza2FuY2hlcGE4QGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJjb3NtYXNrYW5jaGVwYThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZ1bGxfbmFtZSI6IlNvbG9tb24gTmdvbWEiLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInNpZ251cF9kYXRhIjoie1wiZW1haWxcIjpcImNvc21hc2thbmNoZXBhOEBnbWFpbC5jb21cIixcInBhc3N3b3JkXCI6XCJCZWFub2xhMjAyNVwiLFwiZnVsbF9uYW1lXCI6XCJTb2xvbW9uIE5nb21hXCIsXCJwaG9uZVwiOlwiKzI2MDk2NjIyMjk5OVwiLFwiZGF0ZV9vZl9iaXJ0aFwiOlwiMjAwNi0wMS0wMlwiLFwiZ2VuZGVyXCI6XCJNYWxlXCIsXCJuYXRpb25hbGl0eVwiOlwiWmFtYmlhblwiLFwiYWRkcmVzc1wiOlwiMTgyLzQ5XFxuT0ZGIE1BSU4gUk9BRFxcblZBTExFWSBWSUVXXCIsXCJjaXR5XCI6XCJMVVNBS0FcIixcImNvdW50cnlcIjpcIlphbWJpYVwiLFwiZW1lcmdlbmN5X2NvbnRhY3RfbmFtZVwiOlwiV0lMTElBTSBaVUxVXCIsXCJlbWVyZ2VuY3lfY29udGFjdF9waG9uZVwiOlwiMDk3NzU2MjA0N1wifSIsInN1YiI6IjZlMTQ3ZWFkLWUzNGQtNDFlMi1iYzA1LTM1OGE2NTNmZjYzMyJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU0OTkxfV0sInNlc3Npb25faWQiOiIyYzg2N2FkNy1mYTFjLTQ5YTEtYTM5Mi05MmZiMDA1NTNkYTAiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.7ULvldj3XR-IbI0CctTb5hDjbsgW1woDLcz9rT1hy-4',
+  'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+  'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+  dnt: '1',
+  'content-type': 'application/json',
+  'sec-ch-ua-mobile': '?0',
+  accept: '*/*',
+  origin: 'http://localhost:5173',
+  'sec-fetch-site': 'same-site',
+  'sec-fetch-mode': 'cors',
+  'sec-fetch-dest': 'empty',
+  referer: 'http://localhost:5173/',
+  'accept-encoding': 'gzip, deflate, br, zstd',
+  'accept-language': 'en-US,en;q=0.9',
+  'if-none-match': 'W/"477-wNhcONRn92zfj2D5omCC0DnfOs0"'
+}
+GET /api/applications - Headers: {
+  host: 'localhost:8888',
+  connection: 'keep-alive',
+  'sec-ch-ua-platform': '"Linux"',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI2ZTE0N2VhZC1lMzRkLTQxZTItYmMwNS0zNThhNjUzZmY2MzMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDU4NTkxLCJpYXQiOjE3NTg0NTQ5OTEsImVtYWlsIjoiY29zbWFza2FuY2hlcGE4QGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJjb3NtYXNrYW5jaGVwYThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZ1bGxfbmFtZSI6IlNvbG9tb24gTmdvbWEiLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInNpZ251cF9kYXRhIjoie1wiZW1haWxcIjpcImNvc21hc2thbmNoZXBhOEBnbWFpbC5jb21cIixcInBhc3N3b3JkXCI6XCJCZWFub2xhMjAyNVwiLFwiZnVsbF9uYW1lXCI6XCJTb2xvbW9uIE5nb21hXCIsXCJwaG9uZVwiOlwiKzI2MDk2NjIyMjk5OVwiLFwiZGF0ZV9vZl9iaXJ0aFwiOlwiMjAwNi0wMS0wMlwiLFwiZ2VuZGVyXCI6XCJNYWxlXCIsXCJuYXRpb25hbGl0eVwiOlwiWmFtYmlhblwiLFwiYWRkcmVzc1wiOlwiMTgyLzQ5XFxuT0ZGIE1BSU4gUk9BRFxcblZBTExFWSBWSUVXXCIsXCJjaXR5XCI6XCJMVVNBS0FcIixcImNvdW50cnlcIjpcIlphbWJpYVwiLFwiZW1lcmdlbmN5X2NvbnRhY3RfbmFtZVwiOlwiV0lMTElBTSBaVUxVXCIsXCJlbWVyZ2VuY3lfY29udGFjdF9waG9uZVwiOlwiMDk3NzU2MjA0N1wifSIsInN1YiI6IjZlMTQ3ZWFkLWUzNGQtNDFlMi1iYzA1LTM1OGE2NTNmZjYzMyJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU0OTkxfV0sInNlc3Npb25faWQiOiIyYzg2N2FkNy1mYTFjLTQ5YTEtYTM5Mi05MmZiMDA1NTNkYTAiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.7ULvldj3XR-IbI0CctTb5hDjbsgW1woDLcz9rT1hy-4',
+  'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+  'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+  dnt: '1',
+  'content-type': 'application/json',
+  'sec-ch-ua-mobile': '?0',
+  accept: '*/*',
+  origin: 'http://localhost:5173',
+  'sec-fetch-site': 'same-site',
+  'sec-fetch-mode': 'cors',
+  'sec-fetch-dest': 'empty',
+  referer: 'http://localhost:5173/',
+  'accept-encoding': 'gzip, deflate, br, zstd',
+  'accept-language': 'en-US,en;q=0.9',
+  'if-none-match': 'W/"1614-PVxPOoZVrRzbbyUaH7VLHgy9jAk"'
+}
+GET /api/applications - Headers: {
+  host: 'localhost:8888',
+  connection: 'keep-alive',
+  'sec-ch-ua-platform': '"Linux"',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI2ZTE0N2VhZC1lMzRkLTQxZTItYmMwNS0zNThhNjUzZmY2MzMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDU4NTkxLCJpYXQiOjE3NTg0NTQ5OTEsImVtYWlsIjoiY29zbWFza2FuY2hlcGE4QGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJjb3NtYXNrYW5jaGVwYThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZ1bGxfbmFtZSI6IlNvbG9tb24gTmdvbWEiLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInNpZ251cF9kYXRhIjoie1wiZW1haWxcIjpcImNvc21hc2thbmNoZXBhOEBnbWFpbC5jb21cIixcInBhc3N3b3JkXCI6XCJCZWFub2xhMjAyNVwiLFwiZnVsbF9uYW1lXCI6XCJTb2xvbW9uIE5nb21hXCIsXCJwaG9uZVwiOlwiKzI2MDk2NjIyMjk5OVwiLFwiZGF0ZV9vZl9iaXJ0aFwiOlwiMjAwNi0wMS0wMlwiLFwiZ2VuZGVyXCI6XCJNYWxlXCIsXCJuYXRpb25hbGl0eVwiOlwiWmFtYmlhblwiLFwiYWRkcmVzc1wiOlwiMTgyLzQ5XFxuT0ZGIE1BSU4gUk9BRFxcblZBTExFWSBWSUVXXCIsXCJjaXR5XCI6XCJMVVNBS0FcIixcImNvdW50cnlcIjpcIlphbWJpYVwiLFwiZW1lcmdlbmN5X2NvbnRhY3RfbmFtZVwiOlwiV0lMTElBTSBaVUxVXCIsXCJlbWVyZ2VuY3lfY29udGFjdF9waG9uZVwiOlwiMDk3NzU2MjA0N1wifSIsInN1YiI6IjZlMTQ3ZWFkLWUzNGQtNDFlMi1iYzA1LTM1OGE2NTNmZjYzMyJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU0OTkxfV0sInNlc3Npb25faWQiOiIyYzg2N2FkNy1mYTFjLTQ5YTEtYTM5Mi05MmZiMDA1NTNkYTAiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.7ULvldj3XR-IbI0CctTb5hDjbsgW1woDLcz9rT1hy-4',
+  'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+  'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+  dnt: '1',
+  'content-type': 'application/json',
+  'sec-ch-ua-mobile': '?0',
+  accept: '*/*',
+  origin: 'http://localhost:5173',
+  'sec-fetch-site': 'same-site',
+  'sec-fetch-mode': 'cors',
+  'sec-fetch-dest': 'empty',
+  referer: 'http://localhost:5173/',
+  'accept-encoding': 'gzip, deflate, br, zstd',
+  'accept-language': 'en-US,en;q=0.9',
+  'if-none-match': 'W/"477-bTsrmzhGcmAqtGv9/W59+doKzQQ"'
+}
+GET /api/applications - Headers: {
+  host: 'localhost:8888',
+  connection: 'keep-alive',
+  'sec-ch-ua-platform': '"Linux"',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI2ZTE0N2VhZC1lMzRkLTQxZTItYmMwNS0zNThhNjUzZmY2MzMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDU4NTkxLCJpYXQiOjE3NTg0NTQ5OTEsImVtYWlsIjoiY29zbWFza2FuY2hlcGE4QGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJjb3NtYXNrYW5jaGVwYThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZ1bGxfbmFtZSI6IlNvbG9tb24gTmdvbWEiLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInNpZ251cF9kYXRhIjoie1wiZW1haWxcIjpcImNvc21hc2thbmNoZXBhOEBnbWFpbC5jb21cIixcInBhc3N3b3JkXCI6XCJCZWFub2xhMjAyNVwiLFwiZnVsbF9uYW1lXCI6XCJTb2xvbW9uIE5nb21hXCIsXCJwaG9uZVwiOlwiKzI2MDk2NjIyMjk5OVwiLFwiZGF0ZV9vZl9iaXJ0aFwiOlwiMjAwNi0wMS0wMlwiLFwiZ2VuZGVyXCI6XCJNYWxlXCIsXCJuYXRpb25hbGl0eVwiOlwiWmFtYmlhblwiLFwiYWRkcmVzc1wiOlwiMTgyLzQ5XFxuT0ZGIE1BSU4gUk9BRFxcblZBTExFWSBWSUVXXCIsXCJjaXR5XCI6XCJMVVNBS0FcIixcImNvdW50cnlcIjpcIlphbWJpYVwiLFwiZW1lcmdlbmN5X2NvbnRhY3RfbmFtZVwiOlwiV0lMTElBTSBaVUxVXCIsXCJlbWVyZ2VuY3lfY29udGFjdF9waG9uZVwiOlwiMDk3NzU2MjA0N1wifSIsInN1YiI6IjZlMTQ3ZWFkLWUzNGQtNDFlMi1iYzA1LTM1OGE2NTNmZjYzMyJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU0OTkxfV0sInNlc3Npb25faWQiOiIyYzg2N2FkNy1mYTFjLTQ5YTEtYTM5Mi05MmZiMDA1NTNkYTAiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.7ULvldj3XR-IbI0CctTb5hDjbsgW1woDLcz9rT1hy-4',
+  'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+  'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+  dnt: '1',
+  'content-type': 'application/json',
+  'sec-ch-ua-mobile': '?0',
+  accept: '*/*',
+  origin: 'http://localhost:5173',
+  'sec-fetch-site': 'same-site',
+  'sec-fetch-mode': 'cors',
+  'sec-fetch-dest': 'empty',
+  referer: 'http://localhost:5173/',
+  'accept-encoding': 'gzip, deflate, br, zstd',
+  'accept-language': 'en-US,en;q=0.9',
+  'if-none-match': 'W/"1616-OrJJiEj0N/tpiCn9TXousQAh6tw"'
+}
+GET /api/applications - Headers: {
+  host: 'localhost:8888',
+  connection: 'keep-alive',
+  'sec-ch-ua-platform': '"Linux"',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI2ZTE0N2VhZC1lMzRkLTQxZTItYmMwNS0zNThhNjUzZmY2MzMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDU4NTkxLCJpYXQiOjE3NTg0NTQ5OTEsImVtYWlsIjoiY29zbWFza2FuY2hlcGE4QGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJjb3NtYXNrYW5jaGVwYThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZ1bGxfbmFtZSI6IlNvbG9tb24gTmdvbWEiLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInNpZ251cF9kYXRhIjoie1wiZW1haWxcIjpcImNvc21hc2thbmNoZXBhOEBnbWFpbC5jb21cIixcInBhc3N3b3JkXCI6XCJCZWFub2xhMjAyNVwiLFwiZnVsbF9uYW1lXCI6XCJTb2xvbW9uIE5nb21hXCIsXCJwaG9uZVwiOlwiKzI2MDk2NjIyMjk5OVwiLFwiZGF0ZV9vZl9iaXJ0aFwiOlwiMjAwNi0wMS0wMlwiLFwiZ2VuZGVyXCI6XCJNYWxlXCIsXCJuYXRpb25hbGl0eVwiOlwiWmFtYmlhblwiLFwiYWRkcmVzc1wiOlwiMTgyLzQ5XFxuT0ZGIE1BSU4gUk9BRFxcblZBTExFWSBWSUVXXCIsXCJjaXR5XCI6XCJMVVNBS0FcIixcImNvdW50cnlcIjpcIlphbWJpYVwiLFwiZW1lcmdlbmN5X2NvbnRhY3RfbmFtZVwiOlwiV0lMTElBTSBaVUxVXCIsXCJlbWVyZ2VuY3lfY29udGFjdF9waG9uZVwiOlwiMDk3NzU2MjA0N1wifSIsInN1YiI6IjZlMTQ3ZWFkLWUzNGQtNDFlMi1iYzA1LTM1OGE2NTNmZjYzMyJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU0OTkxfV0sInNlc3Npb25faWQiOiIyYzg2N2FkNy1mYTFjLTQ5YTEtYTM5Mi05MmZiMDA1NTNkYTAiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.7ULvldj3XR-IbI0CctTb5hDjbsgW1woDLcz9rT1hy-4',
+  'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+  'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+  dnt: '1',
+  'content-type': 'application/json',
+  'sec-ch-ua-mobile': '?0',
+  accept: '*/*',
+  origin: 'http://localhost:5173',
+  'sec-fetch-site': 'same-site',
+  'sec-fetch-mode': 'cors',
+  'sec-fetch-dest': 'empty',
+  referer: 'http://localhost:5173/',
+  'accept-encoding': 'gzip, deflate, br, zstd',
+  'accept-language': 'en-US,en;q=0.9',
+  'if-none-match': 'W/"38-2q37aHv46JNf7jFmF9mGNLzd3yU"'
+}
+GET /api/applications - Headers: {
+  host: 'localhost:8888',
+  connection: 'keep-alive',
+  'sec-ch-ua-platform': '"Linux"',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI2ZTE0N2VhZC1lMzRkLTQxZTItYmMwNS0zNThhNjUzZmY2MzMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDU4NTkxLCJpYXQiOjE3NTg0NTQ5OTEsImVtYWlsIjoiY29zbWFza2FuY2hlcGE4QGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJjb3NtYXNrYW5jaGVwYThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZ1bGxfbmFtZSI6IlNvbG9tb24gTmdvbWEiLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInNpZ251cF9kYXRhIjoie1wiZW1haWxcIjpcImNvc21hc2thbmNoZXBhOEBnbWFpbC5jb21cIixcInBhc3N3b3JkXCI6XCJCZWFub2xhMjAyNVwiLFwiZnVsbF9uYW1lXCI6XCJTb2xvbW9uIE5nb21hXCIsXCJwaG9uZVwiOlwiKzI2MDk2NjIyMjk5OVwiLFwiZGF0ZV9vZl9iaXJ0aFwiOlwiMjAwNi0wMS0wMlwiLFwiZ2VuZGVyXCI6XCJNYWxlXCIsXCJuYXRpb25hbGl0eVwiOlwiWmFtYmlhblwiLFwiYWRkcmVzc1wiOlwiMTgyLzQ5XFxuT0ZGIE1BSU4gUk9BRFxcblZBTExFWSBWSUVXXCIsXCJjaXR5XCI6XCJMVVNBS0FcIixcImNvdW50cnlcIjpcIlphbWJpYVwiLFwiZW1lcmdlbmN5X2NvbnRhY3RfbmFtZVwiOlwiV0lMTElBTSBaVUxVXCIsXCJlbWVyZ2VuY3lfY29udGFjdF9waG9uZVwiOlwiMDk3NzU2MjA0N1wifSIsInN1YiI6IjZlMTQ3ZWFkLWUzNGQtNDFlMi1iYzA1LTM1OGE2NTNmZjYzMyJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU0OTkxfV0sInNlc3Npb25faWQiOiIyYzg2N2FkNy1mYTFjLTQ5YTEtYTM5Mi05MmZiMDA1NTNkYTAiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.7ULvldj3XR-IbI0CctTb5hDjbsgW1woDLcz9rT1hy-4',
+  'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+  'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+  dnt: '1',
+  'content-type': 'application/json',
+  'sec-ch-ua-mobile': '?0',
+  accept: '*/*',
+  origin: 'http://localhost:5173',
+  'sec-fetch-site': 'same-site',
+  'sec-fetch-mode': 'cors',
+  'sec-fetch-dest': 'empty',
+  referer: 'http://localhost:5173/',
+  'accept-encoding': 'gzip, deflate, br, zstd',
+  'accept-language': 'en-US,en;q=0.9',
+  'if-none-match': 'W/"1619-uwSZ1kQi5zVdq0YcoGxa2l8sklc"'
+}
+GET /api/applications - Headers: {
+  host: 'localhost:8888',
+  connection: 'keep-alive',
+  'sec-ch-ua-platform': '"Linux"',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI2ZTE0N2VhZC1lMzRkLTQxZTItYmMwNS0zNThhNjUzZmY2MzMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDU4NTkxLCJpYXQiOjE3NTg0NTQ5OTEsImVtYWlsIjoiY29zbWFza2FuY2hlcGE4QGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJjb3NtYXNrYW5jaGVwYThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZ1bGxfbmFtZSI6IlNvbG9tb24gTmdvbWEiLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInNpZ251cF9kYXRhIjoie1wiZW1haWxcIjpcImNvc21hc2thbmNoZXBhOEBnbWFpbC5jb21cIixcInBhc3N3b3JkXCI6XCJCZWFub2xhMjAyNVwiLFwiZnVsbF9uYW1lXCI6XCJTb2xvbW9uIE5nb21hXCIsXCJwaG9uZVwiOlwiKzI2MDk2NjIyMjk5OVwiLFwiZGF0ZV9vZl9iaXJ0aFwiOlwiMjAwNi0wMS0wMlwiLFwiZ2VuZGVyXCI6XCJNYWxlXCIsXCJuYXRpb25hbGl0eVwiOlwiWmFtYmlhblwiLFwiYWRkcmVzc1wiOlwiMTgyLzQ5XFxuT0ZGIE1BSU4gUk9BRFxcblZBTExFWSBWSUVXXCIsXCJjaXR5XCI6XCJMVVNBS0FcIixcImNvdW50cnlcIjpcIlphbWJpYVwiLFwiZW1lcmdlbmN5X2NvbnRhY3RfbmFtZVwiOlwiV0lMTElBTSBaVUxVXCIsXCJlbWVyZ2VuY3lfY29udGFjdF9waG9uZVwiOlwiMDk3NzU2MjA0N1wifSIsInN1YiI6IjZlMTQ3ZWFkLWUzNGQtNDFlMi1iYzA1LTM1OGE2NTNmZjYzMyJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU0OTkxfV0sInNlc3Npb25faWQiOiIyYzg2N2FkNy1mYTFjLTQ5YTEtYTM5Mi05MmZiMDA1NTNkYTAiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.7ULvldj3XR-IbI0CctTb5hDjbsgW1woDLcz9rT1hy-4',
+  'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+  'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+  dnt: '1',
+  'content-type': 'application/json',
+  'sec-ch-ua-mobile': '?0',
+  accept: '*/*',
+  origin: 'http://localhost:5173',
+  'sec-fetch-site': 'same-site',
+  'sec-fetch-mode': 'cors',
+  'sec-fetch-dest': 'empty',
+  referer: 'http://localhost:5173/',
+  'accept-encoding': 'gzip, deflate, br, zstd',
+  'accept-language': 'en-US,en;q=0.9'
+}
+POST /api/applications - Headers: {
+  host: 'localhost:8888',
+  connection: 'keep-alive',
+  'content-length': '475',
+  'sec-ch-ua-platform': '"Linux"',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI2ZTE0N2VhZC1lMzRkLTQxZTItYmMwNS0zNThhNjUzZmY2MzMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDU4NTkxLCJpYXQiOjE3NTg0NTQ5OTEsImVtYWlsIjoiY29zbWFza2FuY2hlcGE4QGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJjb3NtYXNrYW5jaGVwYThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZ1bGxfbmFtZSI6IlNvbG9tb24gTmdvbWEiLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInNpZ251cF9kYXRhIjoie1wiZW1haWxcIjpcImNvc21hc2thbmNoZXBhOEBnbWFpbC5jb21cIixcInBhc3N3b3JkXCI6XCJCZWFub2xhMjAyNVwiLFwiZnVsbF9uYW1lXCI6XCJTb2xvbW9uIE5nb21hXCIsXCJwaG9uZVwiOlwiKzI2MDk2NjIyMjk5OVwiLFwiZGF0ZV9vZl9iaXJ0aFwiOlwiMjAwNi0wMS0wMlwiLFwiZ2VuZGVyXCI6XCJNYWxlXCIsXCJuYXRpb25hbGl0eVwiOlwiWmFtYmlhblwiLFwiYWRkcmVzc1wiOlwiMTgyLzQ5XFxuT0ZGIE1BSU4gUk9BRFxcblZBTExFWSBWSUVXXCIsXCJjaXR5XCI6XCJMVVNBS0FcIixcImNvdW50cnlcIjpcIlphbWJpYVwiLFwiZW1lcmdlbmN5X2NvbnRhY3RfbmFtZVwiOlwiV0lMTElBTSBaVUxVXCIsXCJlbWVyZ2VuY3lfY29udGFjdF9waG9uZVwiOlwiMDk3NzU2MjA0N1wifSIsInN1YiI6IjZlMTQ3ZWFkLWUzNGQtNDFlMi1iYzA1LTM1OGE2NTNmZjYzMyJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU0OTkxfV0sInNlc3Npb25faWQiOiIyYzg2N2FkNy1mYTFjLTQ5YTEtYTM5Mi05MmZiMDA1NTNkYTAiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.7ULvldj3XR-IbI0CctTb5hDjbsgW1woDLcz9rT1hy-4',
+  'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+  'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+  dnt: '1',
+  'content-type': 'application/json',
+  'sec-ch-ua-mobile': '?0',
+  accept: '*/*',
+  origin: 'http://localhost:5173',
+  'sec-fetch-site': 'same-site',
+  'sec-fetch-mode': 'cors',
+  'sec-fetch-dest': 'empty',
+  referer: 'http://localhost:5173/',
+  'accept-encoding': 'gzip, deflate, br, zstd',
+  'accept-language': 'en-US,en;q=0.9'
+}
+TypeError: fetch failed
+    at node:internal/deps/undici/undici:15445:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async _handleRequest (/home/cosmas/Documents/mihas/node_modules/@supabase/auth-js/dist/main/lib/fetch.js:106:18)
+    at async _request (/home/cosmas/Documents/mihas/node_modules/@supabase/auth-js/dist/main/lib/fetch.js:95:18)
+    at async SupabaseAuthClient._getUser (/home/cosmas/Documents/mihas/node_modules/@supabase/auth-js/dist/main/GoTrueClient.js:1080:24)
+    at async SupabaseAuthClient.getUser (/home/cosmas/Documents/mihas/node_modules/@supabase/auth-js/dist/main/GoTrueClient.js:1069:20)
+    at async getUserFromRequest (/home/cosmas/Documents/mihas/api/_lib/supabaseClient.js:137:27)
+    at async handler (/home/cosmas/Documents/mihas/api/applications/index.js:53:27) {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: mylgegkqoddcrxtwcclb.supabase.co:443, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:1531:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:1512:11)
+      at process.processImmediate (node:internal/timers:505:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}

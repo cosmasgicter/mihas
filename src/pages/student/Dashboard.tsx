@@ -14,6 +14,7 @@ import { useDraftManager } from '@/hooks/useDraftManager'
 import { sanitizeForLog, safeJsonParse, sanitizeForDisplay } from '@/lib/sanitize'
 import { getUserMetadata, getBestValue, calculateProfileCompletion } from '@/hooks/useProfileAutoPopulation'
 import { ProfileCompletionBadge } from '@/components/ui/ProfileAutoPopulationIndicator'
+import { clearAllDraftData } from '@/lib/draftCleanup'
 import { applicationService } from '@/services/applications'
 import { catalogService } from '@/services/catalog'
 import { StudentDashboardSkeleton } from '@/components/student/StudentDashboardSkeleton'
@@ -413,7 +414,10 @@ export default function StudentDashboard() {
                               size="sm"
                               className="w-full sm:w-auto text-red-600 border-red-300 hover:bg-red-50 font-semibold"
                               onClick={() => {
-                                localStorage.removeItem('applicationWizardDraft')
+                                // Clear all draft data
+                                clearAllDraftData()
+                                
+                                // Update local state
                                 setHasDraft(false)
                                 setDraftData(null)
                               }}
@@ -590,7 +594,10 @@ export default function StudentDashboard() {
                       size="sm" 
                       className="w-full justify-start text-red-600 border-red-300 hover:bg-red-50 font-semibold"
                       onClick={() => {
-                        localStorage.removeItem('applicationWizardDraft')
+                        // Clear all draft data
+                        clearAllDraftData()
+                        
+                        // Update local state
                         setHasDraft(false)
                         setDraftData(null)
                       }}

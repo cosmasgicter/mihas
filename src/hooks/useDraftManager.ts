@@ -5,6 +5,7 @@ import { applicationSessionManager } from '@/lib/applicationSession'
 import { draftManager } from '@/lib/draftManager'
 import { useToast } from '@/components/ui/Toast'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { clearAllDraftData } from '@/lib/draftCleanup'
 
 export const useDraftManager = () => {
   const { user } = useAuth()
@@ -34,10 +35,13 @@ export const useDraftManager = () => {
     }).then(async () => {
       setIsDeleting(true)
       try {
+        // Clear all draft data immediately
+        clearAllDraftData()
+        
         const deleteResult = await applicationSessionManager.deleteDraft(profile?.user_id || user.id)
         
         if (deleteResult.success) {
-          showSuccess('Draft deleted successfully')
+          showSuccess('Draft deleted successfully. You can now start a new application.')
           onSuccess?.()
         } else {
           const error = deleteResult.error || 'Failed to delete draft'

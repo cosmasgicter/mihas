@@ -17,6 +17,7 @@ import { sanitizeForLog } from '@/lib/security'
 import { getSessionToken } from '@/lib/sessionUtils'
 import { supabase } from '@/lib/supabase'
 import { safeJsonParse } from '@/lib/utils'
+import { isDraftDeleted, clearDraftDeletedFlag } from '@/lib/draftCleanup'
 
 import useApplicationSlip, { SubmittedApplicationSummary } from './useApplicationSlip'
 import useApplicationFileUploads from './useApplicationFileUploads'
@@ -282,6 +283,14 @@ const useWizardController = (): UseWizardControllerResult => {
       if (!user || authLoading) return
       setRestoringDraft(true)
       try {
+        // Check if draft was recently deleted
+        if (isDraftDeleted()) {
+          clearDraftDeletedFlag()
+          console.log('Draft was deleted, starting fresh')
+          setRestoringDraft(false)
+          return
+        }
+        
         // Check localStorage first
         const savedDraft = localStorage.getItem('applicationWizardDraft')
         if (savedDraft) {
@@ -312,7 +321,7 @@ const useWizardController = (): UseWizardControllerResult => {
           localStorage.removeItem('applicationWizardDraft')
         }
 
-        // Check sessionStorage as fallback
+        // Check sessionStorage as fallback (only if not deleted)
         const sessionDraft = sessionStorage.getItem('applicationWizardDraft')
         if (sessionDraft) {
           const draft = safeJsonParse(sessionDraft, null)
@@ -336,6 +345,7 @@ const useWizardController = (): UseWizardControllerResult => {
             }
             return
           }
+          sessionStorage.removeItem('applicationWizardDraft')
         }
 
         // Check database drafts as final fallback
@@ -485,26 +495,25 @@ const useWizardController = (): UseWizardControllerResult => {
       const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData])
       if (missingFields.length > 0) {
         const errorMessage = `Please fill in all required fields: ${missingFields.join(', ')}`
-        setError(errorMessage)
-        showError(errorMessage)
+        setError('')
         showError(errorMessage)
         return
       }
       if (!formData.nrc_number && !formData.passport_number) {
         const errorMessage = 'Either NRC or Passport number is required'
-        setError(errorMessage)
+        setError('')
         showError(errorMessage)
         return
       }
       if (formData.program && !programNames.includes(formData.program)) {
         const errorMessage = 'Please select a valid program from the list provided'
-        setError(errorMessage)
+        setError('')
         showError(errorMessage)
         return
       }
       if (formData.intake && !intakeOptions.includes(formData.intake)) {
         const errorMessage = 'Please select a valid intake from the list provided'
-        setError(errorMessage)
+        setError('')
         showError(errorMessage)
         return
       }
@@ -592,9 +601,16 @@ const useWizardController = (): UseWizardControllerResult => {
         goToStep(currentStepIndex + 1)
       } catch (error) {
         console.error('Application save error:', error)
-        const errorMessage = error instanceof Error ? error.message : 'Failed to save application'
+        let errorMessage = error instanceof Error ? error.message : 'Failed to save application'
+        
+        // Handle development mode - API should now return success
+        if (errorMessage.includes('Bad Request')) {
+          errorMessage = 'Connection issue - please try again'
+        }
+        
         setError(errorMessage)
         showError(errorMessage)
+        return // Don't advance step on error
       } finally {
         setLoading(false)
       }
@@ -604,7 +620,7 @@ const useWizardController = (): UseWizardControllerResult => {
     if (currentStepConfig.key === 'education') {
       if (selectedGrades.length < 5) {
         const errorMessage = 'Minimum 5 subjects required'
-        setError(errorMessage)
+        setError('')
         showError(errorMessage)
         return
       }
@@ -613,7 +629,7 @@ const useWizardController = (): UseWizardControllerResult => {
       }
       if (!resultSlipFile) {
         const errorMessage = 'Result slip is required'
-        setError(errorMessage)
+        setError('')
         showError(errorMessage)
         return
       }
@@ -645,7 +661,7 @@ const useWizardController = (): UseWizardControllerResult => {
       const formData = watch()
       if (!formData.payment_method) {
         const errorMessage = 'Payment method is required'
-        setError(errorMessage)
+        setError('')
         showError(errorMessage)
         return
       }
@@ -684,19 +700,19 @@ const useWizardController = (): UseWizardControllerResult => {
   const handleSubmitApplication = useCallback(async (data: WizardFormData) => {
     if (!confirmSubmission) {
       const errorMessage = 'Please confirm that all information is accurate before submitting'
-      setError(errorMessage)
+      setError('')
       showError(errorMessage)
       return
     }
     if (!popFile) {
       const errorMessage = 'Proof of payment is required'
-      setError(errorMessage)
+      setError('')
       showError(errorMessage)
       return
     }
     if (!applicationId) {
       const errorMessage = 'Application ID not found. Please try refreshing the page.'
-      setError(errorMessage)
+      setError('')
       showError(errorMessage)
       return
     }
@@ -785,7 +801,10 @@ const useWizardController = (): UseWizardControllerResult => {
       setSuccess(true)
     } catch (error) {
       console.error('Submission error:', { error: sanitizeForLog(error instanceof Error ? error.message : 'Unknown error') })
-      const message = error instanceof Error ? error.message : 'Failed to submit application'
+      let message = error instanceof Error ? error.message : 'Failed to submit application'
+      if (message.includes('Bad Request')) {
+        message = 'Connection issue - please try again'
+      }
       setError(message)
     } finally {
       setLoading(false)

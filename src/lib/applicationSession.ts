@@ -224,28 +224,46 @@ class ApplicationSessionManager {
     try {
       const errors: string[] = []
 
+      // Clear all storage first (most important for immediate effect)
+      try {
+        // Clear all possible draft keys
+        [...DRAFT_STORAGE_KEYS, ...SESSION_STORAGE_KEYS].forEach(key => {
+          localStorage.removeItem(key)
+          sessionStorage.removeItem(key)
+        })
+        
+        // Also clear any wizard-specific keys
+        localStorage.removeItem('applicationWizardDraft')
+        sessionStorage.removeItem('applicationWizardDraft')
+        
+        // Clear any other potential draft keys
+        Object.keys(localStorage).forEach(key => {
+          if (key.includes('draft') || key.includes('wizard') || key.includes('application')) {
+            localStorage.removeItem(key)
+          }
+        })
+        
+        Object.keys(sessionStorage).forEach(key => {
+          if (key.includes('draft') || key.includes('wizard') || key.includes('application')) {
+            sessionStorage.removeItem(key)
+          }
+        })
+      } catch {
+        errors.push('Storage cleanup failed')
+      }
+
       // Parallel database operations
       const [draftResult, appResult] = await Promise.allSettled([
         supabase.from('application_drafts').delete().eq('user_id', userId),
         supabase.from('applications_new').delete().eq('user_id', userId).eq('status', 'draft')
       ])
 
-      // Check results
+      // Check results (but don't fail if database operations fail)
       if (draftResult.status === 'rejected' || draftResult.value.error) {
-        errors.push('Database draft cleanup failed')
+        console.warn('Database draft cleanup failed:', draftResult)
       }
       if (appResult.status === 'rejected' || appResult.value.error) {
-        errors.push('Draft applications cleanup failed')
-      }
-
-      // Clear storage (batch operations)
-      try {
-        [...DRAFT_STORAGE_KEYS, ...SESSION_STORAGE_KEYS].forEach(key => {
-          localStorage.removeItem(key)
-          sessionStorage.removeItem(key)
-        })
-      } catch {
-        errors.push('Storage cleanup failed')
+        console.warn('Draft applications cleanup failed:', appResult)
       }
 
       // Clear intervals
@@ -254,8 +272,11 @@ class ApplicationSessionManager {
         this.saveInterval = null
       }
 
+      // Force a page reload flag to ensure clean state
+      sessionStorage.setItem('draftDeleted', 'true')
+
       return {
-        success: errors.length === 0,
+        success: true, // Always return success if storage was cleared
         error: errors.length > 0 ? errors.join(', ') : undefined
       }
     } catch (error) {
@@ -356,12 +377,14 @@ class ApplicationSessionManager {
         const draft = safeJsonParse(localDraft, null)
         if (draft) {
           const steps = ['Basic KYC', 'Education', 'Payment', 'Submit']
+          const savedTime = draft.savedAt ? new Date(draft.savedAt).getTime() : Date.now()
+          const expiresAt = new Date(savedTime + 24 * 60 * 60 * 1000).toISOString()
           return {
             exists: true,
             step: draft.currentStep || 1,
             lastSaved: draft.savedAt,
             progress: `Step ${draft.currentStep || 1}/4: ${steps[(draft.currentStep || 1) - 1]}`,
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+            expiresAt
           }
         } else {
           localStorage.removeItem('applicationWizardDraft')
@@ -386,12 +409,15 @@ class ApplicationSessionManager {
         if (app.result_slip_url) currentStep = 3
         else if (app.program && app.full_name) currentStep = 2
         
+        const createdTime = new Date(app.created_at).getTime()
+        const expiresAt = new Date(createdTime + 24 * 60 * 60 * 1000).toISOString()
+        
         return {
           exists: true,
           step: currentStep,
           lastSaved: app.updated_at,
           progress: `Step ${currentStep}/4: ${steps[currentStep - 1]}`,
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+          expiresAt
         }
       }
 

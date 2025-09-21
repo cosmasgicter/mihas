@@ -1,6 +1,8 @@
 const { supabaseAdminClient, getUserFromRequest } = require('../_lib/supabaseClient')
 
 module.exports = async function handler(req, res) {
+  console.log(`${req.method} /api/applications - Headers:`, req.headers)
+  
   if (req.method === 'GET') {
     try {
       const authContext = await getUserFromRequest(req)
@@ -53,6 +55,42 @@ module.exports = async function handler(req, res) {
         return res.status(401).json({ error: authContext.error })
       }
 
+      console.log('POST /api/applications - Request body:', JSON.stringify(req.body, null, 2))
+      console.log('POST /api/applications - User ID:', authContext.user.id)
+
+      // Development mode defaults
+      const applicationData = {
+        ...req.body,
+        user_id: authContext.user.id
+      }
+
+
+
+      const { data, error } = await supabaseAdminClient
+        .from('applications_new')
+        .insert(applicationData)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Database insert error:', error)
+        return res.status(400).json({ error: error.message })
+      }
+
+      return res.status(201).json(data)
+    } catch (error) {
+      console.error('Application creation error:', error)
+      return res.status(500).json({ error: 'Internal server error' })
+    }
+  }
+
+  if (req.method === 'PUT') {
+    try {
+      const authContext = await getUserFromRequest(req)
+      if (authContext.error) {
+        return res.status(401).json({ error: authContext.error })
+      }
+
       const { data, error } = await supabaseAdminClient
         .from('applications_new')
         .insert({
@@ -73,5 +111,6 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  res.setHeader('Allow', 'GET,POST,PUT')
   return res.status(405).json({ error: 'Method not allowed' })
 }

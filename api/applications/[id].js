@@ -42,7 +42,7 @@ module.exports = async function handler(req, res) {
     return res.status(401).json({ error: authContext.error })
   }
 
-  const { id } = req.query
+  const { id } = req.params
   if (!id || Array.isArray(id)) {
     return res.status(400).json({ error: 'Invalid application id' })
   }

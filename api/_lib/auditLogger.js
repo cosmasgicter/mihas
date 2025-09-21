@@ -61,14 +61,15 @@ async function logAuditEvent({
   try {
     const payload = {
       action,
+      user_id: actorId || null,
       actor_id: actorId || null,
       actor_email: actorEmail || null,
       actor_roles: Array.isArray(actorRoles) ? actorRoles : actorRoles ? [actorRoles] : [],
-      target_table: targetTable || null,
-      target_id: targetId ? String(targetId) : null,
-      target_label: targetLabel || null,
-      metadata: normalizeMetadata(metadata),
-      ...extractRequestContext(req)
+      table_name: targetTable || null,
+      record_id: targetId ? String(targetId) : null,
+      details: normalizeMetadata(metadata),
+      ip_address: extractRequestContext(req).request_ip,
+      user_agent: extractRequestContext(req).user_agent
     }
 
     const { error } = await supabaseAdminClient.from('system_audit_log').insert(payload)
