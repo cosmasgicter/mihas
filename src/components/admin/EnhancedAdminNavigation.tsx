@@ -234,84 +234,79 @@ export function EnhancedAdminNavigation() {
                 </div>
                 
                 {/* Navigation Items */}
-                <div className="flex flex-col space-y-2 p-6 flex-1 overflow-y-auto">
-                  {navigationItems.map((item, index) => {
-                    const isActive = isActiveRoute(item.href)
-                    return (
-                      <motion.div
-                        key={item.href}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                      >
-                        <Link 
-                          to={item.href}
-                          onClick={closeMenu}
-                          className={`relative mobile-nav-item mobile-nav-focus transition-all duration-300 ${
-                            isActive 
-                              ? "bg-gradient-to-r from-primary to-secondary text-white shadow-lg" 
-                              : "text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-gray-300"
-                          } ${item.isNew ? 'ring-2 ring-purple-200' : ''}`}
+                <div className="flex flex-col flex-1 overflow-hidden">
+                  <div className="flex flex-col space-y-2 p-6 flex-1 overflow-y-auto">
+                    {navigationItems.map((item, index) => {
+                      const isActive = isActiveRoute(item.href)
+                      return (
+                        <motion.div
+                          key={item.href}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
                         >
-                          <div className="flex items-center justify-between w-full">
-                            <div className="flex items-center space-x-3">
-                              <span className="text-xl">{item.emoji}</span>
-                              <div>
-                                <div className="flex items-center space-x-2">
-                                  <span className="mobile-nav-text">{item.label}</span>
-                                  {item.isNew && (
-                                    <span className="bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full font-bold animate-pulse">
-                                      NEW
-                                    </span>
+                          <Link 
+                            to={item.href}
+                            onClick={closeMenu}
+                            className={`relative mobile-nav-item mobile-nav-focus transition-all duration-300 ${
+                              isActive 
+                                ? "bg-gradient-to-r from-primary to-secondary text-white shadow-lg" 
+                                : "text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-gray-300"
+                            } ${item.isNew ? 'ring-2 ring-purple-200' : ''}`}
+                          >
+                            <div className="flex items-center justify-between w-full">
+                              <div className="flex items-center space-x-3">
+                                <span className="text-xl">{item.emoji}</span>
+                                <div>
+                                  <div className="flex items-center space-x-2">
+                                    <span className="mobile-nav-text">{item.label}</span>
+                                    {item.isNew && (
+                                      <span className="bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full font-bold animate-pulse">
+                                        NEW
+                                      </span>
+                                    )}
+                                  </div>
+                                  {isActive && (
+                                    <div className="text-xs text-white/80 mt-1">Current Page</div>
                                   )}
                                 </div>
-                                {isActive && (
-                                  <div className="text-xs text-white/80 mt-1">Current Page</div>
-                                )}
                               </div>
+                              <ChevronRight className={`h-5 w-5 transition-colors ${
+                                isActive ? "text-white/80" : "text-gray-400"
+                              }`} />
                             </div>
-                            <ChevronRight className={`h-5 w-5 transition-colors ${
-                              isActive ? "text-white/80" : "text-gray-400"
-                            }`} />
-                          </div>
-                        </Link>
-                      </motion.div>
-                    )
-                  })}
+                          </Link>
+                        </motion.div>
+                      )
+                    })}
 
-                  {/* Role Badge */}
-                  <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200">
-                    <div className="text-center">
-                      <div className="text-sm font-medium text-gray-700 mb-1">Current Role</div>
-                      <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-primary to-secondary text-white">
-                        {userRole?.role?.replace('_', ' ').toUpperCase() || 'ADMIN'}
+                    {/* Role Badge */}
+                    <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200">
+                      <div className="text-center">
+                        <div className="text-sm font-medium text-gray-700 mb-1">Current Role</div>
+                        <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-primary to-secondary text-white">
+                          {userRole?.role?.replace('_', ' ').toUpperCase() || 'ADMIN'}
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Sign Out */}
-                  <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: navigationItems.length * 0.1 }}
-                    className="mt-4"
-                  >
-                    <button 
+                  {/* Fixed Sign Out Button */}
+                  <div className="p-6 border-t border-gray-200 bg-white/90 backdrop-blur-sm">
+                    <motion.button 
                       onClick={() => {
                         closeMenu()
                         handleSignOut()
                       }}
-                      className="mobile-nav-item mobile-nav-focus w-full bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-xl border-2 border-red-400 hover:border-red-500"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="w-full flex items-center justify-center space-x-3 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
                     >
-                      <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center space-x-3">
-                          <LogOut className="h-5 w-5" />
-                          <span className="mobile-nav-text">Sign Out</span>
-                        </div>
-                        <ChevronRight className="h-5 w-5 text-white/80" />
-                      </div>
-                    </button>
-                  </motion.div>
+                      <LogOut className="h-5 w-5" />
+                      <span>Sign Out</span>
+                    </motion.button>
+                  </div>
                 </div>
 
                 {/* Footer */}

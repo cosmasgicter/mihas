@@ -219,26 +219,26 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
                 </div>
 
                 {/* Navigation Items */}
-                <NavigationMenu.List className="flex flex-col space-y-3 p-6 flex-1">
-                  <NavigationMenu.Item>
-                    <motion.div
-                      variants={itemVariants}
-                      custom={0}
-                      initial="closed"
-                      animate="open"
-                    >
-                      <Link 
-                        to="/track-application"
-                        onClick={closeMenu}
-                        className="mobile-nav-item mobile-nav-focus nav-item text-white font-bold shadow-lg hover:shadow-xl"
+                <div className="flex flex-col flex-1 overflow-hidden">
+                  <NavigationMenu.List className="flex flex-col space-y-3 p-6 flex-1 overflow-y-auto">
+                    <NavigationMenu.Item>
+                      <motion.div
+                        variants={itemVariants}
+                        custom={0}
+                        initial="closed"
+                        animate="open"
                       >
-                        <span className="mobile-nav-text text-white">Track Application</span>
-                      </Link>
-                    </motion.div>
-                  </NavigationMenu.Item>
+                        <Link 
+                          to="/track-application"
+                          onClick={closeMenu}
+                          className="mobile-nav-item mobile-nav-focus nav-item text-white font-bold shadow-lg hover:shadow-xl"
+                        >
+                          <span className="mobile-nav-text text-white">Track Application</span>
+                        </Link>
+                      </motion.div>
+                    </NavigationMenu.Item>
 
-                  {user ? (
-                    <>
+                    {user ? (
                       <NavigationMenu.Item>
                         <motion.div
                           variants={itemVariants}
@@ -256,69 +256,74 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
                           </Link>
                         </motion.div>
                       </NavigationMenu.Item>
-                      
-                      <NavigationMenu.Item>
-                        <motion.div
-                          variants={itemVariants}
-                          custom={2}
-                          initial="closed"
-                          animate="open"
-                        >
-                          <button 
-                            onClick={handleSignOut}
-                            className="mobile-nav-item mobile-nav-focus nav-item w-full bg-gradient-to-r from-red-500/80 to-red-600/80 text-white font-bold shadow-lg hover:shadow-xl hover:from-red-500 hover:to-red-600"
+                    ) : (
+                      <>
+                        <NavigationMenu.Item>
+                          <motion.div
+                            variants={itemVariants}
+                            custom={1}
+                            initial="closed"
+                            animate="open"
                           >
-                            <LogOut className="w-5 h-5 mr-3 text-white" />
-                            <span className="mobile-nav-text text-white">Sign Out</span>
-                          </button>
-                        </motion.div>
-                      </NavigationMenu.Item>
-                    </>
-                  ) : (
-                    <>
-                      <NavigationMenu.Item>
-                        <motion.div
-                          variants={itemVariants}
-                          custom={1}
-                          initial="closed"
-                          animate="open"
-                        >
-                          <Link 
-                            to="/auth/signin"
-                            onClick={closeMenu}
-                            className="mobile-nav-item mobile-nav-focus nav-item text-white font-bold shadow-lg hover:shadow-xl"
-                          >
-                            <span className="mobile-nav-text text-white">Sign In</span>
-                          </Link>
-                        </motion.div>
-                      </NavigationMenu.Item>
+                            <Link 
+                              to="/auth/signin"
+                              onClick={closeMenu}
+                              className="mobile-nav-item mobile-nav-focus nav-item text-white font-bold shadow-lg hover:shadow-xl"
+                            >
+                              <span className="mobile-nav-text text-white">Sign In</span>
+                            </Link>
+                          </motion.div>
+                        </NavigationMenu.Item>
 
-                      <NavigationMenu.Item>
-                        <motion.div
-                          variants={itemVariants}
-                          custom={2}
-                          initial="closed"
-                          animate="open"
-                        >
-                          <Link 
-                            to="/auth/signup"
-                            onClick={closeMenu}
-                            className="mobile-nav-item mobile-nav-focus nav-item bg-primary/30 text-white font-bold shadow-lg hover:shadow-xl"
+                        <NavigationMenu.Item>
+                          <motion.div
+                            variants={itemVariants}
+                            custom={2}
+                            initial="closed"
+                            animate="open"
                           >
-                            <span className="mobile-nav-text text-white">Apply Now</span>
-                          </Link>
-                        </motion.div>
-                      </NavigationMenu.Item>
-                    </>
+                            <Link 
+                              to="/auth/signup"
+                              onClick={closeMenu}
+                              className="mobile-nav-item mobile-nav-focus nav-item bg-primary/30 text-white font-bold shadow-lg hover:shadow-xl"
+                            >
+                              <span className="mobile-nav-text text-white">Apply Now</span>
+                            </Link>
+                          </motion.div>
+                        </NavigationMenu.Item>
+                      </>
+                    )}
+                  </NavigationMenu.List>
+
+                  {/* Fixed Sign Out Button for authenticated users */}
+                  {user && (
+                    <div className="p-6 border-t border-white/20 bg-black/10 backdrop-blur-sm">
+                      <motion.button 
+                        onClick={() => {
+                          closeMenu()
+                          handleSignOut()
+                        }}
+                        variants={itemVariants}
+                        custom={3}
+                        initial="closed"
+                        animate="open"
+                        className="w-full flex items-center justify-center space-x-3 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
+                      >
+                        <LogOut className="h-5 w-5" />
+                        <span>Sign Out</span>
+                      </motion.button>
+                    </div>
                   )}
-                </NavigationMenu.List>
+                </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-white/20 bg-black/10 backdrop-blur-sm">
-                  <p className="text-white/90 text-base text-center font-medium drop-shadow-sm">
-                    Your Future Starts Here
-                  </p>
-                </div>
+                {!user && (
+                  <div className="p-6 border-t border-white/20 bg-black/10 backdrop-blur-sm">
+                    <p className="text-white/90 text-base text-center font-medium drop-shadow-sm">
+                      Your Future Starts Here
+                    </p>
+                  </div>
+                )}
               </div>
             </motion.div>
           </>

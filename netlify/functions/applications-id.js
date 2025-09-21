@@ -1,12 +1,18 @@
 const handler = require('../../api/applications/[id].js')
 
 exports.handler = async (event, context) => {
+  // Extract ID from path or query
+  const pathParts = event.path ? event.path.split('/') : []
+  const idFromPath = pathParts[pathParts.length - 1]
+  const idFromQuery = event.queryStringParameters?.id
+  const applicationId = idFromPath !== 'applications-id' ? idFromPath : idFromQuery
+  
   const req = {
     method: event.httpMethod,
     query: event.queryStringParameters || {},
     body: event.body,
     headers: event.headers,
-    params: event.pathParameters || {}
+    params: { id: applicationId }
   }
   
   const res = {

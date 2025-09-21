@@ -227,58 +227,53 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
                 </div>
 
                 {/* Navigation Items */}
-                <NavigationMenu.List className="flex flex-col space-y-3 p-6 flex-1 custom-scrollbar overflow-y-auto">
-                  {navigationItems.map((item, index) => (
-                    <NavigationMenu.Item key={item.href}>
-                      <motion.div
-                        variants={itemVariants}
-                        custom={index}
-                        initial="closed"
-                        animate="open"
-                      >
-                        <Link 
-                          to={item.href}
-                          onClick={closeMenu}
-                          className="mobile-nav-item mobile-nav-focus text-gray-700 hover:bg-primary/10 hover:text-primary border border-gray-200 hover:border-primary/30 transition-all duration-300"
+                <div className="flex flex-col flex-1 overflow-hidden">
+                  <NavigationMenu.List className="flex flex-col space-y-3 p-6 flex-1 custom-scrollbar overflow-y-auto">
+                    {navigationItems.map((item, index) => (
+                      <NavigationMenu.Item key={item.href}>
+                        <motion.div
+                          variants={itemVariants}
+                          custom={index}
+                          initial="closed"
+                          animate="open"
                         >
-                          <div className="flex items-center justify-between w-full">
-                            <div className="flex items-center space-x-3">
-                              <item.icon className="h-5 w-5" />
-                              <span className="mobile-nav-text">{item.label}</span>
+                          <Link 
+                            to={item.href}
+                            onClick={closeMenu}
+                            className="mobile-nav-item mobile-nav-focus text-gray-700 hover:bg-primary/10 hover:text-primary border border-gray-200 hover:border-primary/30 transition-all duration-300"
+                          >
+                            <div className="flex items-center justify-between w-full">
+                              <div className="flex items-center space-x-3">
+                                <item.icon className="h-5 w-5" />
+                                <span className="mobile-nav-text">{item.label}</span>
+                              </div>
                             </div>
-                          </div>
-                        </Link>
-                      </motion.div>
-                    </NavigationMenu.Item>
-                  ))}
+                          </Link>
+                        </motion.div>
+                      </NavigationMenu.Item>
+                    ))}
+                  </NavigationMenu.List>
 
-                  {/* Sign Out */}
-                  <NavigationMenu.Item className="mt-4">
-                    <motion.div
+                  {/* Fixed Sign Out Button */}
+                  <div className="p-6 border-t border-gray-200 bg-white/90 backdrop-blur-sm">
+                    <motion.button 
+                      onClick={() => {
+                        closeMenu()
+                        handleSignOut()
+                      }}
                       variants={itemVariants}
                       custom={navigationItems.length}
                       initial="closed"
                       animate="open"
+                      className="w-full flex items-center justify-center space-x-3 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
                     >
-                      <button 
-                        onClick={() => {
-                          closeMenu()
-                          handleSignOut()
-                        }}
-                        className="mobile-nav-item mobile-nav-focus w-full bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-xl border-2 border-red-400 hover:border-red-500"
-                      >
-                        <div className="flex items-center justify-between w-full">
-                          <div className="flex items-center space-x-3">
-                            <LogOut className="h-5 w-5" />
-                            <span className="mobile-nav-text">Sign Out</span>
-                          </div>
-                        </div>
-                      </button>
-                    </motion.div>
-                  </NavigationMenu.Item>
-                </NavigationMenu.List>
+                      <LogOut className="h-5 w-5" />
+                      <span>Sign Out</span>
+                    </motion.button>
+                  </div>
+                </div>
 
-                {/* Footer */}
+                {/* Footer - Only show if logout button is not already shown */}
                 <div className="p-6 border-t border-gray-200/70 bg-gray-50/80 backdrop-blur-sm">
                   <div className="text-center">
                     <p className="text-sm font-medium text-gray-700 mb-1">
