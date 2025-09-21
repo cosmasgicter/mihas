@@ -1045,3 +1045,50 @@ img {
     color: white;
   }
 }
+
+/* Public tracker specific fixes */
+.public-tracker-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 50%, #f3e8ff 100%);
+}
+
+.public-tracker-search {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.public-tracker-result {
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.public-tracker-header {
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #6366f1 100%);
+  color: white;
+  padding: 2rem;
+}
+
+.public-tracker-details {
+  padding: 2rem;
+}
+
+@media (max-width: 768px) {
+  .public-tracker-search {
+    padding: 1rem;
+    margin: 0.5rem;
+  }
+  
+  .public-tracker-header {
+    padding: 1.5rem;
+  }
+  
+  .public-tracker-details {
+    padding: 1rem;
+  }
+}

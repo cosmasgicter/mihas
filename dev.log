@@ -1,0 +1,12 @@
+
+> mihas-application-system@1.0.0 dev
+> vite --config vite.config.local.ts
+
+
+  VITE v7.1.5  ready in 509 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://192.168.166.173:5173/
+4:10:56 PM [vite] (client) hmr update /src/index.css, /src/components/ui/Button.tsx
+4:11:39 PM [vite] (client) page reload test-public-tracker.html
+4:12:27 PM [vite] (client) page reload test-public-tracker.html
