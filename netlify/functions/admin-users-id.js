@@ -1,16 +1,12 @@
 const handler = require('../../api/admin/users/[id].js')
 
 exports.handler = async (event, context) => {
-  // Extract user ID from path
-  const pathParts = event.path.split('/')
-  const userId = pathParts[pathParts.length - 1]
-  
   const req = {
     method: event.httpMethod,
-    query: { ...event.queryStringParameters, id: userId },
+    query: event.queryStringParameters || {},
     body: event.body,
     headers: event.headers,
-    params: { id: userId }
+    params: event.pathParameters || {}
   }
   
   const res = {
