@@ -7,6 +7,16 @@ const {
 const { supabaseAdminClient, getUserFromRequest } = require('../_lib/supabaseClient')
 
 module.exports = async function handler(req, res) {
+  // Add CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end()
+  }
+
+
   try {
     const rateKey = buildRateLimitKey(req, { prefix: 'applications-bulk' })
     const rateResult = await checkRateLimit(

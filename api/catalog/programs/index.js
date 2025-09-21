@@ -7,6 +7,16 @@ const {
 } = require('../../_lib/rateLimiter')
 
 module.exports = async function handler(req, res) {
+  // Add CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end()
+  }
+
+
   // Rate limiting temporarily disabled for testing
   // try {
   //   const rateKey = buildRateLimitKey(req, { prefix: 'catalog-programs' })

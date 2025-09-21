@@ -2,6 +2,16 @@ const { supabaseAdminClient, getUserFromRequest } = require('../_lib/supabaseCli
 const { logAuditEvent } = require('../_lib/auditLogger')
 
 module.exports = async function handler(req, res) {
+  // Add CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end()
+  }
+
+
   const method = (req.method || 'POST').toUpperCase()
   if (method !== 'POST') {
     res.setHeader('Allow', 'POST')

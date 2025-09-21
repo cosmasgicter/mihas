@@ -34,6 +34,16 @@ function normalizeRecord(record) {
 }
 
 module.exports = async function handler(req, res) {
+  // Add CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end()
+  }
+
+
   const authContext = await getUserFromRequest(req, { requireAdmin: true })
   if (authContext.error) {
     const status = authContext.error === 'Access denied' ? 403 : 401
