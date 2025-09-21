@@ -17,6 +17,7 @@
 /api/mcp/query /.netlify/functions/mcp-query 200
 /api/mcp/schema /.netlify/functions/mcp-schema 200
 /api/notifications/send /.netlify/functions/notifications-send 200
+/api/notifications/dispatch-channel /.netlify/functions/notifications-dispatch-channel 200
 /api/notifications/application-submitted /.netlify/functions/notifications-application-submitted 200
 /api/notifications/preferences /.netlify/functions/notifications-preferences 200
 /api/notifications/update-consent /.netlify/functions/notifications-update-consent 200
