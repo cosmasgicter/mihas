@@ -3,7 +3,25 @@
   publish = "dist"
 
 [functions]
-  directory = "api"
+  directory = "netlify/functions"
+
+[[redirects]]
+  from = "/api/admin/dashboard"
+  to = "/.netlify/functions/admin-dashboard"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/analytics/telemetry"
+  to = "/.netlify/functions/analytics-telemetry"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/analytics/predictive-dashboard"
+  to = "/.netlify/functions/analytics-predictive-dashboard"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/api/*"
