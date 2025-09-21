@@ -264,6 +264,97 @@ describe('admin user API routes', () => {
         })
       )
     })
+
+    it('creates a user profile when POST body is a JSON string', async () => {
+      const { handler } = await loadHandler(usersIndexModulePath)
+
+      supabaseAdminClient.auth.admin.createUser.mockResolvedValue({
+        data: { user: { id: 'user-456' } },
+        error: null
+      })
+
+      const profileResult = {
+        data: {
+          user_id: 'user-456',
+          email: 'string@example.com',
+          full_name: 'String Body User',
+          phone: '+260987654321',
+          role: 'staff'
+        },
+        error: null
+      }
+
+      const insertBuilder = {
+        insert: vi.fn(() => insertBuilder),
+        select: vi.fn(() => insertBuilder),
+        single: vi.fn(() => Promise.resolve(profileResult))
+      }
+
+      supabaseAdminClient.from.mockImplementation((table: string) => {
+        if (table === 'user_profiles') {
+          return insertBuilder
+        }
+        throw new Error(`Unexpected table ${table}`)
+      })
+
+      const req: TestRequest = {
+        method: 'POST',
+        headers: { authorization: 'Bearer token' },
+        query: {},
+        body: JSON.stringify({
+          email: 'string@example.com',
+          password: 'password456',
+          full_name: 'String Body User',
+          phone: '+260987654321',
+          role: 'staff'
+        })
+      }
+      const res = createMockResponse()
+
+      await handler(req, res)
+
+      expect(requireUserMock).toHaveBeenCalledWith(req, { requireAdmin: true })
+      expect(supabaseAdminClient.auth.admin.createUser).toHaveBeenCalledWith({
+        email: 'string@example.com',
+        password: 'password456',
+        email_confirm: true
+      })
+      expect(insertBuilder.insert).toHaveBeenCalledWith({
+        user_id: 'user-456',
+        email: 'string@example.com',
+        full_name: 'String Body User',
+        phone: '+260987654321',
+        role: 'staff'
+      })
+      expect(res.status).toHaveBeenCalledWith(201)
+      expect(res.json).toHaveBeenCalledWith({ data: profileResult.data })
+      expect(logAuditEventMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'admin.users.create',
+          targetId: 'user-456',
+          metadata: expect.objectContaining({ email: 'string@example.com', role: 'staff' })
+        })
+      )
+    })
+
+    it('returns 400 when POST body JSON string is malformed', async () => {
+      const { handler } = await loadHandler(usersIndexModulePath)
+
+      const req: TestRequest = {
+        method: 'POST',
+        headers: { authorization: 'Bearer token' },
+        query: {},
+        body: '{ invalid json'
+      }
+      const res = createMockResponse()
+
+      await handler(req, res)
+
+      expect(res.status).toHaveBeenCalledWith(400)
+      expect(res.json).toHaveBeenCalledWith({ error: 'Invalid JSON body' })
+      expect(supabaseAdminClient.auth.admin.createUser).not.toHaveBeenCalled()
+      expect(logAuditEventMock).not.toHaveBeenCalled()
+    })
   })
 
   describe('api/admin/users/[id]', () => {

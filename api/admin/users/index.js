@@ -40,7 +40,19 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { email, password, full_name, phone, role } = req.body || {}
+      let body = req.body
+
+      if (typeof body === 'string') {
+        try {
+          body = JSON.parse(body)
+        } catch (parseError) {
+          console.error('Invalid JSON body for admin users POST:', parseError)
+          return res.status(400).json({ error: 'Invalid JSON body' })
+        }
+      }
+
+      const payload = body && typeof body === 'object' ? body : {}
+      const { email, password, full_name, phone, role } = payload
 
       const { data: authData, error: authError } = await supabaseAdminClient.auth.admin.createUser({
         email,
