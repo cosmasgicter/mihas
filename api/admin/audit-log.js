@@ -1,37 +1,10 @@
 const { logAuditEvent } = require('../_lib/auditLogger')
 const { supabaseAdminClient, getUserFromRequest } = require('../_lib/supabaseClient')
-
-function parseAction(value) {
-  if (Array.isArray(value)) {
-    return value[0] ?? null
-  }
-  if (typeof value === 'string') {
-    return value
-  }
-  return null
-}
-
-function normalizeRecord(record) {
-  if (!record) {
-    return null
-  }
-
-  return {
-    id: record.id,
-    action: record.action,
-    actorId: record.actor_id,
-    actorEmail: record.actor_email,
-    actorRoles: record.actor_roles || [],
-    targetTable: record.target_table,
-    targetId: record.target_id,
-    targetLabel: record.target_label,
-    requestId: record.request_id,
-    requestIp: record.request_ip,
-    userAgent: record.user_agent,
-    metadata: record.metadata || {},
-    createdAt: record.created_at
-  }
-}
+const {
+  buildAuditLogFilters,
+  normalizeRecord,
+  applyAuditLogFilters
+} = require('./audit-log/utils')
 
 module.exports = async function handler(req, res) {
   // Add CORS headers
@@ -56,17 +29,11 @@ module.exports = async function handler(req, res) {
   }
 
   const {
-    actorId,
-    targetTable,
-    targetId,
-    from,
-    to,
     page = '1',
-    pageSize = '25',
-    logAction,
-    eventAction,
-    auditAction
+    pageSize = '25'
   } = req.query || {}
+
+  const filters = buildAuditLogFilters(req.query)
 
   const normalizedPage = Number.parseInt(Array.isArray(page) ? page[0] : page, 10)
   const normalizedPageSize = Number.parseInt(Array.isArray(pageSize) ? pageSize[0] : pageSize, 10)
@@ -81,31 +48,7 @@ module.exports = async function handler(req, res) {
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
 
-  const auditActionFilter = parseAction(logAction) || parseAction(eventAction) || parseAction(auditAction)
-  if (auditActionFilter) {
-    query = query.ilike('action', `${auditActionFilter}%`)
-  }
-  if (actorId) {
-    query = query.eq('actor_id', Array.isArray(actorId) ? actorId[0] : actorId)
-  }
-  if (targetTable) {
-    query = query.eq('target_table', Array.isArray(targetTable) ? targetTable[0] : targetTable)
-  }
-  if (targetId) {
-    query = query.eq('target_id', Array.isArray(targetId) ? targetId[0] : targetId)
-  }
-  if (from) {
-    const parsed = new Date(Array.isArray(from) ? from[0] : from)
-    if (!Number.isNaN(parsed.getTime())) {
-      query = query.gte('created_at', parsed.toISOString())
-    }
-  }
-  if (to) {
-    const parsed = new Date(Array.isArray(to) ? to[0] : to)
-    if (!Number.isNaN(parsed.getTime())) {
-      query = query.lte('created_at', parsed.toISOString())
-    }
-  }
+  query = applyAuditLogFilters(query, filters)
 
   const { data, count, error } = await query
   if (error) {
@@ -126,10 +69,10 @@ module.exports = async function handler(req, res) {
     targetTable: 'system_audit_log',
     metadata: {
       filters: {
-        action: auditActionFilter || null,
-        actorId: actorId ? (Array.isArray(actorId) ? actorId[0] : actorId) : null,
-        targetTable: targetTable ? (Array.isArray(targetTable) ? targetTable[0] : targetTable) : null,
-        targetId: targetId ? (Array.isArray(targetId) ? targetId[0] : targetId) : null
+        action: filters.action || null,
+        actorId: filters.actorId || null,
+        targetTable: filters.targetTable || null,
+        targetId: filters.targetId || null
       },
       page: currentPage,
       pageSize: limit

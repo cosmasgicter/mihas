@@ -1,4 +1,6 @@
 /api/admin/audit-log /.netlify/functions/admin-audit-log 200
+/api/admin/audit-log/stats /.netlify/functions/admin-audit-log-stats 200
+/api/admin/audit-log/export /.netlify/functions/admin-audit-log-export 200
 /api/admin/dashboard /.netlify/functions/admin-dashboard 200
 /api/admin/users /.netlify/functions/admin-users 200
 /api/admin/users/:id /.netlify/functions/admin-users-id 200
