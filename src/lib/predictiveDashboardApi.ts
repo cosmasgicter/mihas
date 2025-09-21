@@ -43,7 +43,8 @@ export async function fetchPredictiveDashboardMetrics(): Promise<PredictiveDashb
       return null
     }
 
-    const response = await fetch('/api/analytics/predictive-dashboard', {
+    const apiBase = import.meta.env.VITE_API_BASE_URL || ''
+    const response = await fetch(`${apiBase}/.netlify/functions/analytics-predictive-dashboard`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`
       }
