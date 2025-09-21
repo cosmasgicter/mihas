@@ -103,7 +103,7 @@ export function ApplicationsTable({
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
       <div className="overflow-x-auto">
-        <div className="min-w-[1024px]">
+        <div className="w-full md:min-w-[1024px]">
           <div className="hidden bg-gray-50 px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 md:grid md:grid-cols-[minmax(160px,1fr)_minmax(220px,1.4fr)_minmax(200px,1.2fr)_minmax(170px,1fr)_minmax(220px,1.3fr)_minmax(200px,1fr)_minmax(160px,0.8fr)]">
             <div>Application</div>
             <div>Student</div>
