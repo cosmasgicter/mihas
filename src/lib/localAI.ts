@@ -197,7 +197,7 @@ What specific area would you like help with?`
   }
 
   private getInstitution(program: string): string {
-    return ['Clinical Medicine', 'Environmental Health'].includes(program) ? 'KATC' : 'MIHAS'
+    return ['Clinical Medicine', 'Environmental Health'].includes(program) ? 'Kalulushi Training Centre' : 'Mukuba Institute of Health and Allied Sciences'
   }
 
   private getStepGuidance(step: number, applicationData: any): string {

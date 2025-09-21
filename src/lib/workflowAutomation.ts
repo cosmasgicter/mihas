@@ -551,7 +551,7 @@ export class WorkflowAutomationEngine {
   }
 
   private getInstitution(program: string): string {
-    return ['Clinical Medicine', 'Environmental Health'].includes(program) ? 'KATC' : 'MIHAS'
+    return ['Clinical Medicine', 'Environmental Health'].includes(program) ? 'Kalulushi Training Centre' : 'Mukuba Institute of Health and Allied Sciences'
   }
 
   private getInstitutionDomain(program: string): string {

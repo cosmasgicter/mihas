@@ -277,8 +277,8 @@ export default function ApplicationsAdmin() {
                     className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">All Institutions</option>
-                    <option value="KATC">KATC</option>
-                    <option value="MIHAS">MIHAS</option>
+                    <option value="Kalulushi Training Centre">Kalulushi Training Centre</option>
+                    <option value="Mukuba Institute of Health and Allied Sciences">Mukuba Institute of Health and Allied Sciences</option>
                   </select>
                 </div>
               </div>

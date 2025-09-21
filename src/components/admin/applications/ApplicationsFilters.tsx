@@ -238,8 +238,8 @@ export function ApplicationsFilters({
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 >
                   <option value="all">All Institutions</option>
-                  <option value="KATC">KATC</option>
-                  <option value="MIHAS">MIHAS</option>
+                  <option value="Kalulushi Training Centre">Kalulushi Training Centre</option>
+                  <option value="Mukuba Institute of Health and Allied Sciences">Mukuba Institute of Health and Allied Sciences</option>
                 </select>
               </div>
               

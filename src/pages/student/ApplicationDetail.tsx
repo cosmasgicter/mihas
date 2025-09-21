@@ -122,7 +122,7 @@ export default function ApplicationDetail() {
             <div className="flex items-center space-x-3">
               {getStatusIcon(application.status)}
               <span className={`px-4 py-2 rounded-full text-sm font-bold ${getStatusColor(application.status)}`}>
-                {application.status.replace('_', ' ').toUpperCase()}
+                {application.status?.replace('_', ' ').toUpperCase() || 'PENDING'}
               </span>
             </div>
           </div>
@@ -288,7 +288,7 @@ export default function ApplicationDetail() {
                   application.payment_status === 'verified' ? 'text-green-600' : 
                   application.payment_status === 'pending' ? 'text-yellow-600' : 'text-red-600'
                 }`}>
-                  {application.payment_status?.toUpperCase() || 'PENDING'}
+                  {(application.payment_status || 'pending').toUpperCase()}
                 </p>
               </div>
               {application.payment_verified_at && (
