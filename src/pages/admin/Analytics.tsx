@@ -10,6 +10,7 @@ import { exportReport, ReportExportData, ReportFormat } from '@/lib/reportExport
 import { TrendingUp, Users, FileText, CheckCircle, Download, Plus, Edit, Trash2, RefreshCw, Eye, Filter, BarChart3 } from 'lucide-react'
 import { useRoleQuery } from '@/hooks/auth/useRoleQuery'
 import { isReportManagerRole } from '@/lib/auth/roles'
+import { useToast } from '@/components/ui/Toast'
 
 export default function Analytics() {
   const [loading, setLoading] = useState(true)
@@ -41,6 +42,7 @@ export default function Analytics() {
   } = useRoleQuery()
   const canManageReports = isReportManagerRole(userRole?.role)
   const roleStatusLoading = roleLoading || roleFetching
+  const { showSuccess, showError, showInfo } = useToast()
 
   useEffect(() => {
     loadAnalytics()
@@ -111,11 +113,12 @@ export default function Analytics() {
       setShowCreateDialog(false)
       setFormData({})
       await loadAnalytics()
-      alert('Record created successfully!')
+      showSuccess('Record created successfully!')
     } catch (error) {
       console.error('Failed to create record:', error)
-      const message = error instanceof Error ? error.message : 'Failed to create record'
-      alert(message)
+      const fallbackMessage = 'Failed to create record'
+      const message = error instanceof Error ? error.message : fallbackMessage
+      showError(fallbackMessage, message !== fallbackMessage ? message : undefined)
     }
   }
 
@@ -135,11 +138,12 @@ export default function Analytics() {
       setSelectedItem(null)
       setFormData({})
       await loadAnalytics()
-      alert('Record updated successfully!')
+      showSuccess('Record updated successfully!')
     } catch (error) {
       console.error('Failed to update record:', error)
-      const message = error instanceof Error ? error.message : 'Failed to update record'
-      alert(message)
+      const fallbackMessage = 'Failed to update record'
+      const message = error instanceof Error ? error.message : fallbackMessage
+      showError(fallbackMessage, message !== fallbackMessage ? message : undefined)
     }
   }
 
@@ -161,11 +165,12 @@ export default function Analytics() {
       setSelectedItem(null)
       await loadAnalytics()
       await loadAutomatedReports()
-      alert('Record deleted successfully!')
+      showSuccess('Record deleted successfully!')
     } catch (error) {
       console.error('Failed to delete record:', error)
-      const message = error instanceof Error ? error.message : 'Failed to delete record'
-      alert(message)
+      const fallbackMessage = 'Failed to delete record'
+      const message = error instanceof Error ? error.message : fallbackMessage
+      showError(fallbackMessage, message !== fallbackMessage ? message : undefined)
     }
   }
 
@@ -183,11 +188,12 @@ export default function Analytics() {
 
       await exportReport(reportData, exportFormat, reportName)
 
-      alert('Analytics report generated and downloaded successfully!')
+      showInfo('Analytics report ready', 'The report was generated and downloaded successfully.')
     } catch (error) {
       console.error('Failed to generate report:', error)
-      const message = error instanceof Error ? error.message : 'Failed to generate report'
-      alert(message)
+      const fallbackMessage = 'Failed to generate report'
+      const message = error instanceof Error ? error.message : fallbackMessage
+      showError(fallbackMessage, message !== fallbackMessage ? message : undefined)
     }
   }
 
@@ -696,10 +702,12 @@ export default function Analytics() {
                                     const format = (report as any).format || (report.reportData?.metadata?.exportFormat as ReportFormat) || 'json'
                                     const reportData: ReportExportData = report.reportData || (report as any).report_data
                                     await exportReport(reportData, format, report.reportName || (report as any).report_name || 'automated_report')
-                                    alert('Report downloaded successfully!')
+                                    showInfo('Report downloaded', 'The report has been downloaded successfully.')
                                   } catch (error) {
                                     console.error('Failed to download report:', error)
-                                    alert(error instanceof Error ? error.message : 'Failed to download report')
+                                    const fallbackMessage = 'Failed to download report'
+                                    const message = error instanceof Error ? error.message : fallbackMessage
+                                    showError(fallbackMessage, message !== fallbackMessage ? message : undefined)
                                   }
                                 }}
                                 className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 text-xs"

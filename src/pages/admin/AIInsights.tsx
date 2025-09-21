@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { workflowAutomation } from '@/lib/workflowAutomation'
 import { multiChannelNotifications } from '@/lib/multiChannelNotifications'
+import { useToast } from '@/components/ui/Toast'
 
 interface AIInsightsStats {
   totalPredictions: number
@@ -20,6 +21,7 @@ export default function AIInsights() {
   const { profile } = useProfileQuery()
   const { isAdmin: hasAdminRole } = useRoleQuery()
   const isAdmin = hasAdminRole || isAdminRole(profile?.role)
+  const { showSuccess, showError } = useToast()
   const [stats, setStats] = useState<AIInsightsStats>({
     totalPredictions: 0,
     automationRuns: 0,
@@ -58,10 +60,12 @@ export default function AIInsights() {
   const runWorkflowMaintenance = async () => {
     try {
       const result = await workflowAutomation.runScheduledWorkflows()
-      alert(`Workflow maintenance completed. Processed: ${result.processed}, Errors: ${result.errors}`)
+      showSuccess('Workflow maintenance completed', `Processed: ${result.processed}, Errors: ${result.errors}`)
     } catch (error) {
       console.error('Workflow maintenance failed:', error)
-      alert('Workflow maintenance failed. Please try again.')
+      const fallbackMessage = 'Workflow maintenance failed. Please try again.'
+      const message = error instanceof Error ? error.message : fallbackMessage
+      showError('Workflow maintenance failed', message !== fallbackMessage ? message : undefined)
     }
   }
 
