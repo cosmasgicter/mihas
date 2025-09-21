@@ -115,7 +115,7 @@ export function ApplicationsTable({
           </div>
 
           {applications.length > 0 ? (
-            <div className="max-h-[720px] overflow-y-auto">
+            <div className="md:max-h-[720px] md:overflow-y-auto">
               {applications.map((app) => (
                 <ApplicationRow
                   key={app.id}

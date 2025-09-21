@@ -10,7 +10,11 @@ exports.handler = async (event, context) => {
   
   const res = {
     statusCode: 200,
-    headers: {},
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    },
     setHeader: function(name, value) {
       this.headers[name] = value
     },
@@ -22,6 +26,15 @@ exports.handler = async (event, context) => {
       this.headers['Content-Type'] = 'application/json'
       this.body = JSON.stringify(data)
       return this
+    }
+  }
+
+  // Handle OPTIONS preflight
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: res.headers,
+      body: ''
     }
   }
 

@@ -12,13 +12,30 @@ import { useApplicationsData, useApplicationFilters } from '@/hooks/admin'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { supabase } from '@/lib/supabase'
+import { applicationService } from '@/services/applications'
 import {
   exportToCSV,
   exportToExcel,
   exportToPDF,
   type ApplicationData
 } from '@/lib/exportUtils'
-import { FileDown, FileSpreadsheet, FileText } from 'lucide-react'
+import { 
+  FileDown, 
+  FileSpreadsheet, 
+  FileText, 
+  Search, 
+  Filter, 
+  RefreshCw, 
+  Users, 
+  TrendingUp, 
+  Clock, 
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Eye,
+  Send,
+  Download
+} from 'lucide-react'
 
 const EXPORT_BATCH_SIZE = 500
 
@@ -75,6 +92,18 @@ export default function Applications() {
   const [exportingFormat, setExportingFormat] = useState<'csv' | 'excel' | 'pdf' | null>(null)
   const [selectedApplication, setSelectedApplication] = useState<string | null>(null)
   const [showDetails, setShowDetails] = useState(false)
+  const [modalLoading, setModalLoading] = useState<{
+    notification: boolean
+    acceptance: boolean
+    receipt: boolean
+  }>({ notification: false, acceptance: false, receipt: false })
+  const [showFilters, setShowFilters] = useState(false)
+  const [quickStats, setQuickStats] = useState({
+    todaySubmissions: 0,
+    pendingReview: 0,
+    approved: 0,
+    rejected: 0
+  })
 
   const activeFilters = useMemo(() => ({ ...filters }), [filters])
 
@@ -188,117 +217,324 @@ export default function Applications() {
     return applications.find(app => app.id === selectedApplication) || null
   }, [selectedApplication, applications])
 
+  const handleSendNotification = useCallback(async () => {
+    if (!selectedApplication) return
+    
+    setModalLoading(prev => ({ ...prev, notification: true }))
+    try {
+      await applicationService.sendNotification(selectedApplication, {
+        title: 'Application Update',
+        message: 'Your application status has been updated. Please check your dashboard for details.'
+      })
+      showSuccess('Notification sent', 'Student has been notified successfully.')
+    } catch (error) {
+      showError('Failed to send notification', error instanceof Error ? error.message : 'Unable to send notification.')
+    } finally {
+      setModalLoading(prev => ({ ...prev, notification: false }))
+    }
+  }, [selectedApplication, showSuccess, showError])
+
+  const handleViewDocuments = useCallback(() => {
+    if (!selectedApp) return
+    
+    const documents = []
+    if (selectedApp.result_slip_url) documents.push({ name: 'Result Slip', url: selectedApp.result_slip_url })
+    if (selectedApp.extra_kyc_url) documents.push({ name: 'Extra KYC', url: selectedApp.extra_kyc_url })
+    if (selectedApp.pop_url) documents.push({ name: 'Proof of Payment', url: selectedApp.pop_url })
+    
+    if (documents.length === 0) {
+      showInfo('No documents', 'No documents have been uploaded for this application.')
+      return
+    }
+    
+    documents.forEach(doc => {
+      window.open(doc.url, '_blank', 'noopener,noreferrer')
+    })
+  }, [selectedApp, showInfo])
+
+  const handleViewHistory = useCallback(async () => {
+    if (!selectedApplication) return
+    
+    try {
+      const response = await applicationService.getById(selectedApplication, { include: ['history'] })
+      if (response.history && response.history.length > 0) {
+        showInfo('Status History', `Application has ${response.history.length} status changes. Check the application timeline for details.`)
+      } else {
+        showInfo('No history', 'No status changes recorded for this application.')
+      }
+    } catch (error) {
+      showError('Failed to load history', error instanceof Error ? error.message : 'Unable to load application history.')
+    }
+  }, [selectedApplication, showSuccess, showError, showInfo])
+
+  const handleGenerateAcceptanceLetter = useCallback(async () => {
+    if (!selectedApplication) return
+    
+    setModalLoading(prev => ({ ...prev, acceptance: true }))
+    try {
+      await applicationService.generateAcceptanceLetter(selectedApplication)
+      showSuccess('Acceptance letter generated', 'The acceptance letter has been generated and sent to the student.')
+    } catch (error) {
+      showError('Failed to generate letter', error instanceof Error ? error.message : 'Unable to generate acceptance letter.')
+    } finally {
+      setModalLoading(prev => ({ ...prev, acceptance: false }))
+    }
+  }, [selectedApplication, showSuccess, showError])
+
+  const handleGenerateFinanceReceipt = useCallback(async () => {
+    if (!selectedApplication) return
+    
+    setModalLoading(prev => ({ ...prev, receipt: true }))
+    try {
+      await applicationService.generateFinanceReceipt(selectedApplication)
+      showSuccess('Finance receipt generated', 'The finance receipt has been generated and sent to the student.')
+    } catch (error) {
+      showError('Failed to generate receipt', error instanceof Error ? error.message : 'Unable to generate finance receipt.')
+    } finally {
+      setModalLoading(prev => ({ ...prev, receipt: false }))
+    }
+  }, [selectedApplication, showSuccess, showError])
+
+  const handleRefresh = useCallback(async () => {
+    window.location.reload()
+  }, [])
+
+  const handleBulkAction = useCallback(async (action: string, selectedIds: string[]) => {
+    if (selectedIds.length === 0) {
+      showError('No selection', 'Please select applications to perform bulk action.')
+      return
+    }
+    
+    try {
+      for (const id of selectedIds) {
+        if (action === 'approve') {
+          await updateStatus(id, 'approved')
+        } else if (action === 'reject') {
+          await updateStatus(id, 'rejected')
+        } else if (action === 'review') {
+          await updateStatus(id, 'under_review')
+        }
+      }
+      showSuccess('Bulk action completed', `${selectedIds.length} applications updated successfully.`)
+    } catch (error) {
+      showError('Bulk action failed', error instanceof Error ? error.message : 'Unable to complete bulk action.')
+    }
+  }, [updateStatus, showSuccess, showError])
+
+  // Calculate quick stats
+  const stats = useMemo(() => {
+    const today = new Date().toDateString()
+    return {
+      total: applications.length,
+      todaySubmissions: applications.filter(app => 
+        new Date(app.submitted_at || app.created_at).toDateString() === today
+      ).length,
+      pendingReview: applications.filter(app => app.status === 'submitted').length,
+      underReview: applications.filter(app => app.status === 'under_review').length,
+      approved: applications.filter(app => app.status === 'approved').length,
+      rejected: applications.filter(app => app.status === 'rejected').length,
+      paymentPending: applications.filter(app => app.payment_status === 'pending_review').length,
+      paymentVerified: applications.filter(app => app.payment_status === 'verified').length
+    }
+  }, [applications])
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <AdminNavigation />
-      <div className="container-mobile py-4 sm:py-6 lg:py-8 safe-area-bottom">
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-          <div className="bg-gradient-to-r from-secondary to-primary p-6 text-white">
-            <div className="space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold">📄 Applications Management</h1>
-                <p className="text-white/90 text-sm sm:text-base">
-                  Manage student applications and review submissions
-                </p>
+      
+      {/* Mobile-First Header */}
+      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-200 px-4 py-3 sm:px-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
+              <Users className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">Applications</h1>
+              <p className="text-xs text-gray-500">{stats.total} total applications</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="sm:hidden"
+            >
+              <Filter className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Stats Cards - Mobile First */}
+      <div className="px-4 py-4 sm:px-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center space-x-2">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Clock className="h-4 w-4 text-blue-600" />
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-white/10 text-white border-white/40 hover:bg-white/20"
-                  onClick={() => { void handleExport('csv') }}
-                  loading={exportingFormat === 'csv'}
-                  disabled={isExporting && exportingFormat !== 'csv'}
-                >
-                  <FileDown className="mr-2 h-4 w-4" />
-                  Export CSV
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-white/10 text-white border-white/40 hover:bg-white/20"
-                  onClick={() => { void handleExport('excel') }}
-                  loading={exportingFormat === 'excel'}
-                  disabled={isExporting && exportingFormat !== 'excel'}
-                >
-                  <FileSpreadsheet className="mr-2 h-4 w-4" />
-                  Export Excel
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-white/10 text-white border-white/40 hover:bg-white/20"
-                  onClick={() => { void handleExport('pdf') }}
-                  loading={exportingFormat === 'pdf'}
-                  disabled={isExporting && exportingFormat !== 'pdf'}
-                >
-                  <FileText className="mr-2 h-4 w-4" />
-                  Export PDF
-                </Button>
+              <div>
+                <p className="text-xs text-gray-500">Today</p>
+                <p className="text-lg font-bold text-gray-900">{stats.todaySubmissions}</p>
               </div>
             </div>
           </div>
-
-          <div className="p-6 space-y-6">
-            {error && (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-                <div className="text-sm font-medium">{error}</div>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center space-x-2">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <AlertCircle className="h-4 w-4 text-yellow-600" />
               </div>
-            )}
-
-            {isInitialLoading ? (
-              <ApplicationsSkeleton />
-            ) : (
-              <div className="space-y-6">
-                <MetricsHeader
-                  applications={applications}
-                  totalCount={pagination.totalCount}
-                />
-
-                {isRefreshing && (
-                  <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-600">
-                    <LoadingSpinner size="sm" />
-                    <span>Refreshing latest applications…</span>
-                  </div>
-                )}
-
-                <FiltersPanel
-                  searchTerm={filters.searchTerm}
-                  statusFilter={filters.statusFilter}
-                  paymentFilter={filters.paymentFilter}
-                  programFilter={filters.programFilter}
-                  institutionFilter={filters.institutionFilter}
-                  onFilterChange={updateFilter}
-                />
-
-                <ApplicationsTable
-                  applications={applications}
-                  totalCount={pagination.totalCount}
-                  loadedCount={pagination.loadedCount}
-                  hasMore={hasMore}
-                  isLoadingMore={isLoadingMore}
-                  onLoadMore={loadNextPage}
-                  onStatusUpdate={updateStatus}
-                  onPaymentStatusUpdate={updatePaymentStatus}
-                  onViewDetails={handleViewDetails}
-                />
-
-                <ApplicationDetailModal
-                  application={selectedApp}
-                  show={showDetails}
-                  updating={null}
-                  onClose={handleCloseDetails}
-                  onSendNotification={() => {}}
-                  onViewDocuments={() => {}}
-                  onViewHistory={() => {}}
-                  onUpdateStatus={updateStatus}
-                  onGenerateAcceptanceLetter={async () => {}}
-                  onGenerateFinanceReceipt={async () => {}}
-                />
+              <div>
+                <p className="text-xs text-gray-500">Pending</p>
+                <p className="text-lg font-bold text-gray-900">{stats.pendingReview}</p>
               </div>
-            )}
+            </div>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center space-x-2">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Approved</p>
+                <p className="text-lg font-bold text-gray-900">{stats.approved}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center space-x-2">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <XCircle className="h-4 w-4 text-red-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Rejected</p>
+                <p className="text-lg font-bold text-gray-900">{stats.rejected}</p>
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Export Actions */}
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-900">Export Data</h3>
+            <Download className="h-4 w-4 text-gray-400" />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { void handleExport('csv') }}
+              loading={exportingFormat === 'csv'}
+              disabled={isExporting && exportingFormat !== 'csv'}
+              className="text-xs"
+            >
+              <FileDown className="mr-1 h-3 w-3" />
+              CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { void handleExport('excel') }}
+              loading={exportingFormat === 'excel'}
+              disabled={isExporting && exportingFormat !== 'excel'}
+              className="text-xs"
+            >
+              <FileSpreadsheet className="mr-1 h-3 w-3" />
+              Excel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { void handleExport('pdf') }}
+              loading={exportingFormat === 'pdf'}
+              disabled={isExporting && exportingFormat !== 'pdf'}
+              className="text-xs"
+            >
+              <FileText className="mr-1 h-3 w-3" />
+              PDF
+            </Button>
+          </div>
+        </div>
+
+        {/* Mobile Filters Panel */}
+        {showFilters && (
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6 sm:hidden">
+            <FiltersPanel
+              searchTerm={filters.searchTerm}
+              statusFilter={filters.statusFilter}
+              paymentFilter={filters.paymentFilter}
+              programFilter={filters.programFilter}
+              institutionFilter={filters.institutionFilter}
+              onFilterChange={updateFilter}
+            />
+          </div>
+        )}
+
+        {/* Desktop Filters */}
+        <div className="hidden sm:block bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
+          <FiltersPanel
+            searchTerm={filters.searchTerm}
+            statusFilter={filters.statusFilter}
+            paymentFilter={filters.paymentFilter}
+            programFilter={filters.programFilter}
+            institutionFilter={filters.institutionFilter}
+            onFilterChange={updateFilter}
+          />
+        </div>
+
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700 mb-6">
+            <div className="text-sm font-medium">{error}</div>
+          </div>
+        )}
+
+        {isRefreshing && (
+          <div className="flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-600 mb-6">
+            <LoadingSpinner size="sm" />
+            <span>Refreshing latest applications…</span>
+          </div>
+        )}
+
+        {isInitialLoading ? (
+          <ApplicationsSkeleton />
+        ) : (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <ApplicationsTable
+              applications={applications}
+              totalCount={pagination.totalCount}
+              loadedCount={pagination.loadedCount}
+              hasMore={hasMore}
+              isLoadingMore={isLoadingMore}
+              onLoadMore={loadNextPage}
+              onStatusUpdate={updateStatus}
+              onPaymentStatusUpdate={updatePaymentStatus}
+              onViewDetails={handleViewDetails}
+            />
+          </div>
+        )}
+
+        <ApplicationDetailModal
+          application={selectedApp}
+          show={showDetails}
+          updating={null}
+          onClose={handleCloseDetails}
+          onSendNotification={handleSendNotification}
+          onViewDocuments={handleViewDocuments}
+          onViewHistory={handleViewHistory}
+          onUpdateStatus={updateStatus}
+          onGenerateAcceptanceLetter={handleGenerateAcceptanceLetter}
+          onGenerateFinanceReceipt={handleGenerateFinanceReceipt}
+        />
       </div>
     </div>
   )

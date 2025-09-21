@@ -26,7 +26,8 @@ exports.handler = async (event, context) => {
     headers: { 'Content-Type': 'application/json' },
     setHeader: function(name, value) { this.headers[name] = value },
     status: function(code) { this.statusCode = code; return this },
-    json: function(data) { this.body = JSON.stringify(data); return this }
+    json: function(data) { this.body = JSON.stringify(data); return this },
+    end: function(data) { this.body = data || ''; return this }
   }
 
   try {
