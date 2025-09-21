@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIHAS Complete Workflow Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-warning { background-color: #ffc107; color: black; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        .credentials { background-color: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .step { margin: 10px 0; padding: 10px; border-left: 4px solid #007bff; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🚀 MIHAS Complete Workflow Test</h1>
+    <p>This test validates the entire application workflow from student registration to admin approval using real credentials.</p>
+
+    <div class="credentials">
+        <h3>📋 Test Credentials</h3>
+        <p><strong>Student:</strong> cosmaskanchepa8@gmail.com / Beanola2025</p>
+        <p><strong>Admin:</strong> cosmas@beanola.com / Beanola2025</p>
+    </div>
+
+    <div class="test-section info">
+        <h3>🎯 Test Plan</h3>
+        <ol>
+            <li>Student Login & Authentication</li>
+            <li>Create New Application</li>
+            <li>Fill Application Details</li>
+            <li>Submit Application</li>
+            <li>Admin Login</li>
+            <li>View Application in Admin Panel</li>
+            <li>Verify Payment Status</li>
+            <li>Update Application Status (Review → Approved)</li>
+            <li>Generate Documents (Acceptance Letter, Receipt)</li>
+            <li>Send Notification to Student</li>
+            <li>Student Views Final Status</li>
+        </ol>
+    </div>
+
+    <div id="testResults"></div>
+
+    <div class="test-section">
+        <h3>🔧 Manual Test Instructions</h3>
+        <button class="btn-primary" onclick="startManualTest()">Start Manual Test</button>
+        <button class="btn-success" onclick="openStudentPortal()">Open Student Portal</button>
+        <button class="btn-warning" onclick="openAdminPortal()">Open Admin Portal</button>
+        <button class="btn-danger" onclick="runAutomatedChecks()">Run System Checks</button>
+    </div>
+
+    <div id="manualSteps" style="display: none;">
+        <div class="test-section">
+            <h3>📝 Step-by-Step Manual Test</h3>
+            <div id="stepsList"></div>
+        </div>
+    </div>
+
+    <div id="systemChecks"></div>
+
+    <script>
+        const BASE_URL = 'https://mihas-katc.netlify.app';
+        
+        const testSteps = [
+            {
+                title: "Student Registration/Login",
+                description: "Login as student using cosmaskanchepa8@gmail.com",
+                action: "Go to student portal and login",
+                expected: "Successfully logged in to student dashboard"
+            },
+            {
+                title: "Create Application",
+                description: "Start new application process",
+                action: "Click 'New Application' and fill basic details",
+                expected: "Application draft created successfully"
+            },
+            {
+                title: "Fill Application Details",
+                description: "Complete all 4 steps of application wizard",
+                action: "Fill KYC, Education, Payment, and Review sections",
+                expected: "All sections completed with validation"
+            },
+            {
+                title: "Submit Application",
+                description: "Submit completed application",
+                action: "Click 'Submit Application' on final step",
+                expected: "Application submitted with tracking number"
+            },
+            {
+                title: "Admin Login",
+                description: "Login as admin using cosmas@beanola.com",
+                action: "Go to admin portal and login",
+                expected: "Successfully logged in to admin dashboard"
+            },
+            {
+                title: "View Application",
+                description: "Find and view the submitted application",
+                action: "Go to Applications tab, find test application",
+                expected: "Application details loaded without errors"
+            },
+            {
+                title: "Verify Payment",
+                description: "Update payment status to verified",
+                action: "Change payment status from pending to verified",
+                expected: "Payment status updated successfully"
+            },
+            {
+                title: "Review Application",
+                description: "Change status from submitted to under review",
+                action: "Update application status to 'Under Review'",
+                expected: "Status updated, review process started"
+            },
+            {
+                title: "Approve Application",
+                description: "Approve the application",
+                action: "Change status to 'Approved'",
+                expected: "Application approved successfully"
+            },
+            {
+                title: "Generate Documents",
+                description: "Generate acceptance letter and receipt",
+                action: "Click generate buttons for documents",
+                expected: "Documents generated and downloadable"
+            },
+            {
+                title: "Send Notification",
+                description: "Send approval notification to student",
+                action: "Click 'Send Notification' button",
+                expected: "Notification sent successfully"
+            },
+            {
+                title: "Student Final Check",
+                description: "Student views approved status",
+                action: "Login as student and check application status",
+                expected: "Status shows 'Approved' with documents"
+            }
+        ];
+
+        function startManualTest() {
+            document.getElementById('manualSteps').style.display = 'block';
+            const stepsList = document.getElementById('stepsList');
+            
+            stepsList.innerHTML = testSteps.map((step, index) => `
+                <div class="step" id="step-${index}">
+                    <h4>Step ${index + 1}: ${step.title}</h4>
+                    <p><strong>Description:</strong> ${step.description}</p>
+                    <p><strong>Action:</strong> ${step.action}</p>
+                    <p><strong>Expected:</strong> ${step.expected}</p>
+                    <button class="btn-success" onclick="markStepComplete(${index})">✅ Mark Complete</button>
+                    <button class="btn-danger" onclick="markStepFailed(${index})">❌ Mark Failed</button>
+                    <div id="step-result-${index}"></div>
+                </div>
+            `).join('');
+        }
+
+        function markStepComplete(stepIndex) {
+            const step = document.getElementById(`step-${stepIndex}`);
+            step.className = 'step success';
+            document.getElementById(`step-result-${stepIndex}`).innerHTML = 
+                '<div class="result success">✅ Step completed successfully</div>';
+        }
+
+        function markStepFailed(stepIndex) {
+            const step = document.getElementById(`step-${stepIndex}`);
+            step.className = 'step error';
+            document.getElementById(`step-result-${stepIndex}`).innerHTML = 
+                '<div class="result error">❌ Step failed - check console for errors</div>';
+        }
+
+        function openStudentPortal() {
+            window.open(`${BASE_URL}/auth/login`, '_blank');
+        }
+
+        function openAdminPortal() {
+            window.open(`${BASE_URL}/admin/login`, '_blank');
+        }
+
+        async function runAutomatedChecks() {
+            const checksDiv = document.getElementById('systemChecks');
+            checksDiv.innerHTML = '<div class="test-section loading"><h3>🔍 Running System Checks...</h3></div>';
+            
+            const checks = [
+                { name: 'Main Site Accessibility', url: BASE_URL },
+                { name: 'Student Login Page', url: `${BASE_URL}/auth/login` },
+                { name: 'Admin Login Page', url: `${BASE_URL}/admin/login` },
+                { name: 'API Health Check', url: `${BASE_URL}/.netlify/functions/test` }
+            ];
+
+            let results = [];
+            
+            for (const check of checks) {
+                try {
+                    const response = await fetch(check.url, { method: 'HEAD', mode: 'no-cors' });
+                    results.push({ ...check, status: 'success', message: 'Accessible' });
+                } catch (error) {
+                    results.push({ ...check, status: 'error', message: error.message });
+                }
+            }
+
+            checksDiv.innerHTML = `
+                <div class="test-section">
+                    <h3>🔍 System Check Results</h3>
+                    ${results.map(result => `
+                        <div class="result ${result.status}">
+                            ${result.status === 'success' ? '✅' : '❌'} ${result.name}: ${result.message}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Auto-run system checks on page load
+        window.addEventListener('load', () => {
+            setTimeout(runAutomatedChecks, 1000);
+        });
+    </script>
+</body>
+</html>
