@@ -11,6 +11,16 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  // Parse request body
+  let body
+  try {
+    body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {}
+  } catch (e) {
+    return res.status(400).json({ error: 'Invalid JSON in request body' })
+  }
+
+  const { applicationId, userId } = body
+
   try {
     const rateKey = buildRateLimitKey(req, { prefix: 'notifications-application-submitted' })
     const rateResult = await checkRateLimit(
@@ -31,8 +41,6 @@ module.exports = async function handler(req, res) {
   if (authContext.error) {
     return res.status(403).json({ error: authContext.error })
   }
-
-  const { applicationId, userId } = req.body || {}
 
   if (!applicationId || !userId) {
     return res.status(400).json({ error: 'applicationId and userId are required' })

@@ -31,7 +31,7 @@ function normalizePreferencesRecord(record = {}) {
   const preferences = ensureAuditFields({ ...record })
   preferences.channels = normalizeChannelPreferences(preferences.channels)
   preferences.frequency = preferences.frequency || 'immediate'
-  preferences.optimalTiming = typeof preferences.optimalTiming === 'boolean' ? preferences.optimalTiming : true
+  preferences.optimalTiming = typeof preferences.optimal_timing === 'boolean' ? preferences.optimal_timing : true
   return preferences
 }
 

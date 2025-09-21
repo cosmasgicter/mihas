@@ -47,13 +47,23 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid application id' })
   }
 
+  // Normalize request body parsing once
+  let body = {}
+  if (req.method !== 'GET' && req.method !== 'DELETE') {
+    try {
+      body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {}
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid JSON in request body' })
+    }
+  }
+
   switch (req.method) {
     case 'GET':
       return handleGet(req, res, authContext, id)
     case 'PUT':
-      return handlePut(req, res, authContext, id)
+      return handlePut(req, res, authContext, id, body)
     case 'PATCH':
-      return handlePatch(req, res, authContext, id)
+      return handlePatch(req, res, authContext, id, body)
     case 'DELETE':
       return handleDelete(req, res, authContext, id)
     default:
@@ -175,9 +185,9 @@ async function handleGet(req, res, { user, isAdmin, roles }, id) {
   }
 }
 
-async function handlePut(req, res, { user, isAdmin, roles }, id) {
+async function handlePut(req, res, { user, isAdmin, roles }, id, body) {
   try {
-    const updates = req.body || {}
+    const updates = body
 
     let query = supabaseAdminClient
       .from('applications_new')
@@ -215,23 +225,23 @@ async function handlePut(req, res, { user, isAdmin, roles }, id) {
   }
 }
 
-async function handlePatch(req, res, context, id) {
-  const { action } = req.body || {}
+async function handlePatch(req, res, context, id, body) {
+  const { action } = body
   if (!action) {
     return res.status(400).json({ error: 'Action is required' })
   }
 
   switch (action) {
     case 'verify_document':
-      return verifyDocument(req, res, context, id)
+      return verifyDocument(req, res, context, id, body)
     case 'update_status':
-      return updateApplicationStatus(req, res, context, id)
+      return updateApplicationStatus(req, res, context, id, body)
     case 'update_payment_status':
-      return updatePaymentStatus(req, res, context, id)
+      return updatePaymentStatus(req, res, context, id, body)
     case 'send_notification':
-      return sendNotification(req, res, context, id)
+      return sendNotification(req, res, context, id, body)
     case 'sync_grades':
-      return syncGrades(req, res, context, id)
+      return syncGrades(req, res, context, id, body)
     case 'generate_acceptance_letter':
       return generateAcceptanceLetter(req, res, context, id)
     case 'generate_finance_receipt':
@@ -275,12 +285,12 @@ async function handleDelete(req, res, { user, isAdmin, roles }, id) {
   }
 }
 
-async function verifyDocument(req, res, { user, isAdmin, roles }, id) {
+async function verifyDocument(req, res, { user, isAdmin, roles }, id, body) {
   if (!isAdmin) {
     return res.status(403).json({ error: 'Access denied' })
   }
 
-  const { documentId, documentType, status, notes } = req.body || {}
+  const { documentId, documentType, status, notes } = body
   if (!documentId && !documentType) {
     return res.status(400).json({ error: 'Document identifier is required' })
   }
@@ -349,12 +359,12 @@ async function verifyDocument(req, res, { user, isAdmin, roles }, id) {
   }
 }
 
-async function updateApplicationStatus(req, res, { user, isAdmin, roles }, id) {
+async function updateApplicationStatus(req, res, { user, isAdmin, roles }, id, body) {
   if (!isAdmin) {
     return res.status(403).json({ error: 'Access denied' })
   }
 
-  const { status, notes } = req.body || {}
+  const { status, notes } = body
   if (!status) {
     return res.status(400).json({ error: 'Status is required' })
   }
@@ -444,12 +454,12 @@ async function updateApplicationStatus(req, res, { user, isAdmin, roles }, id) {
   }
 }
 
-async function updatePaymentStatus(req, res, { user, isAdmin, roles }, id) {
+async function updatePaymentStatus(req, res, { user, isAdmin, roles }, id, body) {
   if (!isAdmin) {
     return res.status(403).json({ error: 'Access denied' })
   }
 
-  const { paymentStatus, verificationNotes } = req.body || {}
+  const { paymentStatus, verificationNotes } = body
   if (!paymentStatus) {
     return res.status(400).json({ error: 'Payment status is required' })
   }
@@ -627,12 +637,12 @@ async function adjustIntakeAvailability({ previousStatus, newStatus, intakeId, i
   }
 }
 
-async function sendNotification(req, res, { user, isAdmin, roles }, id) {
+async function sendNotification(req, res, { user, isAdmin, roles }, id, body) {
   if (!isAdmin) {
     return res.status(403).json({ error: 'Access denied' })
   }
 
-  const { title, message } = req.body || {}
+  const { title, message } = body
   if (!title || !message) {
     return res.status(400).json({ error: 'Title and message are required' })
   }
@@ -1228,8 +1238,8 @@ function getUserDisplayName(user) {
   )
 }
 
-async function syncGrades(req, res, { user, isAdmin, roles }, id) {
-  const { grades } = req.body || {}
+async function syncGrades(req, res, { user, isAdmin, roles }, id, body) {
+  const { grades } = body
   if (!Array.isArray(grades)) {
     return res.status(400).json({ error: 'Grades must be an array' })
   }

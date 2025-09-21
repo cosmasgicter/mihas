@@ -18,12 +18,399 @@
    │                                                   │
    ╰───────────────────────────────────────────────────╯
 
+⬥ Loaded function test
 Port 5173 is in use, trying another one...
 Port 5174 is in use, trying another one...
 Port 5175 is in use, trying another one...
+Port 5176 is in use, trying another one...
 
-  VITE v7.1.5  ready in 1652 ms
+  VITE v7.1.5  ready in 1974 ms
 
-  ➜  Local:   http://localhost:5176/
-  ➜  Network: http://192.168.166.173:5176/
-⬥ Loaded function test
+  ➜  Local:   http://localhost:5177/
+  ➜  Network: http://192.168.166.173:5177/
+⬥ Loaded function analytics-telemetry
+⬥ Loaded function notifications-preferences
+⬥ Loaded function mcp-schema
+⬥ Loaded function auth-register
+⬥ Loaded function notifications-send
+⬥ Loaded function catalog-programs
+⬥ Loaded function admin-audit-log
+⬥ Loaded function applications
+⬥ Loaded function catalog-subjects
+⬥ Loaded function notifications-update-consent
+⬥ Loaded function user-consents
+⬥ Loaded function admin-users-id
+⬥ Loaded function applications-bulk
+⬥ Loaded function auth-signin
+⬥ Loaded function admin-dashboard
+⬥ Loaded function applications-id
+⬥ Loaded function analytics-metrics
+⬥ Loaded function catalog-intakes
+⬥ Loaded function notifications-application-submitted
+⬥ Loaded function mcp-query
+⬥ Loaded function documents-upload
+⬥ Loaded function analytics-predictive-dashboard
+⬥ Loaded function admin-users
+⬥ Loaded function auth-login
+(node:63259) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+⬥ Rewrote URL to /.netlify/functions/auth-login
+Request from ::ffff:127.0.0.1: POST /.netlify/functions/auth-login
+Response with status 200 in 1323 ms.
+⬥ Rewrote URL to /.netlify/functions/catalog-programs
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/catalog-programs
+Response with status 200 in 492 ms.
+⬥ Rewrote URL to /.netlify/functions/catalog-intakes
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/catalog-intakes
+Response with status 200 in 575 ms.
+⬥ Rewrote URL to /.netlify/functions/catalog-subjects
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/catalog-subjects
+Response with status 200 in 494 ms.
+⬥ Rewrote URL to /.netlify/functions/user-consents
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/user-consents
+Response with status 200 in 1637 ms.
+⬥ Rewrote URL to /.netlify/functions/user-consents
+Request from ::ffff:127.0.0.1: POST /.netlify/functions/user-consents
+Response with status 200 in 1318 ms.
+⬥ Rewrote URL to /.netlify/functions/notifications-preferences
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/notifications-preferences
+Response with status 200 in 1652 ms.
+⬥ Rewrote URL to /.netlify/functions/applications
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/applications
+GET /api/applications - Headers: {
+  'x-forwarded-for': '::ffff:127.0.0.1',
+  'x-netlify-original-search': '',
+  'x-nf-blobs-info': 'eyJ1cmwiOiJodHRwOi8vbG9jYWxob3N0OjM4ODE5IiwidXJsX3VuY2FjaGVkIjoiaHR0cDovL2xvY2FsaG9zdDozODgxOSIsInRva2VuIjoiYzQ1ZTFhMGEtYjE0Yi00NTkwLWJlN2MtZTU0NTZmMGQ4ZDgzIn0=',
+  'x-nf-account-info': 'e30=',
+  'x-nf-site-info': 'eyJ1cmwiOiJodHRwOi8vbG9jYWxob3N0Ojg4ODgifQ==',
+  'x-nf-deploy-context': 'dev',
+  'x-nf-deploy-id': '0',
+  'x-nf-geo': 'eyJjaXR5IjoiTHVzYWthIiwiY291bnRyeSI6eyJjb2RlIjoiWk0iLCJuYW1lIjoiWmFtYmlhIn0sInN1YmRpdmlzaW9uIjp7ImNvZGUiOiIwOSIsIm5hbWUiOiJMdXNha2EgUHJvdmluY2UifSwidGltZXpvbmUiOiJBZnJpY2EvTHVzYWthIiwibGF0aXR1ZGUiOi0xNS40MTgzLCJsb25naXR1ZGUiOjI4LjI4N30=',
+  connection: 'close',
+  host: 'localhost:8888',
+  'accept-encoding': 'gzip,deflate',
+  'user-agent': 'node-fetch/1.0 (+https://github.com/bitinn/node-fetch)',
+  accept: '*/*',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI2ZTE0N2VhZC1lMzRkLTQxZTItYmMwNS0zNThhNjUzZmY2MzMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDYyNjQ1LCJpYXQiOjE3NTg0NTkwNDUsImVtYWlsIjoiY29zbWFza2FuY2hlcGE4QGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJjb3NtYXNrYW5jaGVwYThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZ1bGxfbmFtZSI6IlNvbG9tb24gTmdvbWEiLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInNpZ251cF9kYXRhIjoie1wiZW1haWxcIjpcImNvc21hc2thbmNoZXBhOEBnbWFpbC5jb21cIixcInBhc3N3b3JkXCI6XCJCZWFub2xhMjAyNVwiLFwiZnVsbF9uYW1lXCI6XCJTb2xvbW9uIE5nb21hXCIsXCJwaG9uZVwiOlwiKzI2MDk2NjIyMjk5OVwiLFwiZGF0ZV9vZl9iaXJ0aFwiOlwiMjAwNi0wMS0wMlwiLFwiZ2VuZGVyXCI6XCJNYWxlXCIsXCJuYXRpb25hbGl0eVwiOlwiWmFtYmlhblwiLFwiYWRkcmVzc1wiOlwiMTgyLzQ5XFxuT0ZGIE1BSU4gUk9BRFxcblZBTExFWSBWSUVXXCIsXCJjaXR5XCI6XCJMVVNBS0FcIixcImNvdW50cnlcIjpcIlphbWJpYVwiLFwiZW1lcmdlbmN5X2NvbnRhY3RfbmFtZVwiOlwiV0lMTElBTSBaVUxVXCIsXCJlbWVyZ2VuY3lfY29udGFjdF9waG9uZVwiOlwiMDk3NzU2MjA0N1wifSIsInN1YiI6IjZlMTQ3ZWFkLWUzNGQtNDFlMi1iYzA1LTM1OGE2NTNmZjYzMyJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU5MDQ1fV0sInNlc3Npb25faWQiOiJiNTZlMmU0YS0zZTYzLTRmYzEtOTJlMC00MzBlNzE4NTdiZWIiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.87nOmfLxpKQlx0JXDsYor0mN1z52RsMfpTCgjmKK94w',
+  'x-nf-request-id': '01K5P57H34XXXFYZPVTQDGD2FD',
+  'client-ip': '127.0.0.1',
+  'x-nf-client-connection-ip': '127.0.0.1',
+  'x-nf-account-id': '',
+  'x-nf-site-id': 'unlinked'
+}
+Response with status 200 in 1106 ms.
+⬥ Rewrote URL to /.netlify/functions/applications
+Request from ::ffff:127.0.0.1: POST /.netlify/functions/applications
+POST /api/applications - Headers: {
+  'x-forwarded-for': '::ffff:127.0.0.1',
+  'x-netlify-original-search': '',
+  'x-nf-blobs-info': 'eyJ1cmwiOiJodHRwOi8vbG9jYWxob3N0OjM4ODE5IiwidXJsX3VuY2FjaGVkIjoiaHR0cDovL2xvY2FsaG9zdDozODgxOSIsInRva2VuIjoiYzQ1ZTFhMGEtYjE0Yi00NTkwLWJlN2MtZTU0NTZmMGQ4ZDgzIn0=',
+  'x-nf-account-info': 'e30=',
+  'x-nf-site-info': 'eyJ1cmwiOiJodHRwOi8vbG9jYWxob3N0Ojg4ODgifQ==',
+  'x-nf-deploy-context': 'dev',
+  'x-nf-deploy-id': '0',
+  'x-nf-geo': 'eyJjaXR5IjoiTHVzYWthIiwiY291bnRyeSI6eyJjb2RlIjoiWk0iLCJuYW1lIjoiWmFtYmlhIn0sInN1YmRpdmlzaW9uIjp7ImNvZGUiOiIwOSIsIm5hbWUiOiJMdXNha2EgUHJvdmluY2UifSwidGltZXpvbmUiOiJBZnJpY2EvTHVzYWthIiwibGF0aXR1ZGUiOi0xNS40MTgzLCJsb25naXR1ZGUiOjI4LjI4N30=',
+  connection: 'close',
+  host: 'localhost:8888',
+  'accept-encoding': 'gzip,deflate',
+  'user-agent': 'node-fetch/1.0 (+https://github.com/bitinn/node-fetch)',
+  'content-length': '271',
+  accept: '*/*',
+  'content-type': 'text/plain;charset=UTF-8',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI2ZTE0N2VhZC1lMzRkLTQxZTItYmMwNS0zNThhNjUzZmY2MzMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDYyNjQ1LCJpYXQiOjE3NTg0NTkwNDUsImVtYWlsIjoiY29zbWFza2FuY2hlcGE4QGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJjb3NtYXNrYW5jaGVwYThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZ1bGxfbmFtZSI6IlNvbG9tb24gTmdvbWEiLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInNpZ251cF9kYXRhIjoie1wiZW1haWxcIjpcImNvc21hc2thbmNoZXBhOEBnbWFpbC5jb21cIixcInBhc3N3b3JkXCI6XCJCZWFub2xhMjAyNVwiLFwiZnVsbF9uYW1lXCI6XCJTb2xvbW9uIE5nb21hXCIsXCJwaG9uZVwiOlwiKzI2MDk2NjIyMjk5OVwiLFwiZGF0ZV9vZl9iaXJ0aFwiOlwiMjAwNi0wMS0wMlwiLFwiZ2VuZGVyXCI6XCJNYWxlXCIsXCJuYXRpb25hbGl0eVwiOlwiWmFtYmlhblwiLFwiYWRkcmVzc1wiOlwiMTgyLzQ5XFxuT0ZGIE1BSU4gUk9BRFxcblZBTExFWSBWSUVXXCIsXCJjaXR5XCI6XCJMVVNBS0FcIixcImNvdW50cnlcIjpcIlphbWJpYVwiLFwiZW1lcmdlbmN5X2NvbnRhY3RfbmFtZVwiOlwiV0lMTElBTSBaVUxVXCIsXCJlbWVyZ2VuY3lfY29udGFjdF9waG9uZVwiOlwiMDk3NzU2MjA0N1wifSIsInN1YiI6IjZlMTQ3ZWFkLWUzNGQtNDFlMi1iYzA1LTM1OGE2NTNmZjYzMyJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU5MDQ1fV0sInNlc3Npb25faWQiOiJiNTZlMmU0YS0zZTYzLTRmYzEtOTJlMC00MzBlNzE4NTdiZWIiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.87nOmfLxpKQlx0JXDsYor0mN1z52RsMfpTCgjmKK94w',
+  'x-nf-request-id': '01K5P57JA96BWVKAXN2Q3981MK',
+  'client-ip': '127.0.0.1',
+  'x-nf-client-connection-ip': '127.0.0.1',
+  'x-nf-account-id': '',
+  'x-nf-site-id': 'unlinked'
+}
+POST /api/applications - Request body: {
+  "full_name": "Test Student Full",
+  "nrc_number": "999888/77/6",
+  "date_of_birth": "2000-01-01",
+  "sex": "Male",
+  "phone": "+260977888999",
+  "email": "test-full@example.com",
+  "residence_town": "Lusaka",
+  "program": "Diploma in Registered Nursing",
+  "intake": "2025 Intake",
+  "institution": "MIHAS"
+}
+POST /api/applications - User ID: 6e147ead-e34d-41e2-bc05-358a653ff633
+Response with status 201 in 1062 ms.
+⬥ Rewrote URL to /.netlify/functions/documents-upload
+Request from ::ffff:127.0.0.1: POST /.netlify/functions/documents-upload
+Response with status 201 in 2806 ms.
+⬥ Rewrote URL to /.netlify/functions/auth-login
+Request from ::ffff:127.0.0.1: POST /.netlify/functions/auth-login
+Response with status 200 in 968 ms.
+⬥ Rewrote URL to /.netlify/functions/admin-dashboard
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/admin-dashboard
+Failed to record audit event {
+  error: {
+    code: '22P02',
+    details: null,
+    hint: null,
+    message: 'invalid input syntax for type uuid: "overview"'
+  },
+  action: 'admin.dashboard.view'
+}
+Response with status 200 in 1637 ms.
+⬥ Rewrote URL to /.netlify/functions/applications
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/applications
+GET /api/applications - Headers: {
+  'x-forwarded-for': '::ffff:127.0.0.1',
+  'x-netlify-original-search': '',
+  'x-nf-blobs-info': 'eyJ1cmwiOiJodHRwOi8vbG9jYWxob3N0OjM4ODE5IiwidXJsX3VuY2FjaGVkIjoiaHR0cDovL2xvY2FsaG9zdDozODgxOSIsInRva2VuIjoiYzQ1ZTFhMGEtYjE0Yi00NTkwLWJlN2MtZTU0NTZmMGQ4ZDgzIn0=',
+  'x-nf-account-info': 'e30=',
+  'x-nf-site-info': 'eyJ1cmwiOiJodHRwOi8vbG9jYWxob3N0Ojg4ODgifQ==',
+  'x-nf-deploy-context': 'dev',
+  'x-nf-deploy-id': '0',
+  'x-nf-geo': 'eyJjaXR5IjoiTHVzYWthIiwiY291bnRyeSI6eyJjb2RlIjoiWk0iLCJuYW1lIjoiWmFtYmlhIn0sInN1YmRpdmlzaW9uIjp7ImNvZGUiOiIwOSIsIm5hbWUiOiJMdXNha2EgUHJvdmluY2UifSwidGltZXpvbmUiOiJBZnJpY2EvTHVzYWthIiwibGF0aXR1ZGUiOi0xNS40MTgzLCJsb25naXR1ZGUiOjI4LjI4N30=',
+  connection: 'close',
+  host: 'localhost:8888',
+  'accept-encoding': 'gzip,deflate',
+  'user-agent': 'node-fetch/1.0 (+https://github.com/bitinn/node-fetch)',
+  accept: '*/*',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmYzZhMTUzNi0yZTVjLTQwOTktOWI5ZS1hMzg2NTM0MDhmOTUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDYyNjU5LCJpYXQiOjE3NTg0NTkwNTksImVtYWlsIjoiY29zbWFzQGJlYW5vbGEuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6ImNvc21hc0BiZWFub2xhLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInN1YiI6ImZjNmExNTM2LTJlNWMtNDA5OS05YjllLWEzODY1MzQwOGY5NSJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU5MDU5fV0sInNlc3Npb25faWQiOiI1NmRhZjFkOC05NjA3LTQzODItOTc5ZC1lMWVlYTQ4MmJhZDgiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.5E3-u9EThct8w6S8q9JvQLezQiyPfnHlX1Yp68kic_g',
+  'x-nf-request-id': '01K5P57S5E2JCWXDNEXDHY231S',
+  'client-ip': '127.0.0.1',
+  'x-nf-client-connection-ip': '127.0.0.1',
+  'x-nf-account-id': '',
+  'x-nf-site-id': 'unlinked'
+}
+Response with status 200 in 993 ms.
+⬥ Rewrote URL to /.netlify/functions/admin-users
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/admin-users
+Response with status 200 in 1413 ms.
+⬥ Rewrote URL to /.netlify/functions/admin-audit-log
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/admin-audit-log
+Response with status 200 in 1564 ms.
+⬥ Rewrote URL to /.netlify/functions/analytics-metrics
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/analytics-metrics
+Response with status 200 in 2186 ms.
+⬥ Rewrote URL to /.netlify/functions/analytics-predictive-dashboard
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/analytics-predictive-dashboard
+Workflow summary view failed: {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.security_status_summary'",
+  message: "Could not find the table 'public.workflow_metrics_summary' in the schema cache"
+}
+Predictive summary view failed: {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.admin_application_summary'",
+  message: "Could not find the table 'public.analytics_predictive_summary' in the schema cache"
+}
+Response with status 200 in 2703 ms.
+⬥ Rewrote URL to /.netlify/functions/applications
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/applications
+GET /api/applications - Headers: {
+  'x-forwarded-for': '::ffff:127.0.0.1',
+  'x-netlify-original-search': '',
+  'x-nf-blobs-info': 'eyJ1cmwiOiJodHRwOi8vbG9jYWxob3N0OjM4ODE5IiwidXJsX3VuY2FjaGVkIjoiaHR0cDovL2xvY2FsaG9zdDozODgxOSIsInRva2VuIjoiYzQ1ZTFhMGEtYjE0Yi00NTkwLWJlN2MtZTU0NTZmMGQ4ZDgzIn0=',
+  'x-nf-account-info': 'e30=',
+  'x-nf-site-info': 'eyJ1cmwiOiJodHRwOi8vbG9jYWxob3N0Ojg4ODgifQ==',
+  'x-nf-deploy-context': 'dev',
+  'x-nf-deploy-id': '0',
+  'x-nf-geo': 'eyJjaXR5IjoiTHVzYWthIiwiY291bnRyeSI6eyJjb2RlIjoiWk0iLCJuYW1lIjoiWmFtYmlhIn0sInN1YmRpdmlzaW9uIjp7ImNvZGUiOiIwOSIsIm5hbWUiOiJMdXNha2EgUHJvdmluY2UifSwidGltZXpvbmUiOiJBZnJpY2EvTHVzYWthIiwibGF0aXR1ZGUiOi0xNS40MTgzLCJsb25naXR1ZGUiOjI4LjI4N30=',
+  connection: 'close',
+  host: 'localhost:8888',
+  'accept-encoding': 'gzip,deflate',
+  'user-agent': 'node-fetch/1.0 (+https://github.com/bitinn/node-fetch)',
+  accept: '*/*',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmYzZhMTUzNi0yZTVjLTQwOTktOWI5ZS1hMzg2NTM0MDhmOTUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDYyNjU5LCJpYXQiOjE3NTg0NTkwNTksImVtYWlsIjoiY29zbWFzQGJlYW5vbGEuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6ImNvc21hc0BiZWFub2xhLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInN1YiI6ImZjNmExNTM2LTJlNWMtNDA5OS05YjllLWEzODY1MzQwOGY5NSJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU5MDU5fV0sInNlc3Npb25faWQiOiI1NmRhZjFkOC05NjA3LTQzODItOTc5ZC1lMWVlYTQ4MmJhZDgiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.5E3-u9EThct8w6S8q9JvQLezQiyPfnHlX1Yp68kic_g',
+  'x-nf-request-id': '01K5P582MPF9PWJ2D6JFD5M61R',
+  'client-ip': '127.0.0.1',
+  'x-nf-client-connection-ip': '127.0.0.1',
+  'x-nf-account-id': '',
+  'x-nf-site-id': 'unlinked'
+}
+Response with status 200 in 1113 ms.
+⬥ Rewrote URL to /.netlify/functions/applications-bulk
+Request from ::ffff:127.0.0.1: POST /.netlify/functions/applications-bulk
+Response with status 200 in 1562 ms.
+⬥ Rewrote URL to /.netlify/functions/notifications-send
+Request from ::ffff:127.0.0.1: POST /.netlify/functions/notifications-send
+Response with status 201 in 1977 ms.
+⬥ Rewrote URL to /.netlify/functions/auth-login
+Request from ::ffff:127.0.0.1: POST /.netlify/functions/auth-login
+Response with status 200 in 1661 ms.
+⬥ Rewrote URL to /.netlify/functions/catalog-programs
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/catalog-programs
+Response with status 200 in 411 ms.
+⬥ Rewrote URL to /.netlify/functions/catalog-intakes
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/catalog-intakes
+Response with status 200 in 451 ms.
+⬥ Rewrote URL to /.netlify/functions/catalog-subjects
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/catalog-subjects
+Response with status 200 in 432 ms.
+⬥ Rewrote URL to /.netlify/functions/user-consents
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/user-consents
+Response with status 200 in 1640 ms.
+⬥ Rewrote URL to /.netlify/functions/user-consents
+Request from ::ffff:127.0.0.1: POST /.netlify/functions/user-consents
+Response with status 200 in 1397 ms.
+⬥ Rewrote URL to /.netlify/functions/notifications-preferences
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/notifications-preferences
+Response with status 200 in 1362 ms.
+⬥ Rewrote URL to /.netlify/functions/applications
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/applications
+GET /api/applications - Headers: {
+  'x-forwarded-for': '::ffff:127.0.0.1',
+  'x-netlify-original-search': '',
+  'x-nf-blobs-info': 'eyJ1cmwiOiJodHRwOi8vbG9jYWxob3N0OjM4ODE5IiwidXJsX3VuY2FjaGVkIjoiaHR0cDovL2xvY2FsaG9zdDozODgxOSIsInRva2VuIjoiYzQ1ZTFhMGEtYjE0Yi00NTkwLWJlN2MtZTU0NTZmMGQ4ZDgzIn0=',
+  'x-nf-account-info': 'e30=',
+  'x-nf-site-info': 'eyJ1cmwiOiJodHRwOi8vbG9jYWxob3N0Ojg4ODgifQ==',
+  'x-nf-deploy-context': 'dev',
+  'x-nf-deploy-id': '0',
+  'x-nf-geo': 'eyJjaXR5IjoiTHVzYWthIiwiY291bnRyeSI6eyJjb2RlIjoiWk0iLCJuYW1lIjoiWmFtYmlhIn0sInN1YmRpdmlzaW9uIjp7ImNvZGUiOiIwOSIsIm5hbWUiOiJMdXNha2EgUHJvdmluY2UifSwidGltZXpvbmUiOiJBZnJpY2EvTHVzYWthIiwibGF0aXR1ZGUiOi0xNS40MTgzLCJsb25naXR1ZGUiOjI4LjI4N30=',
+  connection: 'close',
+  host: 'localhost:8888',
+  'accept-encoding': 'gzip,deflate',
+  'user-agent': 'node-fetch/1.0 (+https://github.com/bitinn/node-fetch)',
+  accept: '*/*',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI2ZTE0N2VhZC1lMzRkLTQxZTItYmMwNS0zNThhNjUzZmY2MzMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDYyNjk4LCJpYXQiOjE3NTg0NTkwOTgsImVtYWlsIjoiY29zbWFza2FuY2hlcGE4QGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJjb3NtYXNrYW5jaGVwYThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZ1bGxfbmFtZSI6IlNvbG9tb24gTmdvbWEiLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInNpZ251cF9kYXRhIjoie1wiZW1haWxcIjpcImNvc21hc2thbmNoZXBhOEBnbWFpbC5jb21cIixcInBhc3N3b3JkXCI6XCJCZWFub2xhMjAyNVwiLFwiZnVsbF9uYW1lXCI6XCJTb2xvbW9uIE5nb21hXCIsXCJwaG9uZVwiOlwiKzI2MDk2NjIyMjk5OVwiLFwiZGF0ZV9vZl9iaXJ0aFwiOlwiMjAwNi0wMS0wMlwiLFwiZ2VuZGVyXCI6XCJNYWxlXCIsXCJuYXRpb25hbGl0eVwiOlwiWmFtYmlhblwiLFwiYWRkcmVzc1wiOlwiMTgyLzQ5XFxuT0ZGIE1BSU4gUk9BRFxcblZBTExFWSBWSUVXXCIsXCJjaXR5XCI6XCJMVVNBS0FcIixcImNvdW50cnlcIjpcIlphbWJpYVwiLFwiZW1lcmdlbmN5X2NvbnRhY3RfbmFtZVwiOlwiV0lMTElBTSBaVUxVXCIsXCJlbWVyZ2VuY3lfY29udGFjdF9waG9uZVwiOlwiMDk3NzU2MjA0N1wifSIsInN1YiI6IjZlMTQ3ZWFkLWUzNGQtNDFlMi1iYzA1LTM1OGE2NTNmZjYzMyJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU5MDk4fV0sInNlc3Npb25faWQiOiJmYWZiYzI3NS05YWU2LTQwMDktODczNi05MzU4MDEwNDkwZDIiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.ec0LAC8TdOIzv1GRGCV9XZJP3-7Bvgpfj3Us953lJ2w',
+  'x-nf-request-id': '01K5P594P5QX1TBFW1V7DY55G8',
+  'client-ip': '127.0.0.1',
+  'x-nf-client-connection-ip': '127.0.0.1',
+  'x-nf-account-id': '',
+  'x-nf-site-id': 'unlinked'
+}
+Response with status 200 in 1113 ms.
+⬥ Rewrote URL to /.netlify/functions/applications
+Request from ::ffff:127.0.0.1: POST /.netlify/functions/applications
+POST /api/applications - Headers: {
+  'x-forwarded-for': '::ffff:127.0.0.1',
+  'x-netlify-original-search': '',
+  'x-nf-blobs-info': 'eyJ1cmwiOiJodHRwOi8vbG9jYWxob3N0OjM4ODE5IiwidXJsX3VuY2FjaGVkIjoiaHR0cDovL2xvY2FsaG9zdDozODgxOSIsInRva2VuIjoiYzQ1ZTFhMGEtYjE0Yi00NTkwLWJlN2MtZTU0NTZmMGQ4ZDgzIn0=',
+  'x-nf-account-info': 'e30=',
+  'x-nf-site-info': 'eyJ1cmwiOiJodHRwOi8vbG9jYWxob3N0Ojg4ODgifQ==',
+  'x-nf-deploy-context': 'dev',
+  'x-nf-deploy-id': '0',
+  'x-nf-geo': 'eyJjaXR5IjoiTHVzYWthIiwiY291bnRyeSI6eyJjb2RlIjoiWk0iLCJuYW1lIjoiWmFtYmlhIn0sInN1YmRpdmlzaW9uIjp7ImNvZGUiOiIwOSIsIm5hbWUiOiJMdXNha2EgUHJvdmluY2UifSwidGltZXpvbmUiOiJBZnJpY2EvTHVzYWthIiwibGF0aXR1ZGUiOi0xNS40MTgzLCJsb25naXR1ZGUiOjI4LjI4N30=',
+  connection: 'close',
+  host: 'localhost:8888',
+  'accept-encoding': 'gzip,deflate',
+  'user-agent': 'node-fetch/1.0 (+https://github.com/bitinn/node-fetch)',
+  'content-length': '271',
+  accept: '*/*',
+  'content-type': 'text/plain;charset=UTF-8',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI2ZTE0N2VhZC1lMzRkLTQxZTItYmMwNS0zNThhNjUzZmY2MzMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDYyNjk4LCJpYXQiOjE3NTg0NTkwOTgsImVtYWlsIjoiY29zbWFza2FuY2hlcGE4QGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJjb3NtYXNrYW5jaGVwYThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZ1bGxfbmFtZSI6IlNvbG9tb24gTmdvbWEiLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInNpZ251cF9kYXRhIjoie1wiZW1haWxcIjpcImNvc21hc2thbmNoZXBhOEBnbWFpbC5jb21cIixcInBhc3N3b3JkXCI6XCJCZWFub2xhMjAyNVwiLFwiZnVsbF9uYW1lXCI6XCJTb2xvbW9uIE5nb21hXCIsXCJwaG9uZVwiOlwiKzI2MDk2NjIyMjk5OVwiLFwiZGF0ZV9vZl9iaXJ0aFwiOlwiMjAwNi0wMS0wMlwiLFwiZ2VuZGVyXCI6XCJNYWxlXCIsXCJuYXRpb25hbGl0eVwiOlwiWmFtYmlhblwiLFwiYWRkcmVzc1wiOlwiMTgyLzQ5XFxuT0ZGIE1BSU4gUk9BRFxcblZBTExFWSBWSUVXXCIsXCJjaXR5XCI6XCJMVVNBS0FcIixcImNvdW50cnlcIjpcIlphbWJpYVwiLFwiZW1lcmdlbmN5X2NvbnRhY3RfbmFtZVwiOlwiV0lMTElBTSBaVUxVXCIsXCJlbWVyZ2VuY3lfY29udGFjdF9waG9uZVwiOlwiMDk3NzU2MjA0N1wifSIsInN1YiI6IjZlMTQ3ZWFkLWUzNGQtNDFlMi1iYzA1LTM1OGE2NTNmZjYzMyJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU5MDk4fV0sInNlc3Npb25faWQiOiJmYWZiYzI3NS05YWU2LTQwMDktODczNi05MzU4MDEwNDkwZDIiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.ec0LAC8TdOIzv1GRGCV9XZJP3-7Bvgpfj3Us953lJ2w',
+  'x-nf-request-id': '01K5P595YFB9DNXMFSDF4SY68T',
+  'client-ip': '127.0.0.1',
+  'x-nf-client-connection-ip': '127.0.0.1',
+  'x-nf-account-id': '',
+  'x-nf-site-id': 'unlinked'
+}
+POST /api/applications - Request body: {
+  "full_name": "Test Student Full",
+  "nrc_number": "999888/77/6",
+  "date_of_birth": "2000-01-01",
+  "sex": "Male",
+  "phone": "+260977888999",
+  "email": "test-full@example.com",
+  "residence_town": "Lusaka",
+  "program": "Diploma in Registered Nursing",
+  "intake": "2025 Intake",
+  "institution": "MIHAS"
+}
+POST /api/applications - User ID: 6e147ead-e34d-41e2-bc05-358a653ff633
+Response with status 201 in 1142 ms.
+⬥ Rewrote URL to /.netlify/functions/documents-upload
+Request from ::ffff:127.0.0.1: POST /.netlify/functions/documents-upload
+Response with status 201 in 2636 ms.
+⬥ Rewrote URL to /.netlify/functions/auth-login
+Request from ::ffff:127.0.0.1: POST /.netlify/functions/auth-login
+Response with status 200 in 761 ms.
+⬥ Rewrote URL to /.netlify/functions/admin-dashboard
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/admin-dashboard
+Failed to record audit event {
+  error: {
+    code: '22P02',
+    details: null,
+    hint: null,
+    message: 'invalid input syntax for type uuid: "overview"'
+  },
+  action: 'admin.dashboard.view'
+}
+Response with status 200 in 1333 ms.
+⬥ Rewrote URL to /.netlify/functions/applications
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/applications
+GET /api/applications - Headers: {
+  'x-forwarded-for': '::ffff:127.0.0.1',
+  'x-netlify-original-search': '',
+  'x-nf-blobs-info': 'eyJ1cmwiOiJodHRwOi8vbG9jYWxob3N0OjM4ODE5IiwidXJsX3VuY2FjaGVkIjoiaHR0cDovL2xvY2FsaG9zdDozODgxOSIsInRva2VuIjoiYzQ1ZTFhMGEtYjE0Yi00NTkwLWJlN2MtZTU0NTZmMGQ4ZDgzIn0=',
+  'x-nf-account-info': 'e30=',
+  'x-nf-site-info': 'eyJ1cmwiOiJodHRwOi8vbG9jYWxob3N0Ojg4ODgifQ==',
+  'x-nf-deploy-context': 'dev',
+  'x-nf-deploy-id': '0',
+  'x-nf-geo': 'eyJjaXR5IjoiTHVzYWthIiwiY291bnRyeSI6eyJjb2RlIjoiWk0iLCJuYW1lIjoiWmFtYmlhIn0sInN1YmRpdmlzaW9uIjp7ImNvZGUiOiIwOSIsIm5hbWUiOiJMdXNha2EgUHJvdmluY2UifSwidGltZXpvbmUiOiJBZnJpY2EvTHVzYWthIiwibGF0aXR1ZGUiOi0xNS40MTgzLCJsb25naXR1ZGUiOjI4LjI4N30=',
+  connection: 'close',
+  host: 'localhost:8888',
+  'accept-encoding': 'gzip,deflate',
+  'user-agent': 'node-fetch/1.0 (+https://github.com/bitinn/node-fetch)',
+  accept: '*/*',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmYzZhMTUzNi0yZTVjLTQwOTktOWI5ZS1hMzg2NTM0MDhmOTUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDYyNzExLCJpYXQiOjE3NTg0NTkxMTEsImVtYWlsIjoiY29zbWFzQGJlYW5vbGEuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6ImNvc21hc0BiZWFub2xhLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInN1YiI6ImZjNmExNTM2LTJlNWMtNDA5OS05YjllLWEzODY1MzQwOGY5NSJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU5MTExfV0sInNlc3Npb25faWQiOiI2ZDJhZDQ3MS02YjliLTQ4ZjgtYTcwZC0xNDc2OGVmNjIxNjUiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.gVt3-hxLqxay5YkMwQ1RQ6eSiaGQVJKVJHPi3jOdK74',
+  'x-nf-request-id': '01K5P59C6H4TRYCA9584RNBGQH',
+  'client-ip': '127.0.0.1',
+  'x-nf-client-connection-ip': '127.0.0.1',
+  'x-nf-account-id': '',
+  'x-nf-site-id': 'unlinked'
+}
+Response with status 200 in 1081 ms.
+⬥ Rewrote URL to /.netlify/functions/admin-users
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/admin-users
+Response with status 200 in 1364 ms.
+⬥ Rewrote URL to /.netlify/functions/admin-audit-log
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/admin-audit-log
+Response with status 200 in 1364 ms.
+⬥ Rewrote URL to /.netlify/functions/analytics-metrics
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/analytics-metrics
+Response with status 200 in 2058 ms.
+⬥ Rewrote URL to /.netlify/functions/analytics-predictive-dashboard
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/analytics-predictive-dashboard
+Workflow summary view failed: {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.security_status_summary'",
+  message: "Could not find the table 'public.workflow_metrics_summary' in the schema cache"
+}
+Predictive summary view failed: {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.admin_application_summary'",
+  message: "Could not find the table 'public.analytics_predictive_summary' in the schema cache"
+}
+Response with status 200 in 2595 ms.
+⬥ Rewrote URL to /.netlify/functions/applications
+Request from ::ffff:127.0.0.1: GET /.netlify/functions/applications
+GET /api/applications - Headers: {
+  'x-forwarded-for': '::ffff:127.0.0.1',
+  'x-netlify-original-search': '',
+  'x-nf-blobs-info': 'eyJ1cmwiOiJodHRwOi8vbG9jYWxob3N0OjM4ODE5IiwidXJsX3VuY2FjaGVkIjoiaHR0cDovL2xvY2FsaG9zdDozODgxOSIsInRva2VuIjoiYzQ1ZTFhMGEtYjE0Yi00NTkwLWJlN2MtZTU0NTZmMGQ4ZDgzIn0=',
+  'x-nf-account-info': 'e30=',
+  'x-nf-site-info': 'eyJ1cmwiOiJodHRwOi8vbG9jYWxob3N0Ojg4ODgifQ==',
+  'x-nf-deploy-context': 'dev',
+  'x-nf-deploy-id': '0',
+  'x-nf-geo': 'eyJjaXR5IjoiTHVzYWthIiwiY291bnRyeSI6eyJjb2RlIjoiWk0iLCJuYW1lIjoiWmFtYmlhIn0sInN1YmRpdmlzaW9uIjp7ImNvZGUiOiIwOSIsIm5hbWUiOiJMdXNha2EgUHJvdmluY2UifSwidGltZXpvbmUiOiJBZnJpY2EvTHVzYWthIiwibGF0aXR1ZGUiOi0xNS40MTgzLCJsb25naXR1ZGUiOjI4LjI4N30=',
+  connection: 'close',
+  host: 'localhost:8888',
+  'accept-encoding': 'gzip,deflate',
+  'user-agent': 'node-fetch/1.0 (+https://github.com/bitinn/node-fetch)',
+  accept: '*/*',
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjE1ZTkxenVweDltUlBkU00iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL215bGdlZ2txb2RkY3J4dHdjY2xiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmYzZhMTUzNi0yZTVjLTQwOTktOWI5ZS1hMzg2NTM0MDhmOTUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4NDYyNzExLCJpYXQiOjE3NTg0NTkxMTEsImVtYWlsIjoiY29zbWFzQGJlYW5vbGEuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6ImNvc21hc0BiZWFub2xhLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInN1YiI6ImZjNmExNTM2LTJlNWMtNDA5OS05YjllLWEzODY1MzQwOGY5NSJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU4NDU5MTExfV0sInNlc3Npb25faWQiOiI2ZDJhZDQ3MS02YjliLTQ4ZjgtYTcwZC0xNDc2OGVmNjIxNjUiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.gVt3-hxLqxay5YkMwQ1RQ6eSiaGQVJKVJHPi3jOdK74',
+  'x-nf-request-id': '01K5P59N830H1NY7V1M939YAVJ',
+  'client-ip': '127.0.0.1',
+  'x-nf-client-connection-ip': '127.0.0.1',
+  'x-nf-account-id': '',
+  'x-nf-site-id': 'unlinked'
+}
+Response with status 200 in 1062 ms.
+⬥ Rewrote URL to /.netlify/functions/applications-bulk
+Request from ::ffff:127.0.0.1: POST /.netlify/functions/applications-bulk
+Response with status 200 in 1405 ms.
+⬥ Rewrote URL to /.netlify/functions/notifications-send
+Request from ::ffff:127.0.0.1: POST /.netlify/functions/notifications-send
+Response with status 201 in 1719 ms.
