@@ -1,0 +1,45 @@
+⬥ Injecting environment variable values for all scopes
+⬥ Ignored general context env var: LANG (defined in process)
+⬥ Injected .env file env vars: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_URL, SUPABASE_KEY, VITE_API_BASE_URL, VITE_APP_BASE_URL, RATE_LIMIT_TABLE, RATE_LIMIT_DEFAULT_WINDOW_MS, RATE_LIMIT_DEFAULT_MAX_ATTEMPTS, RATE_LIMIT_AUTH_MAX_ATTEMPTS, RATE_LIMIT_AUTH_WINDOW_MS, RATE_LIMIT_APPLICATIONS_MAX_ATTEMPTS, RATE_LIMIT_APPLICATIONS_WINDOW_MS, VITE_TURNSTILE_SITE_KEY, EMAIL_PROVIDER, EMAIL_FROM, RESEND_API_KEY, RESEND_FROM_EMAIL, APPLICATION_ADMIN_EMAILS, SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, SMTP_SECURE, SMTP_FROM_EMAIL, VITE_ANALYTICS_BASE_URL, VITE_ANALYTICS_SITE_ID, VITE_ANALYTICS_SHARE_TOKEN, NODE_ENV
+⬥ Setting up local dev server
+​
+Configuration error                                           
+────────────────────────────────────────────────────────────────
+​
+  Error message
+  Plugins must be installed either in the Netlify App or in "package.json".
+  Please run "npm install -D @netlify/plugin-scheduled-functions" or "yarn add -D @netlify/plugin-scheduled-functions".
+​
+  Resolved config
+  build:
+    command: npm run build:prod
+    commandOrigin: config
+    publish: /home/cosmas/Documents/mihas/dist
+    publishOrigin: config
+  functionsDirectory: /home/cosmas/Documents/mihas/api
+  plugins:
+    - inputs: {}
+      origin: config
+      package: "@netlify/plugin-scheduled-functions"
+  redirects:
+    - from: /api/*
+      status: 200
+      to: /.netlify/functions/:splat
+  redirectsOrigin: config
+ ›   Error: Could not start local development server
+
+Plugins must be installed either in the Netlify App or in "package.json".
+Please run "npm install -D @netlify/plugin-scheduled-functions" or "yarn add -D @netlify/plugin-scheduled-functions".
+
+Error: Plugins must be installed either in the Netlify App or in "package.json".
+Please run "npm install -D @netlify/plugin-scheduled-functions" or "yarn add -D @netlify/plugin-scheduled-functions".
+    at validateUnlistedPlugin (file:///home/cosmas/.nvm/versions/node/v24.8.0/lib/node_modules/netlify-cli/node_modules/@netlify/build/lib/plugins/expected_version.js:116:19)
+    at addExpectedVersion (file:///home/cosmas/.nvm/versions/node/v24.8.0/lib/node_modules/netlify-cli/node_modules/@netlify/build/lib/plugins/expected_version.js:33:9)
+    at file:///home/cosmas/.nvm/versions/node/v24.8.0/lib/node_modules/netlify-cli/node_modules/@netlify/build/lib/plugins/expected_version.js:15:68
+    at Array.map (<anonymous>)
+    at addExpectedVersions (file:///home/cosmas/.nvm/versions/node/v24.8.0/lib/node_modules/netlify-cli/node_modules/@netlify/build/lib/plugins/expected_version.js:15:45)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async resolvePluginsPath (file:///home/cosmas/.nvm/versions/node/v24.8.0/lib/node_modules/netlify-cli/node_modules/@netlify/build/lib/plugins/resolve.js:24:29)
+    at async tGetPluginsOptions (file:///home/cosmas/.nvm/versions/node/v24.8.0/lib/node_modules/netlify-cli/node_modules/@netlify/build/lib/plugins/options.js:12:29)
+    at async tGetPluginsOptions (file:///home/cosmas/.nvm/versions/node/v24.8.0/lib/node_modules/netlify-cli/node_modules/@netlify/build/lib/time/main.js:19:63)
+    at async initAndRunBuild (file:///home/cosmas/.nvm/versions/node/v24.8.0/lib/node_modules/netlify-cli/node_modules/@netlify/build/lib/core/build.js:263:66)

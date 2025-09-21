@@ -1,8 +1,7 @@
-import { supabaseAdminClient, getUserFromRequest } from '../_lib/supabaseClient.js'
-import { logAuditEvent } from '../_lib/auditLogger.js'
+import { supabaseAdminClient, getUserFromRequest } from './_lib/supabaseClient.js'
+import { logAuditEvent } from './_lib/auditLogger.js'
 
 export default async function handler(req, res) {
-  // Add CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
@@ -11,19 +10,15 @@ export default async function handler(req, res) {
     return res.status(200).end()
   }
 
-
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
-
-
 
   const authContext = await getUserFromRequest(req, { requireAdmin: true })
   if (authContext.error) {
     return res.status(403).json({ error: authContext.error })
   }
 
-  // Parse body if it's a string (Netlify functions)
   let body = req.body
   if (typeof body === 'string') {
     try {
@@ -61,7 +56,7 @@ export default async function handler(req, res) {
       actorId: authContext.user.id,
       actorEmail: authContext.user.email || null,
       actorRoles: authContext.roles,
-      targetTable: 'notifications',
+      targetTable: 'email_notifications',
       targetId: notification?.id || null,
       metadata: { to, subject }
     })

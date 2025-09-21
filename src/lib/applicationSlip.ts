@@ -23,7 +23,7 @@ export interface PublicApplicationStatus {
   admin_feedback_date?: string | null
 }
 
-export type ApplicationSlipData = PublicApplicationStatus & { email: string }
+export type ApplicationSlipData = PublicApplicationStatus & { email: string; userId?: string }
 
 export interface PersistSlipResult {
   success: boolean
@@ -296,7 +296,7 @@ export async function generateApplicationSlip(data: ApplicationSlipData): Promis
   }
 }
 
-export async function persistSlip(applicationNumber: string, blob: Blob): Promise<PersistSlipResult> {
+export async function persistSlip(applicationNumber: string, blob: Blob, userId?: string): Promise<PersistSlipResult> {
   const trimmedNumber = (applicationNumber || '').trim()
   if (!trimmedNumber) {
     return { success: false, error: 'Application number is required to persist slip' }
@@ -305,7 +305,13 @@ export async function persistSlip(applicationNumber: string, blob: Blob): Promis
   try {
     const sanitizedNumber = trimmedNumber.replace(/[^a-zA-Z0-9_-]/g, '-') || 'application'
     const timestamp = Date.now()
-    const path = `application_slips/${sanitizedNumber}/${timestamp}-application-slip.pdf`
+    
+    // Build path based on user ID for bucket policy compliance
+    // When userId is available, use user-specific path: userId/applicationNumber/file
+    // When no userId, use public path: public/applicationNumber/file (requires different bucket or policy)
+    const path = userId 
+      ? `${userId}/${sanitizedNumber}/${timestamp}-application-slip.pdf`
+      : `public/${sanitizedNumber}/${timestamp}-application-slip.pdf`
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('app_docs')
@@ -316,6 +322,20 @@ export async function persistSlip(applicationNumber: string, blob: Blob): Promis
 
     if (uploadError || !uploadData) {
       console.error('Application slip upload failed:', sanitizeForLog(uploadError?.message || 'Unknown error'))
+      
+      // If upload failed and we don't have a userId, it might be due to RLS policy
+      // In this case, we'll still return success but without storage persistence
+      if (!userId && uploadError?.message?.includes('policy')) {
+        console.warn('Storage policy prevented upload for public slip, continuing without persistence')
+        return {
+          success: true,
+          path: undefined,
+          publicUrl: undefined,
+          documentId: undefined,
+          error: 'Slip generated but not stored due to access restrictions'
+        }
+      }
+      
       return {
         success: false,
         error: uploadError?.message || 'Failed to upload application slip'

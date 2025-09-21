@@ -9,11 +9,16 @@
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
+  force = true
 
-# Scheduled function for email queue processing
-[[plugins]]
-  package = "@netlify/plugin-scheduled-functions"
+[[redirects]]
+  from = "/.netlify/functions/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true
 
-  [plugins.inputs]
-    [plugins.inputs.schedule]
-      "process-email-queue" = "*/5 * * * *"  # Every 5 minutes
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+

@@ -1,8 +1,7 @@
-import { supabaseAdminClient, getUserFromRequest } from '../_lib/supabaseClient.js'
-import { logAuditEvent } from '../_lib/auditLogger.js'
+import { supabaseAdminClient, getUserFromRequest } from './_lib/supabaseClient.js'
+import { logAuditEvent } from './_lib/auditLogger.js'
 
 export default async function handler(req, res) {
-  // Add CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
@@ -11,11 +10,8 @@ export default async function handler(req, res) {
     return res.status(200).end()
   }
 
-
-  const method = (req.method || 'POST').toUpperCase()
-  if (method !== 'POST') {
-    res.setHeader('Allow', 'POST')
-    return res.status(405).json({ error: `Method ${method} not allowed` })
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
   }
 
   const authContext = await getUserFromRequest(req, { requireAdmin: true })
@@ -24,7 +20,6 @@ export default async function handler(req, res) {
     return res.status(status).json({ error: authContext.error })
   }
 
-  // Parse body if it's a string (Netlify functions)
   let body = req.body
   if (typeof body === 'string') {
     try {
@@ -34,9 +29,7 @@ export default async function handler(req, res) {
     }
   }
   
-  body = body || {}
   const sql = (typeof body.sql === 'string' ? body.sql : body.query || '').trim()
-  const parameters = Array.isArray(body.params) ? body.params : []
 
   if (!sql) {
     return res.status(400).json({ error: 'SQL query is required' })
@@ -44,27 +37,12 @@ export default async function handler(req, res) {
 
   try {
     const { data, error } = await supabaseAdminClient.rpc('execute_sql', {
-      query: sql,
-      parameters
+      query: sql
     })
 
     if (error) {
       throw error
     }
-
-    await logAuditEvent({
-      req,
-      action: 'mcp.query.execute',
-      actorId: authContext.user.id,
-      actorEmail: authContext.user.email || null,
-      actorRoles: authContext.roles,
-      targetTable: 'execute_sql',
-      metadata: {
-        hasParameters: parameters.length > 0,
-        parameterCount: parameters.length,
-        sqlPreview: sql.slice(0, 200)
-      }
-    })
 
     return res.status(200).json({ data })
   } catch (error) {

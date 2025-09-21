@@ -208,9 +208,10 @@ const useWizardController = (): UseWizardControllerResult => {
       email: submittedApplication.email || user?.email || 'no-email@mihas.local',
       phone: submittedApplication.phone || null,
       admin_feedback: null,
-      admin_feedback_date: null
+      admin_feedback_date: null,
+      userId: user?.id
     }
-  }, [submittedApplication, user?.email])
+  }, [submittedApplication, user?.email, user?.id])
 
   const { persistingSlip, slipLoading, emailLoading, handleDownloadSlip, handleEmailSlip } = useApplicationSlip({
     submittedApplication,

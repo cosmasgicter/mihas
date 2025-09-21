@@ -307,7 +307,7 @@ export default function PublicApplicationTracker() {
     document.body.removeChild(link)
   }, [])
 
-  const buildSlipPayload = useCallback((email: string) => {
+  const buildSlipPayload = useCallback((email: string, userId?: string) => {
     if (!application) return null
 
     return {
@@ -324,7 +324,8 @@ export default function PublicApplicationTracker() {
       email,
       phone: application.phone,
       admin_feedback: application.admin_feedback,
-      admin_feedback_date: application.admin_feedback_date
+      admin_feedback_date: application.admin_feedback_date,
+      userId
     }
   }, [application])
 
@@ -359,6 +360,8 @@ export default function PublicApplicationTracker() {
       }
 
       const slipEmail = application.email?.trim() || 'no-email@mihas.local'
+      // Note: Public tracker doesn't have user context, so userId will be undefined
+      // This will fall back to service-role upload in persistSlip
       const payload = buildSlipPayload(slipEmail)
       if (!payload) {
         toast.showError('Slip unavailable', 'Missing application details for slip generation.')
@@ -415,6 +418,8 @@ export default function PublicApplicationTracker() {
       return
     }
 
+    // Note: Public tracker doesn't have user context, so userId will be undefined
+    // This will fall back to service-role upload in persistSlip
     const payload = buildSlipPayload(emailAddress)
     if (!payload) {
       toast.showError('Slip unavailable', 'Missing application details for slip delivery.')

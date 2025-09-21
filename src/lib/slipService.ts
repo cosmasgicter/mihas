@@ -39,7 +39,7 @@ export async function createApplicationSlip(
     let path: string | undefined
 
     try {
-      const uploadResult = await persistSlip(data.application_number, blob)
+      const uploadResult = await persistSlip(data.application_number, blob, data.userId)
       if (!uploadResult.success) {
         uploadError = uploadResult.error || 'Unable to store application slip'
         console.warn('Application slip persistence reported failure:', sanitizeForLog(uploadError))
