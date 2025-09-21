@@ -151,15 +151,14 @@ export function buildQueryString(params: QueryParams = {}) {
     }
 
     if (Array.isArray(value)) {
-      value.forEach(item => {
-        if (item !== undefined && item !== null && item !== '') {
-          query.append(key, String(item))
-        }
-      })
+      const validItems = value.filter(item => item !== undefined && item !== null && item !== '')
+      if (validItems.length > 0) {
+        query.set(key, validItems.join(','))
+      }
       return
     }
 
-    query.append(key, String(value))
+    query.set(key, String(value))
   })
 
   const queryString = query.toString()

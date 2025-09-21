@@ -17,7 +17,7 @@ export const applicationService = {
     apiClient.request<Application[]>(`/api/applications${buildQueryString(params ?? {})}`),
 
   getById: (id: string, options?: ApplicationIncludeOptions) =>
-    apiClient.request<Application>(
+    apiClient.request<any>(
       `/api/applications/${id}${buildQueryString({ include: options?.include ?? [] })}`
     ),
 
@@ -54,7 +54,7 @@ export const applicationService = {
       body: JSON.stringify({
         action: 'update_payment_status',
         paymentStatus,
-        ...(verificationNotes ? { verificationNotes } : {})
+        verificationNotes: verificationNotes || undefined
       })
     }),
 

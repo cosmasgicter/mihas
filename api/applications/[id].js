@@ -14,10 +14,18 @@ const DOCUMENTS_TABLE = 'application_documents'
 
 function parseIncludeParam(includeParam) {
   if (!includeParam) return new Set()
-  if (Array.isArray(includeParam)) {
-    return new Set(includeParam.flatMap(value => value.split(',').map(item => item.trim()).filter(Boolean)))
+  
+  try {
+    if (Array.isArray(includeParam)) {
+      return new Set(includeParam.flatMap(value => 
+        String(value).split(',').map(item => item.trim().replace(/:.*$/, '')).filter(Boolean)
+      ))
+    }
+    return new Set(String(includeParam).split(',').map(item => item.trim().replace(/:.*$/, '')).filter(Boolean))
+  } catch (error) {
+    console.warn('Failed to parse include parameter:', includeParam, error)
+    return new Set()
   }
-  return new Set(includeParam.split(',').map(item => item.trim()).filter(Boolean))
 }
 
 module.exports = async function handler(req, res) {
@@ -84,47 +92,90 @@ module.exports = async function handler(req, res) {
 async function handleGet(req, res, { user, isAdmin, roles }, id) {
   try {
     const include = parseIncludeParam(req.query.include)
+    console.log('Include params:', Array.from(include))
 
-    const selectClauses = ['*']
-    if (include.has('documents')) {
-      selectClauses.push(`documents:${DOCUMENTS_TABLE}(id, document_type, document_name, file_url, file_size, mime_type, system_generated, verification_status, verified_by, verified_at, verification_notes)`)
-    }
-    if (include.has('grades')) {
-      selectClauses.push('grades:application_grades(subject_id, grade, subject:grade12_subjects(name))')
-    }
-    if (include.has('statusHistory')) {
-      selectClauses.push('status_history:application_status_history(id, status, changed_by, notes, created_at, changed_by_profile:changed_by(email))')
-    }
-
-    const { data, error } = await supabaseAdminClient
+    // Base application query
+    const { data: application, error: appError } = await supabaseAdminClient
       .from('applications')
-      .select(selectClauses.join(','))
+      .select('*')
       .eq('id', id)
       .maybeSingle()
 
-    if (error) {
-      return res.status(404).json({ error: error.message })
+    if (appError) {
+      console.error('Application fetch error:', appError)
+      return res.status(400).json({ error: appError.message })
     }
 
-    if (!data) {
+    if (!application) {
       return res.status(404).json({ error: 'Application not found' })
     }
 
-    if (!isAdmin && data.user_id !== user.id) {
+    if (!isAdmin && application.user_id !== user.id) {
       return res.status(403).json({ error: 'Access denied' })
     }
 
-    const {
-      documents: rawDocuments = [],
-      grades: rawGrades = [],
-      status_history: rawHistory = [],
-      ...application
-    } = data
-
+    // Fetch related data separately to avoid complex join issues
     let documents = undefined
-    if (include.has('documents')) {
-      documents = [...rawDocuments]
+    let grades = undefined
+    let statusHistory = undefined
 
+    // Fetch documents if requested
+    if (include.has('documents')) {
+      try {
+        const { data: docsData } = await supabaseAdminClient
+          .from(DOCUMENTS_TABLE)
+          .select('id, document_type, document_name, file_url, file_size, mime_type, system_generated, verification_status, verified_by, verified_at, verification_notes')
+          .eq('application_id', id)
+        documents = docsData || []
+      } catch (docError) {
+        console.warn('Failed to fetch documents:', docError)
+        documents = []
+      }
+    }
+
+    // Fetch grades if requested
+    if (include.has('grades')) {
+      try {
+        const { data: gradesData, error: gradeError } = await supabaseAdminClient
+          .from('application_grades')
+          .select('subject_id, grade, subject:grade12_subjects(name)')
+          .eq('application_id', id)
+        
+        if (gradeError) {
+          console.warn('Grade fetch error:', gradeError)
+          grades = []
+        } else {
+          grades = gradesData || []
+        }
+      } catch (gradeError) {
+        console.warn('Failed to fetch grades:', gradeError)
+        grades = []
+      }
+    }
+
+    // Fetch status history if requested
+    if (include.has('statusHistory')) {
+      try {
+        const { data: historyData, error: historyError } = await supabaseAdminClient
+          .from('application_status_history')
+          .select('id, status, changed_by, notes, created_at, changed_by_profile:changed_by(email)')
+          .eq('application_id', id)
+          .order('created_at', { ascending: false })
+        
+        if (historyError) {
+          console.warn('History fetch error:', historyError)
+          statusHistory = []
+        } else {
+          statusHistory = historyData || []
+        }
+      } catch (historyError) {
+        console.warn('Failed to fetch status history:', historyError)
+        statusHistory = []
+      }
+    }
+
+    // Add legacy document URLs to documents array if they exist
+    if (documents !== undefined) {
       const existingTypes = new Set(documents.map(doc => doc.document_type))
       if (application.result_slip_url && !existingTypes.has('result_slip')) {
         documents.push({
@@ -158,15 +209,14 @@ async function handleGet(req, res, { user, isAdmin, roles }, id) {
       }
     }
 
-    const grades = include.has('grades')
-      ? rawGrades.map(grade => ({
-          subject_id: grade.subject_id,
-          grade: grade.grade,
-          subject_name: grade.subject?.name || null
-        }))
-      : undefined
-
-    const statusHistory = include.has('statusHistory') ? rawHistory : undefined
+    // Format grades data
+    if (grades !== undefined) {
+      grades = grades.map(grade => ({
+        subject_id: grade.subject_id,
+        grade: grade.grade,
+        subject_name: grade.subject?.name || null
+      }))
+    }
 
     await logAuditEvent({
       req,

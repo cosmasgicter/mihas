@@ -41,8 +41,14 @@ export function AdminNavigation({ className }: AdminNavigationProps) {
   const closeMenu = () => setIsOpen(false)
 
   const handleSignOut = async () => {
-    await signOut()
-    navigate('/')
+    try {
+      await signOut()
+      navigate('/', { replace: true })
+    } catch (error) {
+      console.error('Sign out error:', error)
+      // Force navigation even if signOut fails
+      navigate('/', { replace: true })
+    }
   }
 
   const menuVariants = {
@@ -96,8 +102,8 @@ export function AdminNavigation({ className }: AdminNavigationProps) {
 
   return (
     <NavigationMenu.Root className={cn("bg-white/95 backdrop-blur-sm shadow-lg border-b border-gray-200/50 sticky top-0 z-40", className)}>
-      <div className="container-mobile">
-        <div className="flex justify-between items-center py-3 sm:py-4">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center py-3 sm:py-4 max-w-7xl mx-auto">
           {/* Admin Info - Mobile First */}
           <div className="flex items-center space-x-2 sm:space-x-4">
             <motion.div 
@@ -123,7 +129,7 @@ export function AdminNavigation({ className }: AdminNavigationProps) {
           </div>
 
           {/* Desktop Navigation */}
-          <NavigationMenu.List className="hidden lg:flex items-center space-x-1">
+          <NavigationMenu.List className="hidden lg:flex items-center space-x-1 overflow-x-auto flex-nowrap">
             {navigationItems.map((item) => {
               const isActive = isActiveRoute(item.href)
               return (
@@ -153,12 +159,12 @@ export function AdminNavigation({ className }: AdminNavigationProps) {
               </div>
             </NavigationMenu.Item>
             
-            <NavigationMenu.Item>
+            <NavigationMenu.Item className="flex-shrink-0">
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleSignOut}
-                className="ml-2 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                className="ml-2 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 whitespace-nowrap"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
@@ -306,9 +312,9 @@ export function AdminNavigation({ className }: AdminNavigationProps) {
                       animate="open"
                     >
                       <button 
-                        onClick={() => {
+                        onClick={async () => {
                           closeMenu()
-                          handleSignOut()
+                          await handleSignOut()
                         }}
                         className="mobile-nav-item mobile-nav-focus w-full bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-xl border-2 border-red-400 hover:border-red-500"
                       >

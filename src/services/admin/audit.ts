@@ -35,6 +35,14 @@ export interface AuditLogFilters {
   pageSize?: number
 }
 
+export interface AuditStats {
+  totalEntries: number
+  todayEntries: number
+  uniqueActors: number
+  topActions: Array<{ action: string; count: number }>
+  recentActivity: AuditLogEntry[]
+}
+
 function buildQuery(params: AuditLogFilters = {}): string {
   const searchParams = new URLSearchParams()
 
@@ -53,10 +61,62 @@ function buildQuery(params: AuditLogFilters = {}): string {
 
 export const adminAuditService = {
   async list(params: AuditLogFilters = {}): Promise<AuditLogResponse> {
-    const query = buildQuery(params)
-    const url = `/api/admin/audit-log${query}`
-    return apiClient.request(url, {
-      method: 'GET'
-    })
+    try {
+      const query = buildQuery(params)
+      const url = `/api/admin/audit-log${query}`
+      const response = await apiClient.request<AuditLogResponse>(url, {
+        method: 'GET'
+      })
+      return response || { data: [], page: 1, pageSize: 25, totalPages: 1, totalCount: 0 }
+    } catch (error) {
+      console.error('Failed to fetch audit log:', error)
+      throw new Error(error instanceof Error ? error.message : 'Failed to load audit entries')
+    }
+  },
+
+  async getStats(): Promise<AuditStats> {
+    try {
+      const response = await apiClient.request<AuditStats>('/api/admin/audit-log/stats', {
+        method: 'GET'
+      })
+      return response || {
+        totalEntries: 0,
+        todayEntries: 0,
+        uniqueActors: 0,
+        topActions: [],
+        recentActivity: []
+      }
+    } catch (error) {
+      console.error('Failed to fetch audit stats:', error)
+      return {
+        totalEntries: 0,
+        todayEntries: 0,
+        uniqueActors: 0,
+        topActions: [],
+        recentActivity: []
+      }
+    }
+  },
+
+  async export(params: AuditLogFilters = {}): Promise<Blob> {
+    try {
+      const query = buildQuery(params)
+      const url = `/api/admin/audit-log/export${query}`
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token')}` || ''
+        }
+      })
+      
+      if (!response.ok) {
+        throw new Error('Export failed')
+      }
+      
+      return await response.blob()
+    } catch (error) {
+      console.error('Failed to export audit log:', error)
+      throw new Error('Failed to export audit log')
+    }
   }
 }

@@ -336,8 +336,13 @@ export function useApplicationsData(filters: ApplicationFilters = DEFAULT_APPLIC
   }), [applications.length, currentPage, pageSize, totalCount])
 
   const updateStatus = useCallback(async (applicationId: string, newStatus: string) => {
-    await applicationService.updateStatus(applicationId, newStatus)
-    await refreshCurrentPage()
+    try {
+      await applicationService.updateStatus(applicationId, newStatus)
+      await refreshCurrentPage()
+    } catch (error) {
+      console.error('Failed to update status:', error)
+      throw error
+    }
   }, [refreshCurrentPage])
 
   const updatePaymentStatus = useCallback(async (
@@ -345,8 +350,13 @@ export function useApplicationsData(filters: ApplicationFilters = DEFAULT_APPLIC
     newPaymentStatus: string,
     verificationNotes?: string
   ) => {
-    await applicationService.updatePaymentStatus(applicationId, newPaymentStatus, verificationNotes)
-    await refreshCurrentPage()
+    try {
+      await applicationService.updatePaymentStatus(applicationId, newPaymentStatus, verificationNotes)
+      await refreshCurrentPage()
+    } catch (error) {
+      console.error('Failed to update payment status:', error)
+      throw error
+    }
   }, [refreshCurrentPage])
 
   return {

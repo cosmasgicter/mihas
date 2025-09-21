@@ -72,11 +72,21 @@ export function createSupabaseClient(options: SupabaseFactoryOptions = {}): Supa
         storageKey: AUTH_STORAGE_KEY,
         debug: false
       },
+      realtime: {
+        params: {
+          eventsPerSecond: 2
+        }
+      },
       global: {
         headers: {
           'x-client-info': 'mihas-app@1.0.0'
         },
         fetch: (url, options = {}) => {
+          // Skip realtime connections in development to prevent WebSocket errors
+          if (url.includes('/realtime/') && import.meta.env.DEV) {
+            return Promise.reject(new Error('Realtime disabled in development'))
+          }
+          
           // Longer timeout for auth requests
           const isAuthRequest = url.includes('/auth/') || url.includes('/token')
           const timeout = isAuthRequest ? 30000 : 8000

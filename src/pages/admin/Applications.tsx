@@ -256,9 +256,9 @@ export default function Applications() {
     if (!selectedApplication) return
     
     try {
-      const response = await applicationService.getById(selectedApplication, { include: ['history'] })
-      if (response.history && response.history.length > 0) {
-        showInfo('Status History', `Application has ${response.history.length} status changes. Check the application timeline for details.`)
+      const response = await applicationService.getById(selectedApplication, { include: ['statusHistory'] })
+      if (response.statusHistory && response.statusHistory.length > 0) {
+        showInfo('Status History', `Application has ${response.statusHistory.length} status changes. Check the application timeline for details.`)
       } else {
         showInfo('No history', 'No status changes recorded for this application.')
       }
@@ -493,8 +493,23 @@ export default function Applications() {
         </div>
 
         {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700 mb-6">
-            <div className="text-sm font-medium">{error}</div>
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 mb-6">
+            <div className="flex items-center gap-3">
+              <XCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+              <div>
+                <h3 className="text-sm font-medium text-red-800">Error Loading Applications</h3>
+                <p className="text-sm text-red-700 mt-1">{error}</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                className="ml-auto text-red-600 border-red-300 hover:bg-red-50"
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Retry
+              </Button>
+            </div>
           </div>
         )}
 
@@ -508,19 +523,17 @@ export default function Applications() {
         {isInitialLoading ? (
           <ApplicationsSkeleton />
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <ApplicationsTable
-              applications={applications}
-              totalCount={pagination.totalCount}
-              loadedCount={pagination.loadedCount}
-              hasMore={hasMore}
-              isLoadingMore={isLoadingMore}
-              onLoadMore={loadNextPage}
-              onStatusUpdate={updateStatus}
-              onPaymentStatusUpdate={updatePaymentStatus}
-              onViewDetails={handleViewDetails}
-            />
-          </div>
+          <ApplicationsTable
+            applications={applications}
+            totalCount={pagination.totalCount}
+            loadedCount={pagination.loadedCount}
+            hasMore={hasMore}
+            isLoadingMore={isLoadingMore}
+            onLoadMore={loadNextPage}
+            onStatusUpdate={updateStatus}
+            onPaymentStatusUpdate={updatePaymentStatus}
+            onViewDetails={handleViewDetails}
+          />
         )}
 
         <ApplicationDetailModal
