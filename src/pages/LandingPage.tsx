@@ -101,7 +101,8 @@ export default function LandingPageNew() {
       ],
       highlight: "Professional Excellence",
       accreditation: "HPCZ, ECZ & UNZA Certified",
-      image: "https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/f4d8d7cb-b8b3-4a0a-ba36-084fa481da0d.png"
+      image: "/images/programs/katc-campus.webp",
+      fallback: "/images/programs/katc-campus.webp"
     },
     {
       institution: "Mukuba Institute of Health and Applied Sciences",
@@ -110,7 +111,8 @@ export default function LandingPageNew() {
       ],
       highlight: "NMCZ Certified",
       accreditation: "NMCZ Approved",
-      image: "https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/f703f321-4922-421e-8288-cf059bd92133.png"
+      image: "/images/programs/mihas-campus.webp",
+      fallback: "/images/programs/mihas-campus.webp"
     }
   ]
 
@@ -478,16 +480,21 @@ export default function LandingPageNew() {
                   className="overflow-hidden"
                 >
                     <div className="relative">
-                      <motion.img
-                        src={program.image}
-                        alt={`${program.institution} campus facility and learning environment`}
-                        className="w-full h-48 object-cover rounded-lg mb-6"
-                        loading="lazy"
-                        width="400"
-                        height="192"
+                      <motion.picture
+                        className="w-full h-48 rounded-lg mb-6 overflow-hidden"
                         whileHover={maybeMotion({ scale: 1.05 })}
                         transition={maybeMotion({ duration: 0.3 })}
-                      />
+                      >
+                        <source srcSet={program.image} type="image/webp" />
+                        <motion.img
+                          src={program.fallback}
+                          alt={`${program.institution} campus facility and learning environment`}
+                          className="w-full h-48 object-cover"
+                          loading="lazy"
+                          width="400"
+                          height="192"
+                        />
+                      </motion.picture>
                       <div className="absolute top-4 right-4 space-y-2">
                         <motion.div
                           className="bg-gradient-to-r from-primary to-secondary text-white px-3 py-1 rounded-full text-xs font-semibold"
@@ -525,14 +532,17 @@ export default function LandingPageNew() {
               ) : (
                 <div key={index} className="bg-white rounded-lg shadow-lg p-6 overflow-hidden">
                   <div className="relative">
-                    <img
-                      src={program.image}
-                      alt={`${program.institution} campus facility and learning environment`}
-                      className="w-full h-48 object-cover rounded-lg mb-6"
-                      loading="lazy"
-                      width="400"
-                      height="192"
-                    />
+                    <picture className="w-full h-48 rounded-lg mb-6 overflow-hidden block">
+                      <source srcSet={program.image} type="image/webp" />
+                      <img
+                        src={program.fallback}
+                        alt={`${program.institution} campus facility and learning environment`}
+                        className="w-full h-48 object-cover"
+                        loading="lazy"
+                        width="400"
+                        height="192"
+                      />
+                    </picture>
                     <div className="absolute top-4 right-4 space-y-2">
                       <div className="bg-gradient-to-r from-primary to-secondary text-white px-3 py-1 rounded-full text-xs font-semibold">
                         {program.highlight}
