@@ -48,6 +48,12 @@
   force = true
 
 [[redirects]]
+  from = "/api/applications/:id"
+  to = "/.netlify/functions/applications-id?id=:id"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/notifications/dispatch-channel"
   to = "/.netlify/functions/notifications-dispatch-channel"
   status = 200
