@@ -37,7 +37,17 @@ module.exports = async function handler(req, res) {
     return res.status(403).json({ error: authContext.error })
   }
 
-  const { channel, action, source, reason } = req.body || {}
+  // Parse body if it's a string (Netlify functions)
+  let body = req.body
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body)
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid JSON in request body' })
+    }
+  }
+
+  const { channel, action, source, reason } = body || {}
   const normalizedChannel = typeof channel === 'string' ? channel.toLowerCase() : ''
 
   if (!['sms', 'whatsapp'].includes(normalizedChannel)) {

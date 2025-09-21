@@ -2,7 +2,17 @@ const { logAuditEvent } = require('../_lib/auditLogger')
 
 function createPasswordAuthHandler({ auditEventBase = 'auth.login' } = {}) {
   return async function passwordAuthHandler(req, res, { supabaseClient }) {
-    const { email, password } = req.body || {}
+    // Parse body if it's a string (Netlify functions)
+    let body = req.body
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body)
+      } catch (e) {
+        return res.status(400).json({ error: 'Invalid JSON in request body' })
+      }
+    }
+    
+    const { email, password } = body || {}
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' })

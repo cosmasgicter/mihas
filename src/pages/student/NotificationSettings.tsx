@@ -201,7 +201,7 @@ export default function NotificationSettings() {
         phone: prev?.phone ?? updatedPreferences.phone ?? null
       }))
 
-      setSuccess(enable ? `${CHANNEL_DETAILS[channel].title} consent enabled.` : `${CHANNEL_DETAILS[channel].title} consent revoked.`)
+      setSuccess(enable ? `${CHANNEL_DETAILS[channel].title} enabled.` : `${CHANNEL_DETAILS[channel].title} disabled.`)
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : 'Failed to update consent preferences'
       setError(message)
@@ -228,8 +228,8 @@ export default function NotificationSettings() {
       const detail = generalConsentDetails[consentType]
       setSuccess(
         enable
-          ? `${detail.label} consent granted.`
-          : `${detail.label} consent revoked.`
+          ? `${detail.label} enabled.`
+          : `${detail.label} disabled.`
       )
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : 'Failed to update consent'
@@ -243,7 +243,7 @@ export default function NotificationSettings() {
     const detail = generalConsentDetails[consentType]
     const record = generalConsents[consentType]
     const isActive = isGeneralConsentActive(consentType)
-    const buttonLabel = isActive ? 'Revoke consent' : 'Grant consent'
+    const buttonLabel = isActive ? 'Opt Out' : 'Opt In'
 
     return (
       <motion.div
@@ -299,7 +299,7 @@ export default function NotificationSettings() {
     const entry = resolveChannelEntry(preferences, channel)
     const summary = channelSummaries[channel]
     const disableGrant = !hasPhoneNumber && !optedIn
-    const buttonLabel = optedIn ? 'Revoke Consent' : 'Grant Consent'
+    const buttonLabel = optedIn ? 'Opt Out' : 'Opt In'
 
     return (
       <motion.div
@@ -316,7 +316,7 @@ export default function NotificationSettings() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-900">{details.title}</h2>
-              <p className="text-sm text-gray-600">{details.description}</p>
+              <p className="text-sm text-gray-600">{details.description} <span className="text-green-600 font-medium">(Enabled by default)</span></p>
             </div>
           </div>
           <span
@@ -344,7 +344,7 @@ export default function NotificationSettings() {
           )}
 
           {!optedIn && !summary.optOutAt && (
-            <p className="text-gray-600">You are not currently receiving {details.title.toLowerCase()}.</p>
+            <p className="text-gray-600">This channel is enabled by default. You can opt out if you prefer.</p>
           )}
 
           {disableGrant && (
@@ -402,7 +402,7 @@ export default function NotificationSettings() {
           >
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">Notification Preferences</h1>
             <p className="text-lg sm:text-xl text-white/90">
-              Control how we contact you about important application updates.
+              All notifications are enabled by default. You can opt out of any you don't want.
             </p>
           </motion.div>
         </div>
@@ -442,9 +442,9 @@ export default function NotificationSettings() {
             <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Data governance consents</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Data usage preferences</h2>
                   <p className="text-sm text-gray-600">
-                    These consents control how MIHAS can use your information beyond core application processing.
+                    All data usage is enabled by default to provide you the best service. You can opt out of any you prefer not to have.
                   </p>
                 </div>
                 {loadingConsents && <LoadingSpinner size="sm" />}

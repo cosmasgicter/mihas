@@ -70,6 +70,8 @@ async function grantConsent({ userId, consentType, actorId, source, metadata, no
   const payload = {
     user_id: userId,
     consent_type: consentType,
+    granted: true,
+    granted_at: new Date().toISOString(),
     granted_by: actorId || userId,
     source: source || null,
     metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : {},

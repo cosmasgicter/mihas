@@ -37,7 +37,17 @@ module.exports = async function handler(req, res) {
     return res.status(403).json({ error: 'Access denied' })
   }
 
-  const { action, applicationIds = [], status, paymentStatus, notification } = req.body || {}
+  // Parse body if it's a string (Netlify functions)
+  let body = req.body
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body)
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid JSON in request body' })
+    }
+  }
+
+  const { action, applicationIds = [], status, paymentStatus, notification } = body || {}
 
   if (!action) {
     return res.status(400).json({ error: 'Action is required' })

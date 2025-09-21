@@ -19,7 +19,7 @@ export interface UserConsentResponse {
   active: UserConsentRecord[]
 }
 
-export type ConsentAction = 'grant' | 'revoke'
+export type ConsentAction = 'grant' | 'revoke' | 'opt_in' | 'opt_out'
 
 export const userConsentService = {
   list: (): Promise<UserConsentResponse> =>

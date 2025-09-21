@@ -55,12 +55,22 @@ module.exports = async function handler(req, res) {
         return res.status(401).json({ error: authContext.error })
       }
 
-      console.log('POST /api/applications - Request body:', JSON.stringify(req.body, null, 2))
+      // Parse body if it's a string (Netlify functions)
+      let body = req.body
+      if (typeof body === 'string') {
+        try {
+          body = JSON.parse(body)
+        } catch (e) {
+          return res.status(400).json({ error: 'Invalid JSON in request body' })
+        }
+      }
+
+      console.log('POST /api/applications - Request body:', JSON.stringify(body, null, 2))
       console.log('POST /api/applications - User ID:', authContext.user.id)
 
       // Development mode defaults
       const applicationData = {
-        ...req.body,
+        ...body,
         user_id: authContext.user.id
       }
 
@@ -91,10 +101,20 @@ module.exports = async function handler(req, res) {
         return res.status(401).json({ error: authContext.error })
       }
 
+      // Parse body if it's a string (Netlify functions)
+      let body = req.body
+      if (typeof body === 'string') {
+        try {
+          body = JSON.parse(body)
+        } catch (e) {
+          return res.status(400).json({ error: 'Invalid JSON in request body' })
+        }
+      }
+
       const { data, error } = await supabaseAdminClient
         .from('applications_new')
         .insert({
-          ...req.body,
+          ...body,
           user_id: authContext.user.id
         })
         .select()

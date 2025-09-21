@@ -11,7 +11,7 @@
 
 The MIHAS/KATC Application System is a **fully operational production system** serving two premier Zambian health education institutions:
 
-- **MIHAS** (Medical Institute of Health and Allied Sciences) - Diploma in Registered Nursing
+- **MIHAS** (Mukuba Institute of Health and Allied Sciences) - Diploma in Registered Nursing
 - **KATC** (Kalulushi Training College) - Clinical Medicine & Environmental Health
 
 ### 🏆 Accredited Programs

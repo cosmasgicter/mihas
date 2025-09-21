@@ -14,7 +14,17 @@ module.exports = async function handler(req, res) {
     return res.status(status).json({ error: authContext.error })
   }
 
-  const body = req.body || {}
+  // Parse body if it's a string (Netlify functions)
+  let body = req.body
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body)
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid JSON in request body' })
+    }
+  }
+  
+  body = body || {}
   const sql = typeof body.sql === 'string' ? body.sql.trim() : ''
   const parameters = Array.isArray(body.params) ? body.params : []
 

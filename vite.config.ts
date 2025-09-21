@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
         manifest: {
           name: 'MIHAS Application System',
           short_name: 'MIHAS',
-          description: 'Medical Institute of Health and Allied Sciences Application System',
+          description: 'Mukuba Institute of Health and Allied Sciences Application System',
           theme_color: '#1e40af',
           background_color: '#ffffff',
           display: 'standalone',

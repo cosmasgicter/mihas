@@ -66,7 +66,7 @@ The MIHAS/KATC Application System is **FULLY OPERATIONAL** and serving real user
 - **Environmental Health Diploma** (ECZ & UNZA Certified)
 - **Payment Target**: MTN 0966 992 299
 
-### MIHAS (Medical Institute of Health and Allied Sciences)
+### MIHAS (Mukuba Institute of Health and Allied Sciences)
 - **Registered Nursing Diploma** (NMCZ Accredited)
 - **Payment Target**: MTN 0961 515 151
 

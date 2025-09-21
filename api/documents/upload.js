@@ -215,7 +215,17 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { fileName, fileData, documentType, applicationId } = req.body || {}
+    // Parse body if it's a string (Netlify functions)
+    let body = req.body
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body)
+      } catch (e) {
+        return res.status(400).json({ error: 'Invalid JSON in request body' })
+      }
+    }
+
+    const { fileName, fileData, documentType, applicationId } = body || {}
 
     if (!fileName || !fileData || !documentType || !applicationId) {
       return res.status(400).json({ error: 'Missing required document fields' })

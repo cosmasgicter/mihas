@@ -23,7 +23,7 @@
 
 The MIHAS/KATC Application System is a comprehensive web-based platform for managing student applications to Zambian health professional programs. The system serves two institutions:
 
-- **MIHAS** (Medical Institute of Health and Allied Sciences)
+- **MIHAS** (Mukuba Institute of Health and Allied Sciences)
 - **KATC** (Kafue Allied Training College)
 
 ### Accredited Programs

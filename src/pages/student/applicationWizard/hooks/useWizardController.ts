@@ -100,6 +100,7 @@ const useWizardController = (): UseWizardControllerResult => {
   const [isDraftSaving, setIsDraftSaving] = useState(false)
   const [draftSaved, setDraftSaved] = useState(false)
   const [restoringDraft, setRestoringDraft] = useState(false)
+  const [draftLoaded, setDraftLoaded] = useState(false)
   const [confirmSubmission, setConfirmSubmission] = useState(false)
   const [programs, setPrograms] = useState<WizardProgram[]>([])
   const [intakes, setIntakes] = useState<WizardIntake[]>([])
@@ -280,7 +281,7 @@ const useWizardController = (): UseWizardControllerResult => {
 
   useEffect(() => {
     const loadDraft = async () => {
-      if (!user || authLoading) return
+      if (!user || authLoading || draftLoaded) return
       setRestoringDraft(true)
       try {
         // Check if draft was recently deleted
@@ -306,12 +307,15 @@ const useWizardController = (): UseWizardControllerResult => {
             if (draft.selectedGrades) {
               setSelectedGrades(draft.selectedGrades)
             }
-            if (draft.currentStepKey) {
-              const index = wizardSteps.findIndex(step => step.key === draft.currentStepKey)
-              if (index >= 0) setCurrentStepIndex(index)
-            } else if (typeof draft.currentStep === 'number') {
-              const index = getStepIndexById(draft.currentStep)
-              setCurrentStepIndex(index >= 0 ? index : Math.min(Math.max(draft.currentStep - 1, 0), totalSteps - 1))
+            // Only restore step if we're starting fresh (currentStepIndex is 0)
+            if (currentStepIndex === 0) {
+              if (draft.currentStepKey) {
+                const index = wizardSteps.findIndex(step => step.key === draft.currentStepKey)
+                if (index >= 0) setCurrentStepIndex(index)
+              } else if (typeof draft.currentStep === 'number') {
+                const index = getStepIndexById(draft.currentStep)
+                setCurrentStepIndex(index >= 0 ? index : Math.min(Math.max(draft.currentStep - 1, 0), totalSteps - 1))
+              }
             }
             if (draft.applicationId) {
               setApplicationId(draft.applicationId)
@@ -336,7 +340,8 @@ const useWizardController = (): UseWizardControllerResult => {
             if (draft.selectedGrades) {
               setSelectedGrades(draft.selectedGrades)
             }
-            if (draft.currentStepKey) {
+            // Only restore step if we're starting fresh (currentStepIndex is 0)
+            if (currentStepIndex === 0 && draft.currentStepKey) {
               const index = wizardSteps.findIndex(step => step.key === draft.currentStepKey)
               if (index >= 0) setCurrentStepIndex(index)
             }
@@ -366,16 +371,19 @@ const useWizardController = (): UseWizardControllerResult => {
           setValue('intake', app.intake || '')
           setApplicationId(app.id)
 
-          let stepId = 1
-          if (app.program && app.full_name) {
-            stepId = 2
-            if (app.result_slip_url) {
-              stepId = 3
-              if (app.pop_url) stepId = 4
+          // Only restore step if we're starting fresh (currentStepIndex is 0)
+          if (currentStepIndex === 0) {
+            let stepId = 1
+            if (app.program && app.full_name) {
+              stepId = 2
+              if (app.result_slip_url) {
+                stepId = 3
+                if (app.pop_url) stepId = 4
+              }
             }
+            const index = getStepIndexById(stepId)
+            setCurrentStepIndex(index >= 0 ? index : Math.min(Math.max(stepId - 1, 0), totalSteps - 1))
           }
-          const index = getStepIndexById(stepId)
-          setCurrentStepIndex(index >= 0 ? index : Math.min(Math.max(stepId - 1, 0), totalSteps - 1))
 
           if (location.state?.continueApplication) {
             setTimeout(() => {
@@ -388,13 +396,20 @@ const useWizardController = (): UseWizardControllerResult => {
         console.error('Error loading draft application:', { error: sanitizeForLog(error instanceof Error ? error.message : 'Unknown error') })
       } finally {
         setRestoringDraft(false)
+        setDraftLoaded(true)
       }
     }
 
-    loadDraft()
-  }, [user, authLoading, setValue, draftApplications, location.state, totalSteps])
+    // Only load draft on initial mount when user is available
+    if (user && !authLoading && !draftLoaded) {
+      loadDraft()
+    }
+  }, [user, authLoading, draftLoaded, setValue, draftApplications, location.state, totalSteps])
 
   useEffect(() => {
+    // Don't start auto-save until draft is loaded and not restoring
+    if (!draftLoaded || restoringDraft) return
+    
     let timeoutId: NodeJS.Timeout
     const subscription = watch(() => {
       if (timeoutId) clearTimeout(timeoutId)
@@ -407,10 +422,10 @@ const useWizardController = (): UseWizardControllerResult => {
       subscription.unsubscribe()
       if (timeoutId) clearTimeout(timeoutId)
     }
-  }, [watch])
+  }, [watch, saveDraft, draftLoaded, restoringDraft])
 
   const saveDraft = useCallback(async () => {
-    if (!user || isDraftSaving) return
+    if (!user || isDraftSaving || restoringDraft) return
     try {
       setIsDraftSaving(true)
       const formData = watch()
@@ -437,7 +452,7 @@ const useWizardController = (): UseWizardControllerResult => {
     } finally {
       setIsDraftSaving(false)
     }
-  }, [user, isDraftSaving, watch, selectedGrades, currentStepConfig, applicationId])
+  }, [user, isDraftSaving, restoringDraft, watch, selectedGrades, currentStepConfig, applicationId])
 
   const addGrade = useCallback(() => {
     setSelectedGrades(prev => (prev.length < 10 ? [...prev, { subject_id: '', grade: 1 }] : prev))

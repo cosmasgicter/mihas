@@ -1,0 +1,29 @@
+⬥ Injecting environment variable values for all scopes
+⬥ Ignored general context env var: LANG (defined in process)
+⬥ Injected netlify.toml file env vars: NODE_VERSION
+⬥ Injected .env file env vars: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_URL, SUPABASE_KEY, VITE_API_BASE_URL, VITE_APP_BASE_URL, RATE_LIMIT_TABLE, RATE_LIMIT_DEFAULT_WINDOW_MS, RATE_LIMIT_DEFAULT_MAX_ATTEMPTS, RATE_LIMIT_AUTH_MAX_ATTEMPTS, RATE_LIMIT_AUTH_WINDOW_MS, RATE_LIMIT_APPLICATIONS_MAX_ATTEMPTS, RATE_LIMIT_APPLICATIONS_WINDOW_MS, VITE_TURNSTILE_SITE_KEY, EMAIL_PROVIDER, EMAIL_FROM, RESEND_API_KEY, RESEND_FROM_EMAIL, APPLICATION_ADMIN_EMAILS, SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, SMTP_SECURE, SMTP_FROM_EMAIL, VITE_ANALYTICS_BASE_URL, VITE_ANALYTICS_SITE_ID, VITE_ANALYTICS_SHARE_TOKEN, NODE_ENV
+⬥ Setting up local dev server
+
+⬥ Starting Vite dev server
+⠋ Waiting for Vite dev server to be ready on port 5173
+✔ Vite dev server ready on port 5173
+
+> mihas-application-system@1.0.0 dev
+> vite --config vite.config.local.ts
+
+
+   ╭─────────────────────── ⬥  ────────────────────────╮
+   │                                                   │
+   │   Local dev server ready: http://localhost:8888   │
+   │                                                   │
+   ╰───────────────────────────────────────────────────╯
+
+Port 5173 is in use, trying another one...
+Port 5174 is in use, trying another one...
+Port 5175 is in use, trying another one...
+
+  VITE v7.1.5  ready in 1652 ms
+
+  ➜  Local:   http://localhost:5176/
+  ➜  Network: http://192.168.166.173:5176/
+⬥ Loaded function test

@@ -34,7 +34,17 @@ module.exports = async function handler(req, res) {
     return res.status(403).json({ error: authContext.error })
   }
 
-  const { userId, type, title, message, data } = req.body || {}
+  // Parse body if it's a string (Netlify functions)
+  let body = req.body
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body)
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid JSON in request body' })
+    }
+  }
+
+  const { userId, type, title, message, data } = body || {}
 
   if (!userId || !title || !message) {
     return res.status(400).json({ error: 'userId, title and message are required' })
