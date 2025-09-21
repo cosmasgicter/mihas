@@ -407,24 +407,6 @@ const useWizardController = (): UseWizardControllerResult => {
     }
   }, [user, authLoading, draftLoaded, setValue, draftApplications, location.state, totalSteps])
 
-  useEffect(() => {
-    // Don't start auto-save until draft is loaded and not restoring
-    if (!draftLoaded || restoringDraft) return
-    
-    let timeoutId: NodeJS.Timeout
-    const subscription = watch(() => {
-      if (timeoutId) clearTimeout(timeoutId)
-      timeoutId = setTimeout(() => {
-        void saveDraft()
-      }, 8000)
-    })
-
-    return () => {
-      subscription.unsubscribe()
-      if (timeoutId) clearTimeout(timeoutId)
-    }
-  }, [watch, saveDraft, draftLoaded, restoringDraft])
-
   const saveDraft = useCallback(async () => {
     if (!user || isDraftSaving || restoringDraft) return
     try {
@@ -454,6 +436,24 @@ const useWizardController = (): UseWizardControllerResult => {
       setIsDraftSaving(false)
     }
   }, [user, isDraftSaving, restoringDraft, watch, selectedGrades, currentStepConfig, applicationId])
+
+  useEffect(() => {
+    // Don't start auto-save until draft is loaded and not restoring
+    if (!draftLoaded || restoringDraft) return
+    
+    let timeoutId: NodeJS.Timeout
+    const subscription = watch(() => {
+      if (timeoutId) clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => {
+        void saveDraft()
+      }, 8000)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+      if (timeoutId) clearTimeout(timeoutId)
+    }
+  }, [watch, saveDraft, draftLoaded, restoringDraft])
 
   const addGrade = useCallback(() => {
     setSelectedGrades(prev => (prev.length < 10 ? [...prev, { subject_id: '', grade: 1 }] : prev))

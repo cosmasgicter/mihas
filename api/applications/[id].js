@@ -97,7 +97,7 @@ async function handleGet(req, res, { user, isAdmin, roles }, id) {
     }
 
     const { data, error } = await supabaseAdminClient
-      .from('applications_new')
+      .from('applications')
       .select(selectClauses.join(','))
       .eq('id', id)
       .maybeSingle()
@@ -174,7 +174,7 @@ async function handleGet(req, res, { user, isAdmin, roles }, id) {
       actorId: user.id,
       actorEmail: user.email || null,
       actorRoles: roles,
-      targetTable: 'applications_new',
+      targetTable: 'applications',
       targetId: id,
       metadata: {
         include: Array.from(include),
@@ -200,7 +200,7 @@ async function handlePut(req, res, { user, isAdmin, roles }, id, body) {
     const updates = body
 
     let query = supabaseAdminClient
-      .from('applications_new')
+      .from('applications')
       .update(updates)
       .eq('id', id)
 
@@ -220,7 +220,7 @@ async function handlePut(req, res, { user, isAdmin, roles }, id, body) {
       actorId: user.id,
       actorEmail: user.email || null,
       actorRoles: roles,
-      targetTable: 'applications_new',
+      targetTable: 'applications',
       targetId: id,
       metadata: {
         fields: Object.keys(updates || {}),
@@ -264,7 +264,7 @@ async function handlePatch(req, res, context, id, body) {
 async function handleDelete(req, res, { user, isAdmin, roles }, id) {
   try {
     let query = supabaseAdminClient
-      .from('applications_new')
+      .from('applications')
       .update({ status: 'deleted', updated_at: new Date().toISOString() })
       .eq('id', id)
 
@@ -283,7 +283,7 @@ async function handleDelete(req, res, { user, isAdmin, roles }, id) {
       actorId: user.id,
       actorEmail: user.email || null,
       actorRoles: roles,
-      targetTable: 'applications_new',
+      targetTable: 'applications',
       targetId: id,
       metadata: { isAdmin }
     })
@@ -381,7 +381,7 @@ async function updateApplicationStatus(req, res, { user, isAdmin, roles }, id, b
 
   try {
     const { data: existingApplication, error: fetchError } = await supabaseAdminClient
-      .from('applications_new')
+      .from('applications')
       .select('status, intake, intake_id, intake_name')
       .eq('id', id)
       .maybeSingle()
@@ -408,7 +408,7 @@ async function updateApplicationStatus(req, res, { user, isAdmin, roles }, id, b
     }
 
     const { data, error } = await supabaseAdminClient
-      .from('applications_new')
+      .from('applications')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -448,7 +448,7 @@ async function updateApplicationStatus(req, res, { user, isAdmin, roles }, id, b
       actorId: user.id,
       actorEmail: user.email || null,
       actorRoles: roles,
-      targetTable: 'applications_new',
+      targetTable: 'applications',
       targetId: id,
       metadata: {
         previousStatus: existingApplication.status,
@@ -490,7 +490,7 @@ async function updatePaymentStatus(req, res, { user, isAdmin, roles }, id, body)
     }
 
     const { data, error } = await supabaseAdminClient
-      .from('applications_new')
+      .from('applications')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -537,7 +537,7 @@ async function updatePaymentStatus(req, res, { user, isAdmin, roles }, id, body)
       actorId: user.id,
       actorEmail: user.email || null,
       actorRoles: roles,
-      targetTable: 'applications_new',
+      targetTable: 'applications',
       targetId: id,
       metadata: {
         paymentStatus,
@@ -659,7 +659,7 @@ async function sendNotification(req, res, { user, isAdmin, roles }, id, body) {
 
   try {
     const { data: application, error: fetchError } = await supabaseAdminClient
-      .from('applications_new')
+      .from('applications')
       .select('user_id')
       .eq('id', id)
       .maybeSingle()
@@ -682,7 +682,7 @@ async function sendNotification(req, res, { user, isAdmin, roles }, id, body) {
       })
 
     await supabaseAdminClient
-      .from('applications_new')
+      .from('applications')
       .update({
         admin_feedback: message,
         admin_feedback_date: new Date().toISOString(),
@@ -697,7 +697,7 @@ async function sendNotification(req, res, { user, isAdmin, roles }, id, body) {
       actorId: user.id,
       actorEmail: user.email,
       actorRoles: roles,
-      targetTable: 'applications_new',
+      targetTable: 'applications',
       targetId: id,
       metadata: {
         title,
@@ -870,7 +870,7 @@ async function generateSystemDocument({ applicationId, context, documentType, re
 
 async function fetchApplicationWithRelations(applicationId) {
   const { data: application, error } = await supabaseAdminClient
-    .from('applications_new')
+    .from('applications')
     .select('*')
     .eq('id', applicationId)
     .maybeSingle()
@@ -1258,7 +1258,7 @@ async function syncGrades(req, res, { user, isAdmin, roles }, id, body) {
     // Ensure application belongs to the user unless admin
     if (!isAdmin) {
       const { data: application, error } = await supabaseAdminClient
-        .from('applications_new')
+        .from('applications')
         .select('id, user_id')
         .eq('id', id)
         .maybeSingle()
