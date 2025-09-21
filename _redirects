@@ -2,6 +2,8 @@
 /api/admin/dashboard /.netlify/functions/admin-dashboard 200
 /api/admin/users /.netlify/functions/admin-users 200
 /api/admin/users/:id /.netlify/functions/admin-users-id 200
+/api/admin/users/:id/role /.netlify/functions/admin-users-role?id=:id 200
+/api/admin/users/:id/permissions /.netlify/functions/admin-users-permissions?id=:id 200
 /api/analytics/metrics /.netlify/functions/analytics-metrics 200
 /api/analytics/telemetry /.netlify/functions/analytics-telemetry 200
 /api/analytics/predictive-dashboard /.netlify/functions/analytics-predictive-dashboard 200
