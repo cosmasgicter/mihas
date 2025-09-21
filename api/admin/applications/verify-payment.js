@@ -37,7 +37,7 @@ module.exports = async function handler(req, res) {
     }
 
     const { data, error } = await supabaseAdminClient
-      .from('applications')
+      .from('applications_new')
       .update(updateData)
       .eq('id', applicationId)
       .select()
@@ -53,7 +53,7 @@ module.exports = async function handler(req, res) {
       actorId: authContext.user.id,
       actorEmail: authContext.user.email,
       actorRoles: authContext.roles,
-      targetTable: 'applications',
+      targetTable: 'applications_new',
       targetId: applicationId,
       metadata: { paymentStatus, verificationNotes }
     })

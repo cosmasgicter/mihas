@@ -97,7 +97,7 @@ async function testSupabaseConnection() {
   console.log('🔗 Testing Supabase connection...')
   
   try {
-    const { data, error } = await supabase.from('applications').select('count').limit(1)
+    const { data, error } = await supabase.from('applications_new').select('count').limit(1)
     if (error) {
       console.log(`❌ Supabase connection failed: ${error.message}`)
       return false

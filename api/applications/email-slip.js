@@ -35,7 +35,7 @@ module.exports = async function handler(event, context) {
   try {
     // Get application details
     const { data: application, error: appError } = await supabaseAdminClient
-      .from('applications')
+      .from('applications_new')
       .select('*')
       .eq('id', applicationId)
       .eq('user_id', authContext.user.id)
@@ -76,7 +76,7 @@ module.exports = async function handler(event, context) {
       action: 'applications.slip.email',
       actorId: authContext.user.id,
       actorEmail: authContext.user.email,
-      targetTable: 'applications',
+      targetTable: 'applications_new',
       targetId: applicationId,
       metadata: { recipient: application.email }
     })

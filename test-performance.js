@@ -119,7 +119,7 @@ async function testDatabasePerformance() {
     // Test complex query
     const start2 = performance.now()
     const { data: applications } = await supabase
-      .from('applications')
+      .from('applications_new')
       .select('*, user_profiles(*)')
       .limit(5)
     const end2 = performance.now()

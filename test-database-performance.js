@@ -35,7 +35,7 @@ async function testDatabasePerformance() {
   console.log('\n2. Testing applications query...')
   const start2 = performance.now()
   const { data: applications, error: appError } = await supabase
-    .from('applications')
+    .from('applications_new')
     .select('*')
     .limit(10)
   const end2 = performance.now()
@@ -50,7 +50,7 @@ async function testDatabasePerformance() {
   console.log('\n3. Testing complex join query...')
   const start3 = performance.now()
   const { data: joinData, error: joinError } = await supabase
-    .from('applications')
+    .from('applications_new')
     .select(`
       *,
       user_profiles(*),

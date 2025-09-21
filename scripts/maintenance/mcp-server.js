@@ -81,7 +81,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   switch (name) {
     case 'get_applications':
       try {
-        let query = supabase.from('applications').select('*');
+        let query = supabase.from('applications_new').select('*');
         
         if (args.status) query = query.eq('status', args.status);
         if (args.program) query = query.eq('program', args.program);
@@ -109,7 +109,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     case 'get_stats':
       try {
         const { data: applications } = await supabase
-          .from('applications')
+          .from('applications_new')
           .select('status, program, created_at');
         
         const stats = {
@@ -173,7 +173,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   try {
     // Test Supabase connection
-    const { data, error } = await supabase.from('applications').select('count').limit(1);
+    const { data, error } = await supabase.from('applications_new').select('count').limit(1);
     if (error) {
       console.error('Supabase connection failed:', error.message);
     } else {

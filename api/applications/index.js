@@ -22,7 +22,7 @@ module.exports = async function handler(req, res) {
       const { page = 0, pageSize = 10, status, mine } = req.query
       
       let query = supabaseAdminClient
-        .from('applications')
+        .from('applications_new')
         .select('*', { count: 'exact' })
         .order('created_at', { ascending: false })
 
@@ -86,7 +86,7 @@ module.exports = async function handler(req, res) {
 
 
       const { data, error } = await supabaseAdminClient
-        .from('applications')
+        .from('applications_new')
         .insert(applicationData)
         .select()
         .single()
@@ -121,7 +121,7 @@ module.exports = async function handler(req, res) {
       }
 
       const { data, error } = await supabaseAdminClient
-        .from('applications')
+        .from('applications_new')
         .insert({
           ...body,
           user_id: authContext.user.id
