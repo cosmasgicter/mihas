@@ -1,6 +1,14 @@
-import { Application } from '@/lib/supabase'
+import type { Application } from '@/lib/supabase'
 
 import { apiClient, buildQueryString, QueryParams } from './client'
+
+export interface PaginatedApplicationsResponse {
+  applications: Application[]
+  totalCount: number
+  page: number
+  pageSize: number
+  stats?: Record<string, unknown>
+}
 
 type ApplicationIncludeOptions = {
   include?: string[]
@@ -10,11 +18,15 @@ type ApplicationPayload = Partial<Application>
 
 export const applicationService = {
   list: (params?: QueryParams) =>
-    apiClient.request<Application[]>(`/api/applications${buildQueryString(params ?? {})}`),
+    apiClient.request<PaginatedApplicationsResponse>(
+      `/api/applications${buildQueryString(params ?? {})}`
+    ),
 
   // Alias for backward compatibility
   getAll: (params?: QueryParams) =>
-    apiClient.request<Application[]>(`/api/applications${buildQueryString(params ?? {})}`),
+    apiClient.request<PaginatedApplicationsResponse>(
+      `/api/applications${buildQueryString(params ?? {})}`
+    ),
 
   getById: (id: string, options?: ApplicationIncludeOptions) =>
     apiClient.request<any>(

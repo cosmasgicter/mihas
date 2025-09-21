@@ -117,7 +117,7 @@ export default function StudentDashboard() {
         mine: true
       })
 
-      if (draftResponse.applications && draftResponse.applications.length > 0) {
+      if (draftResponse?.applications && draftResponse.applications.length > 0) {
         setHasDraft(true)
         setDraftData(draftResponse.applications[0])
       }
@@ -131,7 +131,7 @@ export default function StudentDashboard() {
         mine: true
       })
 
-      setApplications((applicationsResponse.applications || []) as Application[])
+      setApplications((applicationsResponse?.applications || []) as Application[])
 
       // Load programs and intakes
       const [programsResponse, intakesResponse] = await Promise.all([

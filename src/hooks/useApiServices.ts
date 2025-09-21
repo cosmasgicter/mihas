@@ -30,9 +30,12 @@ export const useRegister = () => {
 
 // Application hooks
 export const useApplications = () => {
-  return useQuery<Application[] | null>({
+  return useQuery<Application[]>({
     queryKey: ['applications'],
-    queryFn: applicationService.getAll
+    queryFn: async () => {
+      const response = await applicationService.getAll()
+      return response?.applications ?? []
+    }
   })
 }
 
