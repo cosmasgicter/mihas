@@ -12,6 +12,18 @@
   force = true
 
 [[redirects]]
+  from = "/api/admin/audit-log/stats"
+  to = "/.netlify/functions/admin-audit-log-stats"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/admin/audit-log/export"
+  to = "/.netlify/functions/admin-audit-log-export"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/admin/users/:id/role"
   to = "/.netlify/functions/admin-users-role?id=:id"
   status = 200
