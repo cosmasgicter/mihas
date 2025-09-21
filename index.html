@@ -4,22 +4,52 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MIHAS Application System</title>
+    <meta name="description" content="Apply for accredited healthcare programs at MIHAS and KATC. 92% job placement rate for Clinical Medicine, Environmental Health, and Registered Nursing diplomas in Zambia." />
+    <meta name="keywords" content="MIHAS, KATC, healthcare education, nursing, clinical medicine, environmental health, Zambia" />
+    <title>MIHAS-KATC Application System | Healthcare Education in Zambia</title>
     
-    <!-- Security Headers handled by server -->
-    
-    <!-- Preload critical resources for better LCP -->
-    <link rel="preload" href="/src/index.css" as="style" />
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/images/programs/katc-campus.webp" as="image" type="image/webp" />
+    <link rel="preload" href="/images/programs/mihas-campus.webp" as="image" type="image/webp" />
     
     <!-- DNS prefetch for external resources -->
     <link rel="dns-prefetch" href="//fonts.googleapis.com" />
     
-    <!-- Preconnect to critical origins -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Critical CSS inline -->
+    <style>
+      body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+      .loading { 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        min-height: 100vh;
+        background: linear-gradient(135deg, #14B8A6, #9333EA, #F97316);
+        color: white;
+      }
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(255,255,255,0.3);
+        border-top: 4px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="loading">
+        <div>
+          <div class="loading-spinner"></div>
+          <div style="margin-top: 16px; font-weight: 600;">MIHAS-KATC</div>
+          <div style="margin-top: 8px; opacity: 0.8;">Loading your future...</div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

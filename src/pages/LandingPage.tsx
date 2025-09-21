@@ -12,7 +12,7 @@ import { GraduationCap, Users, Award, BookOpen, Star, ArrowRight, CheckCircle } 
 // Static import for AnimatedCard to avoid chunk conflicts
 import { AnimatedCard } from '@/components/ui/AnimatedCard'
 
-// Lazy load heavy components
+// Conditionally load heavy components only when needed
 const TypewriterText = lazy(() => import('@/components/ui/TypewriterText'))
 const FloatingElements = lazy(() => import('@/components/ui/FloatingElements').then(m => ({ default: m.FloatingElements })))
 const GeometricPatterns = lazy(() => import('@/components/ui/FloatingElements').then(m => ({ default: m.GeometricPatterns })))

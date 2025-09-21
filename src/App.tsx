@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react'
+import React, { Suspense, useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/contexts/AuthContext'
@@ -6,6 +6,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { AdminRoute } from '@/components/AdminRoute'
 import { ToastProvider } from '@/components/ui/Toast'
 import { LoadingFallback } from '@/components/ui/LoadingFallback'
+import { FancyPreloader } from '@/components/ui/FancyPreloader'
 import { routes, type RouteConfig } from '@/routes/config'
 import { AnalyticsTracker } from '@/components/analytics/AnalyticsTracker'
 
@@ -52,6 +53,17 @@ const renderRoute = (route: RouteConfig) => {
 }
 
 function App() {
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 2000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (isLoading) {
+    return <FancyPreloader />
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
@@ -70,9 +82,7 @@ function App() {
                 </Routes>
               </div>
             </AnalyticsTracker>
-
           </Router>
-
         </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>
