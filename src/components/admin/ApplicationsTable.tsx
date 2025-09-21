@@ -5,7 +5,7 @@ import { useApplications } from '@/hooks/useApiServices'
 import { Application } from '@/lib/supabase'
 
 export function ApplicationsTable() {
-  const { data: applications, isLoading, error } = useApplications()
+  const { data: applications = [], isLoading, error } = useApplications()
 
   if (isLoading) return <div>Loading applications...</div>
   if (error) return <div>Error loading applications</div>
@@ -33,7 +33,7 @@ export function ApplicationsTable() {
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {applications?.map((app: Application) => (
+          {applications.map((app: Application) => (
             <tr key={app.id}>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                 {app.application_number}
