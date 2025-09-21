@@ -12,7 +12,7 @@ async function setupMicroservices() {
 
   try {
     // Test database connection
-    const { data, error } = await supabaseAdminClient.from('applications').select('count').limit(1)
+    const { data, error } = await supabaseAdminClient.from('applications_new').select('count').limit(1)
     if (error) throw error
     
     console.log('✅ Database connection verified')

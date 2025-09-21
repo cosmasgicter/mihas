@@ -34,7 +34,7 @@ async function testMicroservices() {
 
     // Test applications table
     const { data: apps, error: appError } = await supabase
-      .from('applications')
+      .from('applications_new')
       .select('count')
       .limit(1)
 
