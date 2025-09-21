@@ -11,10 +11,23 @@ class OfflineStorageManager {
       try {
         const request = indexedDB.open(this.dbName, this.version)
 
+        request.onupgradeneeded = (event) => {
+          const db = (event.target as IDBOpenDBRequest).result
+          
+          // Create offline data store
+          if (!db.objectStoreNames.contains('offlineData')) {
+            const store = db.createObjectStore('offlineData', { keyPath: 'id' })
+            store.createIndex('type', 'type', { unique: false })
+            store.createIndex('userId', 'userId', { unique: false })
+            store.createIndex('timestamp', 'timestamp', { unique: false })
+          }
+        }
+
         request.onerror = () => {
           // Silently handle IndexedDB errors
           resolve()
         }
+        
         request.onsuccess = () => {
           this.db = request.result
           resolve()
@@ -22,18 +35,6 @@ class OfflineStorageManager {
       } catch {
         // Silently handle any initialization errors
         resolve()
-      }
-      
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result
-        
-        // Create offline data store
-        if (!db.objectStoreNames.contains('offlineData')) {
-          const store = db.createObjectStore('offlineData', { keyPath: 'id' })
-          store.createIndex('type', 'type', { unique: false })
-          store.createIndex('userId', 'userId', { unique: false })
-          store.createIndex('timestamp', 'timestamp', { unique: false })
-        }
       }
     })
   }
@@ -59,22 +60,26 @@ class OfflineStorageManager {
   }
 
   async getAll(userId?: string): Promise<OfflineQueueItem[]> {
-    if (!this.db) throw new Error('Database not initialized')
+    if (!this.db) return []
 
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['offlineData'], 'readonly')
-      const store = transaction.objectStore('offlineData')
-      
-      let request: IDBRequest
-      if (userId) {
-        const index = store.index('userId')
-        request = index.getAll(userId)
-      } else {
-        request = store.getAll()
+    return new Promise((resolve) => {
+      try {
+        const transaction = this.db!.transaction(['offlineData'], 'readonly')
+        const store = transaction.objectStore('offlineData')
+        
+        let request: IDBRequest
+        if (userId) {
+          const index = store.index('userId')
+          request = index.getAll(userId)
+        } else {
+          request = store.getAll()
+        }
+        
+        request.onerror = () => resolve([])
+        request.onsuccess = () => resolve(request.result)
+      } catch {
+        resolve([])
       }
-      
-      request.onerror = () => reject(request.error)
-      request.onsuccess = () => resolve(request.result)
     })
   }
 

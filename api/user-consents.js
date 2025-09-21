@@ -30,6 +30,9 @@ function normalizeConsent(record) {
 module.exports = async function handler(req, res) {
   try {
     const authContext = await requireUser(req)
+    if (authContext.error) {
+      return res.status(401).json({ error: authContext.error })
+    }
     const { user, roles, isAdmin } = authContext
 
     const requestedUserId = typeof req.query?.userId === 'string' ? req.query.userId : null
@@ -122,7 +125,15 @@ module.exports = async function handler(req, res) {
     res.setHeader('Allow', 'GET,POST,HEAD')
     return res.status(405).json({ error: 'Method not allowed' })
   } catch (error) {
-    console.error('User consent handler error:', error)
-    return res.status(500).json({ error: 'Internal server error' })
+    console.error('User consent handler error:', {
+      message: error.message,
+      stack: error.stack,
+      method: req.method,
+      body: req.body
+    })
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    })
   }
 }

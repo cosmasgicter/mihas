@@ -41,21 +41,26 @@ export default function StudentSettings() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<ProfileForm>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: {
-      full_name: getBestValue(profile?.full_name, metadata?.full_name, user?.email?.split('@')[0] || ''),
-      phone: getBestValue(profile?.phone, metadata?.phone, ''),
-      date_of_birth: getBestValue(profile?.date_of_birth, metadata?.date_of_birth, ''),
-      sex: (getBestValue(profile?.sex, metadata?.sex, '') as 'Male' | 'Female') || undefined,
-      nationality: getBestValue(profile?.nationality, metadata?.nationality, ''),
-      address: getBestValue(profile?.address, metadata?.address, ''),
-      city: getBestValue(profile?.city, metadata?.city, ''),
-      next_of_kin_name: getBestValue(profile?.next_of_kin_name, metadata?.next_of_kin_name, ''),
-      next_of_kin_phone: getBestValue(profile?.next_of_kin_phone, metadata?.next_of_kin_phone, '')
-    }
+    resolver: zodResolver(profileSchema)
   })
+
+  // Update form values when profile data loads
+  React.useEffect(() => {
+    if (profile || metadata) {
+      setValue('full_name', getBestValue(profile?.full_name, metadata?.full_name, user?.email?.split('@')[0] || ''))
+      setValue('phone', getBestValue(profile?.phone, metadata?.phone, ''))
+      setValue('date_of_birth', getBestValue(profile?.date_of_birth, metadata?.date_of_birth, ''))
+      setValue('sex', (getBestValue(profile?.sex, metadata?.sex, '') as 'Male' | 'Female') || undefined)
+      setValue('nationality', getBestValue(profile?.nationality, metadata?.nationality, ''))
+      setValue('address', getBestValue(profile?.address, metadata?.address, ''))
+      setValue('city', getBestValue(profile?.city, metadata?.city, ''))
+      setValue('next_of_kin_name', getBestValue(profile?.next_of_kin_name, metadata?.next_of_kin_name, ''))
+      setValue('next_of_kin_phone', getBestValue(profile?.next_of_kin_phone, metadata?.next_of_kin_phone, ''))
+    }
+  }, [profile, metadata, user?.email, setValue])
 
   const onSubmit = async (data: ProfileForm) => {
     try {

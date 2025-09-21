@@ -126,22 +126,23 @@ export function useProfileQuery(options: UseProfileQueryOptions = {}): ProfileQu
         return null
       }
 
-      const response = await fetch(`/api/admin/users/${encodeURIComponent(user.id)}`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
-        }
-      })
+      // Try direct Supabase query first (for students)
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle()
 
-      if (response.status === 404) {
+      if (profileError) {
+        console.error('Profile query error:', profileError)
+        throw new Error('Failed to load profile')
+      }
+
+      if (!profileData) {
         return await createUserProfile(user)
       }
 
-      if (!response.ok) {
-        throw new Error(`Failed to load profile: ${response.statusText}`)
-      }
-
-      const data = await response.json()
-      return sanitizeProfile(data)
+      return sanitizeProfile(profileData)
     }
   })
 

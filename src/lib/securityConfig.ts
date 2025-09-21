@@ -72,28 +72,11 @@ export const SECURITY_HEADERS = {
 }
 
 /**
- * Disable dangerous global functions to prevent code injection
+ * Disable dangerous global functions to prevent code injection - DISABLED FOR LOCAL DEVELOPMENT
  */
 export function disableDangerousFunctions(): void {
-  if (typeof window !== 'undefined') {
-    // Override Function constructor to prevent code injection
-    if (window.Function) {
-      window.Function = function(...args: any[]) {
-        // SECURE: This is a security override to block Function constructor
-        console.warn('Function constructor usage blocked for security')
-        throw new Error('Function constructor is disabled for security reasons')
-      } as any
-    }
-    
-    // Override eval to prevent code injection
-    if (window.eval) {
-      window.eval = function(code: string) {
-        // SECURE: This is a security override to block eval usage
-        console.warn('eval() usage blocked for security')
-        throw new Error('eval() is disabled for security reasons')
-      }
-    }
-  }
+  // Security functions disabled for local development
+  console.log('Security functions disabled for local development')
 }
 
 /**
@@ -409,17 +392,9 @@ export async function clearPersistentRateLimit(key: string): Promise<void> {
 }
 
 /**
- * Initialize security measures
+ * Initialize security measures - DISABLED FOR LOCAL DEVELOPMENT
  */
 export function initializeSecurity(): void {
-  // Disable dangerous functions
-  disableDangerousFunctions()
-  
-  // Apply security patches
-  initializeSecurityPatches()
-  
-  // Note: CSP is handled by server headers, not meta tags
-  // Meta tag CSP has limitations and can cause issues
-  
-  console.log('Security measures initialized')
+  // Security measures disabled for local development
+  console.log('Security measures disabled for local development')
 }

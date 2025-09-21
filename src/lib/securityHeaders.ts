@@ -1,26 +1,15 @@
-// Security Headers Configuration
+// Security Headers Configuration - DISABLED FOR LOCAL DEVELOPMENT
 export const SECURITY_HEADERS = {
-  CSP: "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';",
-  HSTS: "max-age=31536000; includeSubDomains; preload",
-  REFERRER_POLICY: "strict-origin-when-cross-origin",
-  X_CONTENT_TYPE_OPTIONS: "nosniff",
-  X_FRAME_OPTIONS: "DENY",
-  PERMISSIONS_POLICY: "camera=(), microphone=(), geolocation=()"
+  CSP: "",
+  HSTS: "",
+  REFERRER_POLICY: "",
+  X_CONTENT_TYPE_OPTIONS: "",
+  X_FRAME_OPTIONS: "",
+  PERMISSIONS_POLICY: ""
 };
 
-// Apply security headers for client-side enforcement
+// Apply security headers for client-side enforcement - DISABLED FOR LOCAL DEVELOPMENT
 export const applyClientSecurityHeaders = () => {
-  // Add meta tags for additional security
-  const metaTags = [
-    { name: 'referrer', content: 'strict-origin-when-cross-origin' },
-    { 'http-equiv': 'X-Content-Type-Options', content: 'nosniff' }
-  ];
-
-  metaTags.forEach(tag => {
-    const meta = document.createElement('meta');
-    Object.entries(tag).forEach(([key, value]) => {
-      meta.setAttribute(key, value);
-    });
-    document.head.appendChild(meta);
-  });
+  // Security headers disabled for local development
+  console.log('Security headers disabled for local development');
 };

@@ -1,14 +1,12 @@
-import rateLimiter from '../_lib/rateLimiter'
-import { supabaseAdminClient, getUserFromRequest } from '../_lib/supabaseClient'
-
 const {
   checkRateLimit,
   buildRateLimitKey,
   getLimiterConfig,
   attachRateLimitHeaders
-} = rateLimiter
+} = require('../_lib/rateLimiter')
+const { supabaseAdminClient, getUserFromRequest } = require('../_lib/supabaseClient')
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   try {
     const rateKey = buildRateLimitKey(req, { prefix: 'applications-bulk' })
     const rateResult = await checkRateLimit(

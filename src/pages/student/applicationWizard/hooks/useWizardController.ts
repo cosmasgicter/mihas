@@ -87,7 +87,7 @@ const useWizardController = (): UseWizardControllerResult => {
   const location = useLocation()
   const { user, loading: authLoading } = useAuth()
   const { profile } = useProfileQuery()
-  const toast = useToast()
+  const { showError, showWarning } = useToast()
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -214,7 +214,7 @@ const useWizardController = (): UseWizardControllerResult => {
     submittedApplication,
     slipPayload,
     success,
-    toast,
+    toast: { showError, showWarning },
     createApplicationSlip,
     onEmailUpdate: email => setSubmittedApplication(prev => (prev ? { ...prev, email } : prev))
   })
@@ -246,9 +246,18 @@ const useWizardController = (): UseWizardControllerResult => {
   }, [intakes, intakeOptions, setValue, watch])
 
   useEffect(() => {
-    if (user && !authLoading) {
+    if (user && !authLoading && !restoringDraft) {
+      const currentValues = watch()
       const metadata = getUserMetadata(user)
       const email = user.email || ''
+      
+      // Only auto-populate if field is empty
+      const setIfEmpty = (field: keyof WizardFormData, value: string) => {
+        if (!currentValues[field] && value) {
+          setValue(field, value)
+        }
+      }
+      
       const fullName = getBestValue(profile?.full_name, metadata.full_name, email.split('@')[0] || '')
       const phone = getBestValue(profile?.phone, metadata.phone, '')
       const dateOfBirth = getBestValue(profile?.date_of_birth, metadata.date_of_birth, '')
@@ -257,29 +266,34 @@ const useWizardController = (): UseWizardControllerResult => {
       const nextOfKinName = getBestValue(profile?.next_of_kin_name, metadata.next_of_kin_name, '')
       const nextOfKinPhone = getBestValue(profile?.next_of_kin_phone, metadata.next_of_kin_phone, '')
 
-      setValue('email', email)
-      setValue('full_name', fullName || '')
-      setValue('phone', phone || '')
-      setValue('date_of_birth', dateOfBirth || '')
-      setValue('sex', (sex as 'Male' | 'Female') || '')
-      setValue('residence_town', residenceTown || '')
-      setValue('next_of_kin_name', nextOfKinName || '')
-      setValue('next_of_kin_phone', nextOfKinPhone || '')
+      setValue('email', email) // Always set email
+      setIfEmpty('full_name', fullName)
+      setIfEmpty('phone', phone)
+      setIfEmpty('date_of_birth', dateOfBirth)
+      setIfEmpty('sex', sex as 'Male' | 'Female')
+      setIfEmpty('residence_town', residenceTown)
+      setIfEmpty('next_of_kin_name', nextOfKinName)
+      setIfEmpty('next_of_kin_phone', nextOfKinPhone)
     }
-  }, [user, profile, authLoading, setValue])
+  }, [user, profile, authLoading, setValue, restoringDraft, watch])
 
   useEffect(() => {
     const loadDraft = async () => {
       if (!user || authLoading) return
       setRestoringDraft(true)
       try {
+        // Check localStorage first
         const savedDraft = localStorage.getItem('applicationWizardDraft')
         if (savedDraft) {
           const draft = safeJsonParse(savedDraft, null)
-          if (draft) {
-            if (draft.formData) {
-              Object.keys(draft.formData).forEach(key => setValue(key as keyof WizardFormData, draft.formData[key]))
-            }
+          if (draft && draft.formData) {
+            console.log('Restoring draft from localStorage')
+            Object.keys(draft.formData).forEach(key => {
+              const value = draft.formData[key]
+              if (value !== undefined && value !== null && value !== '') {
+                setValue(key as keyof WizardFormData, value)
+              }
+            })
             if (draft.selectedGrades) {
               setSelectedGrades(draft.selectedGrades)
             }
@@ -298,8 +312,36 @@ const useWizardController = (): UseWizardControllerResult => {
           localStorage.removeItem('applicationWizardDraft')
         }
 
+        // Check sessionStorage as fallback
+        const sessionDraft = sessionStorage.getItem('applicationWizardDraft')
+        if (sessionDraft) {
+          const draft = safeJsonParse(sessionDraft, null)
+          if (draft && draft.formData) {
+            console.log('Restoring draft from sessionStorage')
+            Object.keys(draft.formData).forEach(key => {
+              const value = draft.formData[key]
+              if (value !== undefined && value !== null && value !== '') {
+                setValue(key as keyof WizardFormData, value)
+              }
+            })
+            if (draft.selectedGrades) {
+              setSelectedGrades(draft.selectedGrades)
+            }
+            if (draft.currentStepKey) {
+              const index = wizardSteps.findIndex(step => step.key === draft.currentStepKey)
+              if (index >= 0) setCurrentStepIndex(index)
+            }
+            if (draft.applicationId) {
+              setApplicationId(draft.applicationId)
+            }
+            return
+          }
+        }
+
+        // Check database drafts as final fallback
         if (draftApplications?.applications && draftApplications.applications.length > 0) {
           const app = draftApplications.applications[0]
+          console.log('Restoring draft from database')
           setValue('full_name', app.full_name || '')
           setValue('nrc_number', app.nrc_number || '')
           setValue('passport_number', app.passport_number || '')
@@ -442,19 +484,28 @@ const useWizardController = (): UseWizardControllerResult => {
       const requiredFields = ['full_name', 'date_of_birth', 'sex', 'phone', 'email', 'residence_town', 'program', 'intake']
       const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData])
       if (missingFields.length > 0) {
-        setError(`Please fill in all required fields: ${missingFields.join(', ')}`)
+        const errorMessage = `Please fill in all required fields: ${missingFields.join(', ')}`
+        setError(errorMessage)
+        showError(errorMessage)
+        showError(errorMessage)
         return
       }
       if (!formData.nrc_number && !formData.passport_number) {
-        setError('Either NRC or Passport number is required')
+        const errorMessage = 'Either NRC or Passport number is required'
+        setError(errorMessage)
+        showError(errorMessage)
         return
       }
       if (formData.program && !programNames.includes(formData.program)) {
-        setError('Please select a valid program from the list provided')
+        const errorMessage = 'Please select a valid program from the list provided'
+        setError(errorMessage)
+        showError(errorMessage)
         return
       }
       if (formData.intake && !intakeOptions.includes(formData.intake)) {
-        setError('Please select a valid intake from the list provided')
+        const errorMessage = 'Please select a valid intake from the list provided'
+        setError(errorMessage)
+        showError(errorMessage)
         return
       }
 
@@ -540,7 +591,10 @@ const useWizardController = (): UseWizardControllerResult => {
         
         goToStep(currentStepIndex + 1)
       } catch (error) {
-        setError(error instanceof Error ? error.message : 'Failed to save application')
+        console.error('Application save error:', error)
+        const errorMessage = error instanceof Error ? error.message : 'Failed to save application'
+        setError(errorMessage)
+        showError(errorMessage)
       } finally {
         setLoading(false)
       }
@@ -549,14 +603,18 @@ const useWizardController = (): UseWizardControllerResult => {
 
     if (currentStepConfig.key === 'education') {
       if (selectedGrades.length < 5) {
-        setError('Minimum 5 subjects required')
+        const errorMessage = 'Minimum 5 subjects required'
+        setError(errorMessage)
+        showError(errorMessage)
         return
       }
       if (selectedProgram && eligibilityCheck && !eligibilityCheck.eligible) {
         console.log('Eligibility advisory:', { message: sanitizeForLog(eligibilityCheck.message) })
       }
       if (!resultSlipFile) {
-        setError('Result slip is required')
+        const errorMessage = 'Result slip is required'
+        setError(errorMessage)
+        showError(errorMessage)
         return
       }
 
@@ -567,6 +625,9 @@ const useWizardController = (): UseWizardControllerResult => {
           const extraKycUrl = extraKycFile ? await startUpload(extraKycFile, 'extra_kyc') : null
           if (selectedGrades.length > 0) {
             await syncGrades.mutateAsync({ id: applicationId, grades: selectedGrades })
+          }
+          if (!applicationId) {
+            throw new Error('Application ID is required for document upload')
           }
           await updateApplication.mutateAsync({
             id: applicationId,
@@ -583,7 +644,9 @@ const useWizardController = (): UseWizardControllerResult => {
     if (currentStepConfig.key === 'payment') {
       const formData = watch()
       if (!formData.payment_method) {
-        setError('Payment method is required')
+        const errorMessage = 'Payment method is required'
+        setError(errorMessage)
+        showError(errorMessage)
         return
       }
       goToStep(currentStepIndex + 1)
@@ -620,15 +683,21 @@ const useWizardController = (): UseWizardControllerResult => {
 
   const handleSubmitApplication = useCallback(async (data: WizardFormData) => {
     if (!confirmSubmission) {
-      setError('Please confirm that all information is accurate before submitting')
+      const errorMessage = 'Please confirm that all information is accurate before submitting'
+      setError(errorMessage)
+      showError(errorMessage)
       return
     }
     if (!popFile) {
-      setError('Proof of payment is required')
+      const errorMessage = 'Proof of payment is required'
+      setError(errorMessage)
+      showError(errorMessage)
       return
     }
     if (!applicationId) {
-      setError('Application ID not found. Please try refreshing the page.')
+      const errorMessage = 'Application ID not found. Please try refreshing the page.'
+      setError(errorMessage)
+      showError(errorMessage)
       return
     }
 
@@ -641,6 +710,11 @@ const useWizardController = (): UseWizardControllerResult => {
       }
 
       const popUrl = await startUpload(popFile, 'proof_of_payment')
+      
+      if (!applicationId) {
+        throw new Error('Application ID is required for submission')
+      }
+      
       const updatedApp = await updateApplication.mutateAsync({
         id: applicationId,
         data: {
@@ -682,7 +756,7 @@ const useWizardController = (): UseWizardControllerResult => {
         
         if (!token) {
           console.warn('No session token available:', sessionError)
-          toast.warning('Application submitted but notifications may be delayed')
+          showWarning('Application submitted but notifications may be delayed')
         } else {
           await fetch(`${apiBase}/api/notifications/application-submitted`, {
             method: 'POST',
@@ -695,7 +769,7 @@ const useWizardController = (): UseWizardControllerResult => {
         }
       } catch (notificationError) {
         console.warn('Failed to send notifications:', sanitizeForLog(notificationError instanceof Error ? notificationError.message : 'Unknown error'))
-        toast.warning('Application submitted but notifications may be delayed')
+        showWarning('Application submitted but notifications may be delayed')
       }
 
       try {
