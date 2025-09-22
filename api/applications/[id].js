@@ -118,6 +118,7 @@ async function handleGet(req, res, { user, isAdmin, roles }, id) {
     let documents = undefined
     let grades = undefined
     let statusHistory = undefined
+    let interview = null
 
     // Fetch documents if requested
     if (include.has('documents')) {
@@ -172,6 +173,22 @@ async function handleGet(req, res, { user, isAdmin, roles }, id) {
         console.warn('Failed to fetch status history:', historyError)
         statusHistory = []
       }
+    }
+
+    try {
+      const { data: interviewData, error: interviewError } = await supabaseAdminClient
+        .from('application_interviews')
+        .select('*')
+        .eq('application_id', id)
+        .maybeSingle()
+
+      if (interviewError) {
+        console.warn('Interview fetch error:', interviewError)
+      } else {
+        interview = interviewData || null
+      }
+    } catch (interviewFetchError) {
+      console.warn('Failed to fetch interview metadata:', interviewFetchError)
     }
 
     // Add legacy document URLs to documents array if they exist
@@ -229,7 +246,8 @@ async function handleGet(req, res, { user, isAdmin, roles }, id) {
       metadata: {
         include: Array.from(include),
         isAdmin,
-        returnedDocuments: Array.isArray(documents) ? documents.length : 0
+        returnedDocuments: Array.isArray(documents) ? documents.length : 0,
+        hasInterview: Boolean(interview)
       }
     })
 
@@ -237,7 +255,8 @@ async function handleGet(req, res, { user, isAdmin, roles }, id) {
       application,
       documents,
       grades,
-      statusHistory
+      statusHistory,
+      interview
     })
   } catch (error) {
     console.error('Application GET error', error)
@@ -306,6 +325,12 @@ async function handlePatch(req, res, context, id, body) {
       return generateAcceptanceLetter(req, res, context, id)
     case 'generate_finance_receipt':
       return generateFinanceReceipt(req, res, context, id)
+    case 'schedule_interview':
+      return scheduleInterview(req, res, context, id, body)
+    case 'reschedule_interview':
+      return rescheduleInterview(req, res, context, id, body)
+    case 'cancel_interview':
+      return cancelInterview(req, res, context, id, body)
     default:
       return res.status(400).json({ error: 'Unsupported action' })
   }
@@ -848,6 +873,199 @@ async function generateFinanceReceipt(req, res, context, id) {
     console.error('Finance receipt generation error', error)
     return res.status(500).json({ error: 'Failed to generate finance receipt' })
   }
+}
+
+async function scheduleInterview(req, res, context, id, body) {
+  if (!context.isAdmin) {
+    return res.status(403).json({ error: 'Access denied' })
+  }
+
+  const { scheduledAt, mode, location, notes } = body
+
+  if (!scheduledAt || !mode) {
+    return res.status(400).json({ error: 'Scheduled date/time and mode are required' })
+  }
+
+  if (!['in_person', 'virtual', 'phone'].includes(mode)) {
+    return res.status(400).json({ error: 'Invalid interview mode' })
+  }
+
+  const parsedDate = new Date(scheduledAt)
+  if (Number.isNaN(parsedDate.getTime())) {
+    return res.status(400).json({ error: 'Invalid scheduledAt timestamp' })
+  }
+
+  try {
+    const application = await fetchApplicationForInterview(id)
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' })
+    }
+
+    const normalizedTimestamp = parsedDate.toISOString()
+    const { data, error } = await supabaseAdminClient.rpc('manage_application_interview', {
+      p_application_id: id,
+      p_action: 'schedule',
+      p_scheduled_at: normalizedTimestamp,
+      p_mode: mode,
+      p_location: location || null,
+      p_notes: notes || null
+    })
+
+    if (error) {
+      console.error('Schedule interview RPC error:', error)
+      return res.status(400).json({ error: error.message })
+    }
+
+    await logAuditEvent({
+      req,
+      action: 'applications.interview.schedule',
+      actorId: context.user.id,
+      actorEmail: context.user?.email || null,
+      actorRoles: context.roles,
+      targetTable: 'application_interviews',
+      targetId: data?.id || null,
+      metadata: {
+        applicationId: id,
+        scheduledAt: normalizedTimestamp,
+        mode,
+        location: location || null,
+        notes: notes || null
+      }
+    })
+
+    return res.status(200).json({ interview: data })
+  } catch (error) {
+    console.error('Schedule interview error', error)
+    return res.status(500).json({ error: 'Failed to schedule interview' })
+  }
+}
+
+async function rescheduleInterview(req, res, context, id, body) {
+  if (!context.isAdmin) {
+    return res.status(403).json({ error: 'Access denied' })
+  }
+
+  const { scheduledAt, mode, location, notes } = body
+
+  if (!scheduledAt) {
+    return res.status(400).json({ error: 'Scheduled date/time is required' })
+  }
+
+  if (mode && !['in_person', 'virtual', 'phone'].includes(mode)) {
+    return res.status(400).json({ error: 'Invalid interview mode' })
+  }
+
+  const parsedDate = new Date(scheduledAt)
+  if (Number.isNaN(parsedDate.getTime())) {
+    return res.status(400).json({ error: 'Invalid scheduledAt timestamp' })
+  }
+
+  try {
+    const application = await fetchApplicationForInterview(id)
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' })
+    }
+
+    const normalizedTimestamp = parsedDate.toISOString()
+    const { data, error } = await supabaseAdminClient.rpc('manage_application_interview', {
+      p_application_id: id,
+      p_action: 'reschedule',
+      p_scheduled_at: normalizedTimestamp,
+      p_mode: mode || null,
+      p_location: location || null,
+      p_notes: notes || null
+    })
+
+    if (error) {
+      console.error('Reschedule interview RPC error:', error)
+      return res.status(400).json({ error: error.message })
+    }
+
+    await logAuditEvent({
+      req,
+      action: 'applications.interview.reschedule',
+      actorId: context.user.id,
+      actorEmail: context.user?.email || null,
+      actorRoles: context.roles,
+      targetTable: 'application_interviews',
+      targetId: data?.id || null,
+      metadata: {
+        applicationId: id,
+        scheduledAt: normalizedTimestamp,
+        mode: data?.mode || mode || null,
+        location: location || null,
+        notes: notes || null
+      }
+    })
+
+    return res.status(200).json({ interview: data })
+  } catch (error) {
+    console.error('Reschedule interview error', error)
+    return res.status(500).json({ error: 'Failed to reschedule interview' })
+  }
+}
+
+async function cancelInterview(req, res, context, id, body) {
+  if (!context.isAdmin) {
+    return res.status(403).json({ error: 'Access denied' })
+  }
+
+  const { notes } = body
+
+  try {
+    const application = await fetchApplicationForInterview(id)
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' })
+    }
+
+    const { data, error } = await supabaseAdminClient.rpc('manage_application_interview', {
+      p_application_id: id,
+      p_action: 'cancel',
+      p_scheduled_at: null,
+      p_mode: null,
+      p_location: null,
+      p_notes: notes || null
+    })
+
+    if (error) {
+      console.error('Cancel interview RPC error:', error)
+      return res.status(400).json({ error: error.message })
+    }
+
+    await logAuditEvent({
+      req,
+      action: 'applications.interview.cancel',
+      actorId: context.user.id,
+      actorEmail: context.user?.email || null,
+      actorRoles: context.roles,
+      targetTable: 'application_interviews',
+      targetId: data?.id || null,
+      metadata: {
+        applicationId: id,
+        status: data?.status || 'cancelled',
+        notes: notes || null
+      }
+    })
+
+    return res.status(200).json({ interview: data })
+  } catch (error) {
+    console.error('Cancel interview error', error)
+    return res.status(500).json({ error: 'Failed to cancel interview' })
+  }
+}
+
+async function fetchApplicationForInterview(id) {
+  const { data, error } = await supabaseAdminClient
+    .from('applications_new')
+    .select('id, user_id, full_name, email, phone')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return data
 }
 
 async function generateSystemDocument({ applicationId, context, documentType, render }) {

@@ -1,4 +1,4 @@
-import type { Application } from '@/lib/supabase'
+import type { Application, ApplicationInterview } from '@/lib/supabase'
 
 import { apiClient, buildQueryString, QueryParams } from './client'
 
@@ -16,6 +16,33 @@ type ApplicationIncludeOptions = {
 
 type ApplicationPayload = Partial<Application>
 
+export interface ApplicationDetailResponse {
+  application: Application & { interview?: ApplicationInterview | null }
+  documents?: unknown[]
+  grades?: unknown[]
+  statusHistory?: unknown[]
+  interview?: ApplicationInterview | null
+  [key: string]: unknown
+}
+
+type ScheduleInterviewPayload = {
+  scheduledAt: string
+  mode: ApplicationInterview['mode']
+  location?: string
+  notes?: string
+}
+
+type RescheduleInterviewPayload = {
+  scheduledAt: string
+  mode?: ApplicationInterview['mode']
+  location?: string
+  notes?: string
+}
+
+type CancelInterviewPayload = {
+  notes?: string
+}
+
 export const applicationService = {
   list: (params?: QueryParams) =>
     apiClient.request<PaginatedApplicationsResponse>(
@@ -29,7 +56,7 @@ export const applicationService = {
     ),
 
   getById: (id: string, options?: ApplicationIncludeOptions) =>
-    apiClient.request<any>(
+    apiClient.request<ApplicationDetailResponse>(
       `/api/applications/${id}${buildQueryString({ include: options?.include ?? [] })}`
     ),
 
@@ -101,5 +128,56 @@ export const applicationService = {
     apiClient.request<Application>(`/api/applications/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ action: 'generate_finance_receipt' })
-    })
+    }),
+
+  scheduleInterview: async (id: string, payload: ScheduleInterviewPayload) => {
+    const response = await apiClient.request<{ interview: ApplicationInterview }>(
+      `/api/applications/${id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          action: 'schedule_interview',
+          scheduledAt: payload.scheduledAt,
+          mode: payload.mode,
+          location: payload.location,
+          notes: payload.notes
+        })
+      }
+    )
+
+    return response?.interview ?? null
+  },
+
+  rescheduleInterview: async (id: string, payload: RescheduleInterviewPayload) => {
+    const response = await apiClient.request<{ interview: ApplicationInterview }>(
+      `/api/applications/${id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          action: 'reschedule_interview',
+          scheduledAt: payload.scheduledAt,
+          mode: payload.mode,
+          location: payload.location,
+          notes: payload.notes
+        })
+      }
+    )
+
+    return response?.interview ?? null
+  },
+
+  cancelInterview: async (id: string, payload: CancelInterviewPayload = {}) => {
+    const response = await apiClient.request<{ interview: ApplicationInterview }>(
+      `/api/applications/${id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          action: 'cancel_interview',
+          notes: payload.notes
+        })
+      }
+    )
+
+    return response?.interview ?? null
+  }
 }

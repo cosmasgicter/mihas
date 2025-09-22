@@ -45,7 +45,8 @@ export const mockSupabaseClient = {
     from: vi.fn(() => ({
       upload: vi.fn().mockResolvedValue({ data: { path: 'test.pdf' }, error: null })
     }))
-  }
+  },
+  rpc: vi.fn().mockResolvedValue({ data: {}, error: null })
 }
 
 // Mock request/response helpers
