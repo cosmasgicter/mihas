@@ -1,4 +1,6 @@
 const { createClient } = require('@supabase/supabase-js')
+const { retryFetch } = require('./retryFetch')
+require('./dnsConfig')
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL
 const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY
@@ -16,6 +18,14 @@ const clientOptions = {
   auth: {
     persistSession: false,
     autoRefreshToken: false
+  },
+  global: {
+    fetch: (url, options = {}) => {
+      return retryFetch(url, {
+        ...options,
+        timeout: 30000
+      }, 3)
+    }
   }
 }
 
@@ -134,26 +144,31 @@ async function getUserFromRequest(req, { requireAdmin = false } = {}) {
     return { error: 'Invalid authorization header' }
   }
 
-  const { data, error } = await supabaseAdminClient.auth.getUser(token)
-  if (error || !data?.user) {
-    return { error: 'Invalid or expired token' }
-  }
-
-  const user = data.user
-
-  let roles
   try {
-    roles = await resolveRoles(req, user)
-  } catch (rolesError) {
-    return { error: rolesError.message }
-  }
-  const isAdmin = roles.some(role => ADMIN_ROLES.has(role))
+    const { data, error } = await supabaseAdminClient.auth.getUser(token)
+    if (error || !data?.user) {
+      return { error: 'Invalid or expired token' }
+    }
 
-  if (requireAdmin && !isAdmin) {
-    return { error: 'Access denied' }
-  }
+    const user = data.user
 
-  return { user, roles, isAdmin }
+    let roles
+    try {
+      roles = await resolveRoles(req, user)
+    } catch (rolesError) {
+      return { error: rolesError.message }
+    }
+    const isAdmin = roles.some(role => ADMIN_ROLES.has(role))
+
+    if (requireAdmin && !isAdmin) {
+      return { error: 'Access denied' }
+    }
+
+    return { user, roles, isAdmin }
+  } catch (networkError) {
+    console.error('Network error in getUserFromRequest:', networkError)
+    return { error: 'Service temporarily unavailable' }
+  }
 }
 
 async function requireUser(req, options) {
