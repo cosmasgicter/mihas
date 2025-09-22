@@ -1,5 +1,5 @@
 export { useApplicationsData } from './useApplicationsData'
-export { useApplicationFilters } from './useApplicationFilters'
+export { useApplicationFilters, APPLICATION_FILTER_KEYS } from './useApplicationFilters'
 export { useApplicationBulkActions } from './useApplicationBulkActions'
 export { useApplicationDocuments } from './useApplicationDocuments'
 export { useApplicationActions } from './useApplicationActions'

@@ -1,6 +1,7 @@
 import React from 'react'
 import { Input } from '@/components/ui/Input'
 import { Search } from 'lucide-react'
+import type { ApplicationFilters } from '@/hooks/admin/useApplicationFilters'
 
 interface FiltersPanelProps {
   searchTerm: string
@@ -8,7 +9,7 @@ interface FiltersPanelProps {
   paymentFilter: string
   programFilter: string
   institutionFilter: string
-  onFilterChange: (key: string, value: string) => void
+  onFilterChange: (key: keyof ApplicationFilters, value: string) => void
 }
 
 export function FiltersPanel({
