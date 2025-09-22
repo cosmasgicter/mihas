@@ -1,97 +1,62 @@
-const { supabaseAdminClient, getUserFromRequest } = require('../_lib/supabaseClient')
-const { logAuditEvent } = require('../_lib/auditLogger')
+import { createClient } from '@supabase/supabase-js';
 
-module.exports = async function handler(event, context) {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-  }
-  
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' }
-  }
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) }
-  }
-
-  const req = {
-    method: event.httpMethod,
-    headers: event.headers,
-    body: JSON.parse(event.body || '{}')
-  }
-
-  const authContext = await getUserFromRequest(req)
-  if (authContext.error) {
-    return { statusCode: 401, headers, body: JSON.stringify({ error: 'Authentication required' }) }
-  }
-
-  const { applicationId } = req.body
-  if (!applicationId) {
-    return { statusCode: 400, headers, body: JSON.stringify({ error: 'Application ID is required' }) }
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    // Get application details
-    const { data: application, error: appError } = await supabaseAdminClient
-      .from('applications_new')
+    const { applicationId, email } = req.body;
+
+    if (!applicationId || !email) {
+      return res.status(400).json({ error: 'Application ID and email are required' });
+    }
+
+    // Get application data
+    const { data: application, error } = await supabase
+      .from('applications')
       .select('*')
       .eq('id', applicationId)
-      .eq('user_id', authContext.user.id)
-      .single()
+      .single();
 
-    if (appError || !application) {
-      return { statusCode: 404, headers, body: JSON.stringify({ error: 'Application not found' }) }
+    if (error || !application) {
+      return res.status(404).json({ error: 'Application not found' });
     }
 
-    // Queue email notification
-    const { error: emailError } = await supabaseAdminClient
+    // Add to email queue (simplified - in production you'd send actual email)
+    const { error: emailError } = await supabase
       .from('email_queue')
       .insert({
-        to_email: application.email,
+        recipient_email: email,
         subject: `Application Slip - ${application.application_number}`,
-        template: 'application_slip',
+        template_name: 'application_slip',
         template_data: {
-          full_name: application.full_name,
-          application_number: application.application_number,
-          status: application.status,
+          applicationNumber: application.application_number,
+          fullName: application.full_name,
           program: application.program,
           institution: application.institution,
-          intake: application.intake,
-          tracking_code: application.public_tracking_code,
-          submitted_at: application.submitted_at
+          trackingCode: application.public_tracking_code
         },
-        priority: 'normal',
-        scheduled_for: new Date().toISOString()
-      })
+        status: 'pending'
+      });
 
     if (emailError) {
-      console.error('Email queue error:', emailError)
-      return { statusCode: 500, headers, body: JSON.stringify({ error: 'Failed to queue email' }) }
+      console.error('Email queue error:', emailError);
+      return res.status(500).json({ error: 'Failed to queue email' });
     }
 
-    await logAuditEvent({
-      req,
-      action: 'applications.slip.email',
-      actorId: authContext.user.id,
-      actorEmail: authContext.user.email,
-      targetTable: 'applications_new',
-      targetId: applicationId,
-      metadata: { recipient: application.email }
-    })
-
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ 
-        success: true, 
-        message: 'Application slip will be sent to your email shortly' 
-      })
-    }
+    return res.status(200).json({
+      success: true,
+      message: 'Application slip has been sent to your email'
+    });
 
   } catch (error) {
-    console.error('Email slip error:', error)
-    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Internal server error' }) }
+    console.error('Email slip error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

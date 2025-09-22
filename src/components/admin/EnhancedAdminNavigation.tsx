@@ -1,4 +1,19 @@
 import React, { useState } from 'react'
+
+interface SubItem {
+  href: string
+  label: string
+  emoji: string
+}
+
+interface NavigationItem {
+  href?: string
+  label: string
+  icon?: any
+  emoji: string
+  isNew?: boolean
+  subItems?: SubItem[]
+}
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
@@ -21,6 +36,7 @@ import {
   Shield,
   BarChart3,
   ChevronRight,
+  ChevronDown,
   Activity,
   Brain,
   Zap,
@@ -35,25 +51,58 @@ export function EnhancedAdminNavigation() {
   const navigate = useNavigate()
   const location = useLocation()
   const [isOpen, setIsOpen] = useState(false)
+  const [expandedMenus, setExpandedMenus] = useState<string[]>([])
 
   const toggleMenu = () => setIsOpen(!isOpen)
   const closeMenu = () => setIsOpen(false)
+  
+  const toggleSubMenu = (label: string) => {
+    setExpandedMenus(prev => 
+      prev.includes(label) 
+        ? prev.filter(item => item !== label)
+        : [...prev, label]
+    )
+  }
 
   const handleSignOut = async () => {
     await signOut()
     navigate('/')
   }
 
-  const navigationItems = [
+  const navigationItems: NavigationItem[] = [
     { href: '/admin', label: 'Dashboard', icon: Home, emoji: '🏠' },
-    { href: '/admin/applications', label: 'Applications', icon: FileText, emoji: '📋' },
+    { 
+      label: 'Applications', 
+      icon: FileText, 
+      emoji: '📋',
+      subItems: [
+        { href: '/admin/applications', label: 'All Applications', emoji: '📄' },
+        { href: '/admin/applications/pending', label: 'Pending Review', emoji: '⏳' },
+        { href: '/admin/applications/approved', label: 'Approved', emoji: '✅' }
+      ]
+    },
     { href: '/admin/ai-insights', label: 'AI Insights', icon: Brain, emoji: '🤖', isNew: true },
-    { href: '/admin/programs', label: 'Programs', icon: GraduationCap, emoji: '🎓' },
-    { href: '/admin/intakes', label: 'Intakes', icon: Calendar, emoji: '📅' },
-    { href: '/admin/users', label: 'Users', icon: Users, emoji: '👥' },
-    { href: '/admin/analytics', label: 'Analytics', icon: BarChart3, emoji: '📊' },
+    { 
+      label: 'Academic', 
+      icon: GraduationCap, 
+      emoji: '🎓',
+      subItems: [
+        { href: '/admin/programs', label: 'Programs', emoji: '📚' },
+        { href: '/admin/intakes', label: 'Intakes', emoji: '📅' },
+        { href: '/admin/subjects', label: 'Subjects', emoji: '📖' }
+      ]
+    },
+    { 
+      label: 'Management', 
+      icon: Users, 
+      emoji: '👥',
+      subItems: [
+        { href: '/admin/users', label: 'Users', emoji: '👤' },
+        { href: '/admin/analytics', label: 'Analytics', emoji: '📊' },
+        { href: '/admin/audit', label: 'Audit Trail', emoji: '🛡️' }
+      ]
+    },
     { href: '/admin/workflow', label: 'Automation', icon: Zap, emoji: '⚡', isNew: true },
-    { href: '/admin/audit', label: 'Audit trail', icon: Activity, emoji: '🛡️' },
     { href: '/admin/settings', label: 'Settings', icon: Settings, emoji: '⚙️' },
   ]
 
@@ -237,48 +286,107 @@ export function EnhancedAdminNavigation() {
                 <div className="flex flex-col flex-1 overflow-hidden">
                   <div className="flex flex-col space-y-2 p-6 flex-1 overflow-y-auto">
                     {navigationItems.map((item, index) => {
-                      const isActive = isActiveRoute(item.href)
+                      const hasSubItems = 'subItems' in item
+                      const isExpanded = expandedMenus.includes(item.label)
+                      const isActive = hasSubItems ? false : isActiveRoute(item.href!)
+                      
                       return (
                         <motion.div
-                          key={item.href}
+                          key={item.label}
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.1 }}
                         >
-                          <Link 
-                            to={item.href}
-                            onClick={closeMenu}
-                            className={`relative mobile-nav-item mobile-nav-focus transition-all duration-300 ${
-                              isActive 
-                                ? "bg-gradient-to-r from-primary to-secondary text-white shadow-lg" 
-                                : "text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-gray-300"
-                            } ${item.isNew ? 'ring-2 ring-purple-200' : ''}`}
-                          >
-                            <div className="flex items-center justify-between w-full">
-                              <div className="flex items-center space-x-3">
-                                <span className="text-xl">{item.emoji}</span>
-                                <div>
-                                  <div className="flex items-center space-x-2">
+                          {hasSubItems ? (
+                            <>
+                              <button
+                                onClick={() => toggleSubMenu(item.label)}
+                                className={`relative mobile-nav-item mobile-nav-focus transition-all duration-300 w-full text-left ${
+                                  isExpanded
+                                    ? "bg-gray-100 text-gray-900 border border-gray-300" 
+                                    : "text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-gray-300"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between w-full">
+                                  <div className="flex items-center space-x-3">
+                                    <span className="text-lg">{item.emoji}</span>
                                     <span className="mobile-nav-text">{item.label}</span>
-                                    {item.isNew && (
-                                      <span className="bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full font-bold animate-pulse">
-                                        NEW
-                                      </span>
+                                  </div>
+                                  <ChevronDown className={`h-4 w-4 transition-transform ${
+                                    isExpanded ? "rotate-180" : ""
+                                  }`} />
+                                </div>
+                              </button>
+                              
+                              <AnimatePresence>
+                                {isExpanded && (
+                                  <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="overflow-hidden ml-4 space-y-1"
+                                  >
+                                    {item.subItems.map((subItem) => {
+                                      const subIsActive = isActiveRoute(subItem.href)
+                                      return (
+                                        <Link
+                                          key={subItem.href}
+                                          to={subItem.href}
+                                          onClick={closeMenu}
+                                          className={`mobile-nav-item mobile-nav-focus transition-all duration-300 text-sm ${
+                                            subIsActive
+                                              ? "bg-gradient-to-r from-primary to-secondary text-white shadow-lg"
+                                              : "text-gray-600 hover:bg-gray-50 border border-gray-100 hover:border-gray-200"
+                                          }`}
+                                        >
+                                          <div className="flex items-center space-x-2">
+                                            <span className="text-sm">{subItem.emoji}</span>
+                                            <span className="mobile-nav-text">{subItem.label}</span>
+                                          </div>
+                                        </Link>
+                                      )
+                                    })}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </>
+                          ) : (
+                            <Link 
+                              to={item.href!}
+                              onClick={closeMenu}
+                              className={`relative mobile-nav-item mobile-nav-focus transition-all duration-300 ${
+                                isActive 
+                                  ? "bg-gradient-to-r from-primary to-secondary text-white shadow-lg" 
+                                  : "text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-gray-300"
+                              } ${item.isNew ? 'ring-2 ring-purple-200' : ''}`}
+                            >
+                              <div className="flex items-center justify-between w-full">
+                                <div className="flex items-center space-x-3">
+                                  <span className="text-lg">{item.emoji}</span>
+                                  <div>
+                                    <div className="flex items-center space-x-2">
+                                      <span className="mobile-nav-text">{item.label}</span>
+                                      {item.isNew && (
+                                        <span className="bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold animate-pulse">
+                                          NEW
+                                        </span>
+                                      )}
+                                    </div>
+                                    {isActive && (
+                                      <div className="text-xs text-white/80 mt-1">Current Page</div>
                                     )}
                                   </div>
-                                  {isActive && (
-                                    <div className="text-xs text-white/80 mt-1">Current Page</div>
-                                  )}
                                 </div>
+                                <ChevronRight className={`h-4 w-4 transition-colors ${
+                                  isActive ? "text-white/80" : "text-gray-400"
+                                }`} />
                               </div>
-                              <ChevronRight className={`h-5 w-5 transition-colors ${
-                                isActive ? "text-white/80" : "text-gray-400"
-                              }`} />
-                            </div>
-                          </Link>
+                            </Link>
+                          )}
                         </motion.div>
                       )
-                    })}
+                    })
 
                     {/* Role Badge */}
                     <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200">

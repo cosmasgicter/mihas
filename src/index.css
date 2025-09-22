@@ -660,20 +660,20 @@ img {
 }
 
 .mobile-nav-item {
-  min-height: 64px;
+  min-height: 40px;
   min-width: 100%;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 1.5rem 2rem;
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1.5;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.3;
   text-decoration: none;
-  border-radius: 1rem;
+  border-radius: 0.5rem;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   -webkit-tap-highlight-color: transparent;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .mobile-nav-item:active {
@@ -875,11 +875,11 @@ img {
   
   /* Improve text legibility on mobile */
   .mobile-nav-text {
-    font-size: 1.25rem;
-    line-height: 1.6;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    font-size: 0.875rem;
+    line-height: 1.3;
+    font-weight: 500;
+    letter-spacing: 0.025em;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
   }
   
   /* High contrast backgrounds for mobile */
@@ -959,7 +959,7 @@ img {
     text-rendering: optimizeLegibility;
     
     /* Improved spacing for readability */
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.25rem;
     
     /* Solid background for better visibility */
     background: rgba(17, 24, 39, 0.95) !important;
