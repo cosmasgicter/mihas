@@ -1,4 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { AdminNavigation } from '@/components/ui/AdminNavigation'
 import {
@@ -8,7 +9,7 @@ import {
   ApplicationsSkeleton,
   ApplicationDetailModal
 } from '@/components/admin/applications'
-import { useApplicationsData, useApplicationFilters } from '@/hooks/admin'
+import { APPLICATION_FILTER_KEYS, useApplicationsData, useApplicationFilters } from '@/hooks/admin'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { supabase } from '@/lib/supabase'
@@ -74,6 +75,69 @@ export default function Applications() {
     filters,
     updateFilter
   } = useApplicationFilters()
+
+  const [searchParams, setSearchParams] = useSearchParams()
+  const searchParamsString = searchParams.toString()
+
+  const filtersRef = useRef(filters)
+  const hasProcessedSearchParamsRef = useRef(false)
+
+  useEffect(() => {
+    filtersRef.current = filters
+  }, [filters])
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParamsString)
+    const hasRelevantParams = APPLICATION_FILTER_KEYS.some(key => params.has(key))
+
+    if (!hasProcessedSearchParamsRef.current && !hasRelevantParams) {
+      hasProcessedSearchParamsRef.current = true
+      return
+    }
+
+    const updates: Array<[keyof typeof filters, string]> = []
+
+    APPLICATION_FILTER_KEYS.forEach(key => {
+      const value = params.get(key) ?? ''
+      if (value !== filtersRef.current[key]) {
+        updates.push([key, value])
+      }
+    })
+
+    if (updates.length > 0) {
+      updates.forEach(([key, value]) => {
+        updateFilter(key, value)
+      })
+    }
+
+    hasProcessedSearchParamsRef.current = true
+  }, [searchParamsString, updateFilter])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const params = new URLSearchParams(window.location.search)
+    let changed = false
+
+    APPLICATION_FILTER_KEYS.forEach(key => {
+      const value = filters[key]
+      if (value) {
+        if (params.get(key) !== value) {
+          params.set(key, value)
+          changed = true
+        }
+      } else if (params.has(key)) {
+        params.delete(key)
+        changed = true
+      }
+    })
+
+    if (changed) {
+      setSearchParams(params, { replace: true })
+    }
+  }, [filters, setSearchParams])
 
   const {
     applications,
