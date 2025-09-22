@@ -126,9 +126,14 @@ async function handler(req, res) {
       const from = pageNumber * pageSizeNumber
       const to = from + pageSizeNumber - 1
 
+      const userId = authContext.user?.id
+      const isAdmin = Boolean(authContext.isAdmin)
+      const mineRequested = parseBoolean(mine)
+      const shouldFilterByUser = Boolean(userId) && (!isAdmin || mineRequested)
+
       const filterOptions = {
-        userId: authContext.user?.id,
-        mine: parseBoolean(mine),
+        userId,
+        mine: shouldFilterByUser,
         status,
         search,
         program,

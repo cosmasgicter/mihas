@@ -28,6 +28,24 @@ beforeEach(async () => {
 
 describe('Applications API', () => {
   describe('GET /api/applications', () => {
+    it('restricts non-admin requests to their own applications by default', async () => {
+      const dataBuilder = createMockQueryBuilder()
+      dataBuilder.execute.mockResolvedValue({ data: [], error: null, count: 0 })
+
+      mockSupabaseClient.from
+        .mockImplementationOnce(() => dataBuilder)
+
+      const req = createMockReq({
+        method: 'GET'
+      })
+      const res = createMockRes()
+
+      await handler(req, res)
+
+      expect(res.statusCode).toBe(200)
+      expect(dataBuilder.eq).toHaveBeenCalledWith('user_id', '123')
+    })
+
     it('applies filters and pagination', async () => {
       const dataBuilder = createMockQueryBuilder()
       dataBuilder.execute.mockResolvedValue({
@@ -98,6 +116,26 @@ describe('Applications API', () => {
       await handler(req, res)
 
       expect(dataBuilder.order).toHaveBeenCalledWith('full_name', { ascending: true })
+    })
+
+    it('allows admins to fetch all applications without mine flag', async () => {
+      const dataBuilder = createMockQueryBuilder()
+      dataBuilder.execute.mockResolvedValue({ data: [], error: null, count: 0 })
+
+      mockSupabaseClient.from
+        .mockImplementationOnce(() => dataBuilder)
+
+      mockGetUser.mockResolvedValueOnce({ user: { id: 'admin-1' }, roles: ['admin'], isAdmin: true })
+
+      const req = createMockReq({
+        method: 'GET'
+      })
+      const res = createMockRes()
+
+      await handler(req, res)
+
+      expect(res.statusCode).toBe(200)
+      expect(dataBuilder.eq).not.toHaveBeenCalledWith('user_id', 'admin-1')
     })
 
     it('includes status breakdown when requested', async () => {
