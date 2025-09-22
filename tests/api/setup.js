@@ -1,30 +1,45 @@
 import { vi } from 'vitest'
 
 // Mock Supabase client
-const createMockQueryBuilder = () => {
-  const mockResolvedValue = vi.fn().mockResolvedValue({ data: [], error: null })
-  
-  return {
-    select: vi.fn(() => ({ mockResolvedValue })),
-    insert: vi.fn(() => ({ mockResolvedValue })),
-    update: vi.fn(() => ({ mockResolvedValue })),
-    delete: vi.fn(() => ({ mockResolvedValue })),
-    eq: vi.fn().mockReturnThis(),
-    gte: vi.fn().mockReturnThis(),
-    lte: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue({ data: {}, error: null }),
-    then: vi.fn().mockResolvedValue({ data: [], error: null }),
-    mockResolvedValue
-  }
+export const createMockQueryBuilder = () => {
+  const builder = {}
+
+  builder.execute = vi.fn().mockResolvedValue({ data: [], error: null, count: 0 })
+  builder.select = vi.fn(() => builder)
+  builder.insert = vi.fn(() => builder)
+  builder.update = vi.fn(() => builder)
+  builder.delete = vi.fn(() => builder)
+  builder.eq = vi.fn(() => builder)
+  builder.gte = vi.fn(() => builder)
+  builder.lte = vi.fn(() => builder)
+  builder.or = vi.fn(() => builder)
+  builder.ilike = vi.fn(() => builder)
+  builder.in = vi.fn(() => builder)
+  builder.order = vi.fn(() => builder)
+  builder.range = vi.fn(() => builder)
+  builder.limit = vi.fn(() => builder)
+  builder.single = vi.fn().mockResolvedValue({ data: {}, error: null })
+  builder.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
+  builder.mockResolvedValue = vi.fn((value) => {
+    builder.execute.mockResolvedValue(value)
+    return builder
+  })
+  builder.mockResolvedValueOnce = vi.fn((value) => {
+    builder.execute.mockResolvedValueOnce(value)
+    return builder
+  })
+  builder.then = vi.fn((onFulfilled, onRejected) => builder.execute().then(onFulfilled, onRejected))
+  builder.catch = vi.fn((onRejected) => builder.execute().catch(onRejected))
+
+  return builder
 }
 
 export const mockSupabaseClient = {
   from: vi.fn(() => createMockQueryBuilder()),
   auth: {
     signUp: vi.fn().mockResolvedValue({ data: { user: { id: '123' } }, error: null }),
-    signInWithPassword: vi.fn().mockResolvedValue({ data: { user: { id: '123' } }, error: null })
+    signInWithPassword: vi.fn().mockResolvedValue({ data: { user: { id: '123' } }, error: null }),
+    getUser: vi.fn().mockResolvedValue({ data: { user: { id: '123' } }, error: null })
   },
   storage: {
     from: vi.fn(() => ({

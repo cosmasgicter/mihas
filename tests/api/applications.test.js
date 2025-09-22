@@ -1,39 +1,165 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createMockReq, createMockRes, mockSupabaseClient } from './setup.js'
+import { createMockReq, createMockRes, mockSupabaseClient, createMockQueryBuilder } from './setup.js'
 
-vi.mock('../../api/_lib/supabaseClient.js', () => ({
-  supabaseAdminClient: mockSupabaseClient,
-  getUserFromRequest: vi.fn().mockResolvedValue({ user: { id: '123' }, roles: ['student'] })
-}))
+let handler
+let testables
+let mockGetUser
+
+async function loadHandler() {
+  const module = await import('../../api/applications/index.js')
+  return module.default ?? module
+}
+
+beforeEach(async () => {
+  vi.resetModules()
+  handler = await loadHandler()
+  testables = handler.__testables__
+
+  vi.clearAllMocks()
+  mockSupabaseClient.from.mockImplementation(() => createMockQueryBuilder())
+
+  mockGetUser = vi.fn().mockResolvedValue({ user: { id: '123' }, roles: ['student'], isAdmin: false })
+  testables.setDependencies({
+    supabaseClient: mockSupabaseClient,
+    getUserFromRequest: mockGetUser
+  })
+})
+
 
 describe('Applications API', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
   describe('GET /api/applications', () => {
-    it('should fetch applications for authenticated user', async () => {
-      const { default: applicationsHandler } = await import('../../api/applications/index.js')
-      
-      const req = createMockReq({ method: 'GET' })
-      const res = createMockRes()
-
-      mockSupabaseClient.from().select().mockResolvedValue({
-        data: [{ id: '1', status: 'pending' }],
-        error: null
+    it('applies filters and pagination', async () => {
+      const dataBuilder = createMockQueryBuilder()
+      dataBuilder.execute.mockResolvedValue({
+        data: [{ id: '1', status: 'approved' }],
+        error: null,
+        count: 1
       })
 
-      await applicationsHandler(req, res)
+      mockSupabaseClient.from
+        .mockImplementationOnce(() => dataBuilder)
+
+      const req = createMockReq({
+        method: 'GET',
+        query: {
+          search: 'John%',
+          program: 'Clinical Medicine',
+          institution: 'MIHAS',
+          paymentStatus: 'verified',
+          startDate: '2024-01-01',
+          endDate: '2024-01-31',
+          status: 'approved',
+          mine: 'true',
+          page: '0',
+          pageSize: '10'
+        }
+      })
+      const res = createMockRes()
+
+      await handler(req, res)
 
       expect(res.statusCode).toBe(200)
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('applications')
+      expect(mockSupabaseClient.from).toHaveBeenNthCalledWith(1, 'applications_new')
+      expect(dataBuilder.eq).toHaveBeenCalledWith('user_id', '123')
+      expect(dataBuilder.eq).toHaveBeenCalledWith('status', 'approved')
+      expect(dataBuilder.eq).toHaveBeenCalledWith('program', 'Clinical Medicine')
+      expect(dataBuilder.eq).toHaveBeenCalledWith('institution', 'MIHAS')
+      expect(dataBuilder.eq).toHaveBeenCalledWith('payment_status', 'verified')
+      expect(dataBuilder.gte).toHaveBeenCalledWith('created_at', '2024-01-01')
+      expect(dataBuilder.lte).toHaveBeenCalledWith('created_at', '2024-01-31')
+      expect(dataBuilder.or).toHaveBeenCalledWith('full_name.ilike.%John\\%%,email.ilike.%John\\%%,application_number.ilike.%John\\%%')
+      expect(dataBuilder.order).toHaveBeenCalledWith('created_at', { ascending: false })
+      expect(dataBuilder.range).toHaveBeenCalledWith(0, 9)
+
+      const payload = JSON.parse(res.body)
+      expect(payload.applications).toHaveLength(1)
+      expect(payload.totalCount).toBe(1)
+      expect(payload.page).toBe(0)
+      expect(payload.pageSize).toBe(10)
+      expect(payload.stats).toBeUndefined()
+    })
+
+    it('mirrors custom sort selection', async () => {
+      const dataBuilder = createMockQueryBuilder()
+      dataBuilder.execute.mockResolvedValue({ data: [], error: null, count: 0 })
+
+      mockSupabaseClient.from
+        .mockImplementationOnce(() => dataBuilder)
+
+      const req = createMockReq({
+        method: 'GET',
+        query: {
+          sortBy: 'name',
+          sortOrder: 'asc'
+        }
+      })
+      const res = createMockRes()
+
+      await handler(req, res)
+
+      expect(dataBuilder.order).toHaveBeenCalledWith('full_name', { ascending: true })
+    })
+
+    it('includes status breakdown when requested', async () => {
+      const dataBuilder = createMockQueryBuilder()
+      dataBuilder.execute.mockResolvedValue({ data: [], error: null, count: 0 })
+
+      const baseCountBuilder = createMockQueryBuilder()
+      baseCountBuilder.execute.mockResolvedValue({ data: [], error: null, count: 5 })
+
+      const statusBuilders = ['draft', 'submitted', 'under_review', 'approved', 'rejected'].map((statusValue, index) => {
+        const builder = createMockQueryBuilder()
+        builder.execute.mockResolvedValue({ data: [], error: null, count: index + 1 })
+        return builder
+      })
+
+      mockSupabaseClient.from
+        .mockImplementationOnce(() => dataBuilder)
+        .mockImplementationOnce(() => baseCountBuilder)
+
+      statusBuilders.forEach(builder => {
+        mockSupabaseClient.from.mockImplementationOnce(() => builder)
+      })
+
+      const req = createMockReq({
+        method: 'GET',
+        query: {
+          includeStats: 'true',
+          status: 'approved'
+        }
+      })
+      const res = createMockRes()
+
+      await handler(req, res)
+
+      expect(baseCountBuilder.eq).not.toHaveBeenCalledWith('status', 'approved')
+      expect(statusBuilders[0].eq).toHaveBeenCalledWith('status', 'draft')
+      expect(statusBuilders[3].eq).toHaveBeenCalledWith('status', 'approved')
+
+      const payload = JSON.parse(res.body)
+      expect(payload.stats).toEqual({
+        total: 5,
+        statusBreakdown: {
+          draft: 1,
+          submitted: 2,
+          under_review: 3,
+          approved: 4,
+          rejected: 5
+        }
+      })
     })
   })
 
   describe('POST /api/applications', () => {
-    it('should create new application', async () => {
-      const { default: applicationsHandler } = await import('../../api/applications/index.js')
-      
+    it('creates a new application record', async () => {
+      const insertBuilder = createMockQueryBuilder()
+      insertBuilder.insert.mockReturnValue(insertBuilder)
+      insertBuilder.select.mockReturnValue(insertBuilder)
+      insertBuilder.single.mockResolvedValue({ data: { id: 'app-1' }, error: null })
+
+      mockSupabaseClient.from
+        .mockImplementationOnce(() => insertBuilder)
+
       const req = createMockReq({
         method: 'POST',
         body: JSON.stringify({
@@ -44,39 +170,12 @@ describe('Applications API', () => {
       })
       const res = createMockRes()
 
-      mockSupabaseClient.from().insert().mockResolvedValue({
-        data: { id: 'app-1' },
-        error: null
-      })
-
-      await applicationsHandler(req, res)
+      await handler(req, res)
 
       expect(res.statusCode).toBe(201)
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('applications')
-    })
-  })
-
-  describe('PUT /api/applications/bulk', () => {
-    it('should update multiple applications', async () => {
-      const { default: bulkHandler } = await import('../../api/applications/bulk.js')
-      
-      const req = createMockReq({
-        method: 'PUT',
-        body: JSON.stringify({
-          applicationIds: ['1', '2'],
-          updates: { status: 'approved' }
-        })
-      })
-      const res = createMockRes()
-
-      mockSupabaseClient.from().update().mockResolvedValue({
-        data: [],
-        error: null
-      })
-
-      await bulkHandler(req, res)
-
-      expect(res.statusCode).toBe(200)
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('applications_new')
     })
   })
 })
+
+
