@@ -1,10 +1,19 @@
 const handler = require('../../api/auth/login.js')
 
 exports.handler = async (event, context) => {
+  let body = event.body
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body)
+    } catch (e) {
+      body = {}
+    }
+  }
+
   const req = {
     method: event.httpMethod,
     query: event.queryStringParameters || {},
-    body: event.body,
+    body: body,
     headers: event.headers,
     params: event.pathParameters || {}
   }

@@ -148,7 +148,7 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
 
             {/* Mobile Menu Button */}
             <motion.button
-              className="lg:hidden p-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 touch-target"
+              className="lg:hidden p-3 rounded-xl bg-gray-900 hover:bg-gray-800 text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 touch-target border-2 border-gray-600 hover:border-gray-500 shadow-lg z-50"
               onClick={toggleMenu}
               whileTap={{ scale: 0.95 }}
               aria-label={isOpen ? "Close menu" : "Open menu"}
@@ -273,17 +273,7 @@ export function AuthenticatedNavigation({ className }: AuthenticatedNavigationPr
                   </div>
                 </div>
 
-                {/* Footer - Only show if logout button is not already shown */}
-                <div className="p-6 border-t border-gray-200/70 bg-gray-50/80 backdrop-blur-sm">
-                  <div className="text-center">
-                    <p className="text-sm font-medium text-gray-700 mb-1">
-                      MIHAS-KATC Student Portal
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Your Academic Journey Starts Here
-                    </p>
-                  </div>
-                </div>
+
               </div>
             </motion.div>
           </>

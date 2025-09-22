@@ -86,7 +86,7 @@ export function useSessionListener() {
 
   const signIn = useCallback(async (email: string, password: string): Promise<SignInResult> => {
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('http://localhost:8888/.netlify/functions/auth-login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -115,7 +115,7 @@ export function useSessionListener() {
 
   const signUp = useCallback(async (email: string, password: string, userData: any): Promise<SignUpResult> => {
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch('http://localhost:8888/.netlify/functions/auth-register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

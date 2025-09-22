@@ -174,7 +174,7 @@ export function AdminNavigation({ className }: AdminNavigationProps) {
 
           {/* Mobile Menu Button */}
           <motion.button
-            className="lg:hidden p-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 touch-target"
+            className="lg:hidden p-3 rounded-xl bg-gray-900 hover:bg-gray-800 text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 touch-target border-2 border-gray-600 hover:border-gray-500 shadow-lg z-50"
             onClick={toggleMenu}
             whileTap={{ scale: 0.95 }}
             aria-label={isOpen ? "Close menu" : "Open menu"}
