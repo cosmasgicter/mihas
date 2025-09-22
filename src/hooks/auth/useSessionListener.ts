@@ -86,54 +86,57 @@ export function useSessionListener() {
 
   const signIn = useCallback(async (email: string, password: string): Promise<SignInResult> => {
     try {
-      console.log('Attempting sign in for:', sanitizeForLog(email))
-      const supabase = getSupabaseClient()
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
       })
 
-      if (error) {
-        console.error('Sign in error:', sanitizeForLog(error.message))
-        return { error: error.message }
+      const result = await response.json()
+
+      if (!response.ok) {
+        return { error: result.error || 'Login failed' }
       }
 
-      if (data.session && data.user) {
-        setUser(data.user)
-        return { session: data.session, user: data.user }
+      if (result.session && result.user) {
+        const supabase = getSupabaseClient()
+        await supabase.auth.setSession(result.session)
+        setUser(result.user)
+        return { session: result.session, user: result.user }
       }
 
       return { error: 'Login failed' }
     } catch (error) {
-      console.error('Sign in exception:', error)
       return { error: error instanceof Error ? error.message : 'Login failed' }
     }
   }, [])
 
   const signUp = useCallback(async (email: string, password: string, userData: any): Promise<SignUpResult> => {
-    const sanitizedUserData = Object.entries(userData || {}).reduce((acc, [key, value]) => {
-      acc[key] = typeof value === 'string' ? secureDisplay.text(value) : value
-      return acc
-    }, {} as any)
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          fullName: userData.full_name
+        })
+      })
 
-    const supabase = getSupabaseClient()
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: sanitizeForDisplay(sanitizedUserData.full_name || email.split('@')[0]),
-          sex: sanitizedUserData.sex,
-          signup_data: JSON.stringify(sanitizedUserData)
-        }
+      const result = await response.json()
+
+      if (!response.ok) {
+        return { error: result.error || 'Registration failed' }
       }
-    })
 
-    if (error) {
-      return { error: error.message }
+      return { user: result.user, session: result.session }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Registration failed' }
     }
-
-    return data
   }, [])
 
   const signOut = useCallback(async () => {

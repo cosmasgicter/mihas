@@ -106,9 +106,28 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
               </Button>
             </Link>
           </NavigationMenu.Item>
-          {user ? (
+          <NavigationMenu.Item>
+            <Link to="/auth/signin">
+              <Button 
+                variant="gradient" 
+                size="md" 
+                magnetic 
+                className="bg-gradient-to-r from-white/30 to-white/40 border-2 border-white/70 text-white hover:from-white hover:to-white hover:text-primary font-bold backdrop-blur-sm shadow-lg"
+              >
+                Sign In
+              </Button>
+            </Link>
+          </NavigationMenu.Item>
+          <NavigationMenu.Item>
+            <Link to="/auth/signup">
+              <Button variant="gradient" size="md" magnetic glow className="font-semibold">
+                Sign Up
+              </Button>
+            </Link>
+          </NavigationMenu.Item>
+          {user && (
             <NavigationMenu.Item>
-              <Link to="/dashboard">
+              <Link to="/student/dashboard">
                 <Button 
                   variant="gradient" 
                   size="md" 
@@ -121,28 +140,6 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
                 </Button>
               </Link>
             </NavigationMenu.Item>
-          ) : (
-            <>
-              <NavigationMenu.Item>
-                <Link to="/auth/signin">
-                  <Button 
-                    variant="gradient" 
-                    size="md" 
-                    magnetic 
-                    className="bg-gradient-to-r from-white/30 to-white/40 border-2 border-white/70 text-white hover:from-white hover:to-white hover:text-primary font-bold backdrop-blur-sm shadow-lg"
-                  >
-                    Sign In
-                  </Button>
-                </Link>
-              </NavigationMenu.Item>
-              <NavigationMenu.Item>
-                <Link to="/auth/signup">
-                  <Button variant="gradient" size="md" magnetic glow className="font-semibold">
-                    Apply Now
-                  </Button>
-                </Link>
-              </NavigationMenu.Item>
-            </>
           )}
         </NavigationMenu.List>
 
@@ -229,6 +226,22 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
                         animate="open"
                       >
                         <Link 
+                          to="/"
+                          onClick={closeMenu}
+                          className="mobile-nav-item mobile-nav-focus nav-item text-white font-bold shadow-lg hover:shadow-xl"
+                        >
+                          <span className="mobile-nav-text text-white">Home</span>
+                        </Link>
+                      </motion.div>
+                    </NavigationMenu.Item>
+                    <NavigationMenu.Item>
+                      <motion.div
+                        variants={itemVariants}
+                        custom={1}
+                        initial="closed"
+                        animate="open"
+                      >
+                        <Link 
                           to="/track-application"
                           onClick={closeMenu}
                           className="mobile-nav-item mobile-nav-focus nav-item text-white font-bold shadow-lg hover:shadow-xl"
@@ -238,16 +251,50 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
                       </motion.div>
                     </NavigationMenu.Item>
 
-                    {user ? (
+                    <NavigationMenu.Item>
+                      <motion.div
+                        variants={itemVariants}
+                        custom={2}
+                        initial="closed"
+                        animate="open"
+                      >
+                        <Link 
+                          to="/auth/signin"
+                          onClick={closeMenu}
+                          className="mobile-nav-item mobile-nav-focus nav-item text-white font-bold shadow-lg hover:shadow-xl"
+                        >
+                          <span className="mobile-nav-text text-white">Sign In</span>
+                        </Link>
+                      </motion.div>
+                    </NavigationMenu.Item>
+
+                    <NavigationMenu.Item>
+                      <motion.div
+                        variants={itemVariants}
+                        custom={3}
+                        initial="closed"
+                        animate="open"
+                      >
+                        <Link 
+                          to="/auth/signup"
+                          onClick={closeMenu}
+                          className="mobile-nav-item mobile-nav-focus nav-item bg-primary/30 text-white font-bold shadow-lg hover:shadow-xl"
+                        >
+                          <span className="mobile-nav-text text-white">Sign Up</span>
+                        </Link>
+                      </motion.div>
+                    </NavigationMenu.Item>
+
+                    {user && (
                       <NavigationMenu.Item>
                         <motion.div
                           variants={itemVariants}
-                          custom={1}
+                          custom={4}
                           initial="closed"
                           animate="open"
                         >
                           <Link 
-                            to="/dashboard"
+                            to="/student/dashboard"
                             onClick={closeMenu}
                             className="mobile-nav-item mobile-nav-focus nav-item bg-primary/30 text-white font-bold shadow-lg hover:shadow-xl"
                           >
@@ -256,42 +303,6 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
                           </Link>
                         </motion.div>
                       </NavigationMenu.Item>
-                    ) : (
-                      <>
-                        <NavigationMenu.Item>
-                          <motion.div
-                            variants={itemVariants}
-                            custom={1}
-                            initial="closed"
-                            animate="open"
-                          >
-                            <Link 
-                              to="/auth/signin"
-                              onClick={closeMenu}
-                              className="mobile-nav-item mobile-nav-focus nav-item text-white font-bold shadow-lg hover:shadow-xl"
-                            >
-                              <span className="mobile-nav-text text-white">Sign In</span>
-                            </Link>
-                          </motion.div>
-                        </NavigationMenu.Item>
-
-                        <NavigationMenu.Item>
-                          <motion.div
-                            variants={itemVariants}
-                            custom={2}
-                            initial="closed"
-                            animate="open"
-                          >
-                            <Link 
-                              to="/auth/signup"
-                              onClick={closeMenu}
-                              className="mobile-nav-item mobile-nav-focus nav-item bg-primary/30 text-white font-bold shadow-lg hover:shadow-xl"
-                            >
-                              <span className="mobile-nav-text text-white">Apply Now</span>
-                            </Link>
-                          </motion.div>
-                        </NavigationMenu.Item>
-                      </>
                     )}
                   </NavigationMenu.List>
 
@@ -304,7 +315,7 @@ export function MobileNavigation({ className }: MobileNavigationProps) {
                           handleSignOut()
                         }}
                         variants={itemVariants}
-                        custom={3}
+                        custom={5}
                         initial="closed"
                         animate="open"
                         className="w-full flex items-center justify-center space-x-3 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-xl transition-all duration-200 font-medium"

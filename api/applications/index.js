@@ -91,7 +91,7 @@ async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 
-  if (req.method === 'OPTIONS') {
+  if (req.method === 'OPTIONS' || req.method === 'HEAD') {
     return res.status(200).end()
   }
 
@@ -298,7 +298,7 @@ async function handler(req, res) {
     }
   }
 
-  res.setHeader('Allow', 'GET,POST,PUT')
+  res.setHeader('Allow', 'GET,POST,PUT,HEAD,OPTIONS')
   return res.status(405).json({ error: 'Method not allowed' })
 }
 
