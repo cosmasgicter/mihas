@@ -6,7 +6,7 @@ import { ApplicationSlipActions } from '@/components/student/ApplicationSlipActi
 import { Button } from '@/components/ui/Button'
 import { formatDate, getStatusColor } from '@/lib/utils'
 import { applicationService } from '@/services/applications'
-import type { Application } from '@/lib/supabase'
+import type { ApplicationDetailResponse } from '@/services/applications'
 import { 
   ArrowLeft, 
   Calendar, 
@@ -23,9 +23,11 @@ import {
   AlertCircle
 } from 'lucide-react'
 
+type ApplicationRecord = ApplicationDetailResponse['application']
+
 export default function ApplicationDetail() {
   const { id } = useParams<{ id: string }>()
-  const [application, setApplication] = useState<Application | null>(null)
+  const [application, setApplication] = useState<ApplicationRecord | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -38,8 +40,23 @@ export default function ApplicationDetail() {
   const loadApplication = async () => {
     try {
       setLoading(true)
+      setError('')
+
       const response = await applicationService.getById(id!)
-      setApplication(response)
+      const normalizedResponse = response as ApplicationDetailResponse & {
+        data?: ApplicationRecord | null
+      }
+
+      const applicationRecord =
+        normalizedResponse?.application ?? normalizedResponse?.data ?? null
+
+      if (!applicationRecord) {
+        setApplication(null)
+        setError('Application not found')
+        return
+      }
+
+      setApplication(applicationRecord)
     } catch (error) {
       console.error('Error loading application:', error)
       setError('Failed to load application details')
