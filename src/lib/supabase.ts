@@ -348,10 +348,27 @@ export interface ApplicationDocument {
   updated_at: string
 }
 
+export interface ApplicationInterview {
+  id: string
+  application_id: string
+  scheduled_at: string
+  interview_date: string
+  interview_time: string
+  mode: 'in_person' | 'virtual' | 'phone'
+  location?: string | null
+  status: 'scheduled' | 'rescheduled' | 'completed' | 'cancelled'
+  notes?: string | null
+  created_by?: string | null
+  updated_by?: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface ApplicationWithDetails extends Application {
   programs?: Program
   intakes?: Intake
   documents?: ApplicationDocument[]
+  interview?: ApplicationInterview | null
 }
 
 export interface Grade12Subject {

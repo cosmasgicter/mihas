@@ -4,6 +4,7 @@ import { formatDate } from '@/lib/utils'
 import { XCircle, User, Clock, CheckCircle, FileText, CreditCard, Mail, Phone, Calendar, MapPin, Users, GraduationCap, Building, AlertCircle, Download, Send, History, Eye } from 'lucide-react'
 import { applicationService } from '@/services/applications'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import type { ApplicationInterview } from '@/lib/supabase'
 
 interface ApplicationWithDetails {
   id: string
@@ -48,6 +49,7 @@ interface ApplicationWithDetails {
   total_subjects?: number
   average_grade?: number
   grades_summary?: string
+  interview?: ApplicationInterview | null
 }
 
 interface StatusHistoryItem {
@@ -87,6 +89,7 @@ interface ApplicationDetailResponse {
   grades?: Grade[]
   statusHistory?: StatusHistoryItem[]
   documents?: DocumentItem[]
+  interview?: ApplicationInterview | null
 }
 
 interface ApplicationDetailModalProps {
@@ -313,9 +316,18 @@ export function ApplicationDetailModal({
 }: ApplicationDetailModalProps) {
   const [isGeneratingAcceptance, setIsGeneratingAcceptance] = useState(false)
   const [isGeneratingFinanceReceipt, setIsGeneratingFinanceReceipt] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'grades' | 'documents' | 'history'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'interview' | 'grades' | 'documents' | 'history'>('overview')
   const [applicationData, setApplicationData] = useState<ApplicationDetailResponse | null>(null)
   const [loading, setLoading] = useState(false)
+  const [isSavingInterview, setIsSavingInterview] = useState(false)
+  const [isCancellingInterview, setIsCancellingInterview] = useState(false)
+  const [interviewNotice, setInterviewNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [interviewForm, setInterviewForm] = useState({
+    scheduledAt: '',
+    mode: 'in_person' as ApplicationInterview['mode'],
+    location: '',
+    notes: ''
+  })
 
   useEffect(() => {
     setIsGeneratingAcceptance(false)
@@ -332,7 +344,7 @@ export function ApplicationDetailModal({
 
   const loadApplicationDetails = async () => {
     if (!application?.id) return
-    
+
     try {
       setLoading(true)
       const response = await applicationService.getById(application.id, { 
@@ -346,10 +358,184 @@ export function ApplicationDetailModal({
         application: application,
         grades: [],
         statusHistory: [],
-        documents: []
+        documents: [],
+        interview: null
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const formatDateTimeLocal = (value?: string | null) => {
+    if (!value) return ''
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) {
+      return ''
+    }
+    return date.toISOString().slice(0, 16)
+  }
+
+  const formatInterviewDateTime = (value?: string | null) => {
+    if (!value) return 'Not scheduled'
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) {
+      return 'Not scheduled'
+    }
+    const datePart = formatDate(date.toISOString())
+    const timePart = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    return `${datePart} • ${timePart}`
+  }
+
+  const formatInterviewModeLabel = (mode?: string | null) => {
+    switch (mode) {
+      case 'in_person':
+        return 'In person'
+      case 'virtual':
+        return 'Virtual'
+      case 'phone':
+        return 'Phone'
+      case undefined:
+      case null:
+        return 'Not specified'
+      default:
+        return mode
+    }
+  }
+
+  const formatInterviewStatus = (status?: string | null) => {
+    if (!status) return 'Not scheduled'
+    return status.replace(/_/g, ' ')
+  }
+
+  useEffect(() => {
+    const currentInterview = applicationData?.interview || applicationData?.application?.interview || null
+
+    if (!currentInterview || currentInterview.status === 'cancelled') {
+      setInterviewForm(prev => ({
+        ...prev,
+        scheduledAt: '',
+        location: '',
+        notes: ''
+      }))
+      return
+    }
+
+    setInterviewForm({
+      scheduledAt: formatDateTimeLocal(currentInterview.scheduled_at),
+      mode: currentInterview.mode,
+      location: currentInterview.location || '',
+      notes: currentInterview.notes || ''
+    })
+  }, [applicationData?.interview, applicationData?.application?.interview])
+
+  const currentInterview = applicationData?.interview || applicationData?.application?.interview || null
+  const hasActiveInterview = Boolean(currentInterview && currentInterview.status !== 'cancelled')
+
+  const handleInterviewFieldChange = (
+    field: 'scheduledAt' | 'mode' | 'location' | 'notes'
+  ) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const value = event.target.value
+    setInterviewForm(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const updateInterviewState = (updatedInterview: ApplicationInterview) => {
+    setApplicationData(prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        interview: updatedInterview,
+        application: {
+          ...prev.application,
+          interview: updatedInterview
+        }
+      }
+    })
+
+    setInterviewForm({
+      scheduledAt: formatDateTimeLocal(updatedInterview.scheduled_at),
+      mode: updatedInterview.mode,
+      location: updatedInterview.location || '',
+      notes: updatedInterview.notes || ''
+    })
+  }
+
+  const handleInterviewSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (!interviewForm.scheduledAt) {
+      setInterviewNotice({ type: 'error', message: 'Please select an interview date and time.' })
+      return
+    }
+
+    try {
+      setIsSavingInterview(true)
+      setInterviewNotice(null)
+
+      const scheduledIso = new Date(interviewForm.scheduledAt)
+      if (Number.isNaN(scheduledIso.getTime())) {
+        throw new Error('Invalid interview date provided.')
+      }
+
+      const payload = {
+        scheduledAt: scheduledIso.toISOString(),
+        mode: interviewForm.mode,
+        location: interviewForm.location.trim() || undefined,
+        notes: interviewForm.notes.trim() || undefined
+      }
+
+      const shouldSchedule = !currentInterview || currentInterview.status === 'cancelled'
+
+      const updatedInterview = shouldSchedule
+        ? await applicationService.scheduleInterview(application.id, payload)
+        : await applicationService.rescheduleInterview(application.id, payload)
+
+      if (!updatedInterview) {
+        throw new Error('No interview data was returned by the server.')
+      }
+
+      updateInterviewState(updatedInterview)
+
+      setInterviewNotice({
+        type: 'success',
+        message: shouldSchedule ? 'Interview scheduled successfully.' : 'Interview updated successfully.'
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to save interview details.'
+      setInterviewNotice({ type: 'error', message })
+    } finally {
+      setIsSavingInterview(false)
+    }
+  }
+
+  const handleInterviewCancel = async () => {
+    if (!currentInterview || currentInterview.status === 'cancelled') {
+      setInterviewNotice({ type: 'error', message: 'No active interview to cancel.' })
+      return
+    }
+
+    try {
+      setIsCancellingInterview(true)
+      setInterviewNotice(null)
+
+      const updatedInterview = await applicationService.cancelInterview(application.id, {
+        notes: interviewForm.notes.trim() || undefined
+      })
+
+      if (!updatedInterview) {
+        throw new Error('Interview cancellation did not return updated details.')
+      }
+
+      updateInterviewState(updatedInterview)
+
+      setInterviewNotice({ type: 'success', message: 'Interview cancelled successfully.' })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to cancel interview.'
+      setInterviewNotice({ type: 'error', message })
+    } finally {
+      setIsCancellingInterview(false)
     }
   }
 
@@ -375,6 +561,7 @@ export function ApplicationDetailModal({
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: User },
+    { id: 'interview', label: 'Interview', icon: Calendar },
     { id: 'grades', label: 'Grades', icon: GraduationCap },
     { id: 'documents', label: 'Documents', icon: FileText },
     { id: 'history', label: 'History', icon: History }
@@ -511,6 +698,26 @@ export function ApplicationDetailModal({
                         </div>
                       </div>
                     </div>
+
+                    {hasActiveInterview && (
+                      <div className="bg-white border border-blue-100 rounded-xl p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <Calendar className="h-10 w-10 text-blue-500" />
+                          <div>
+                            <p className="text-sm text-gray-500">Upcoming interview</p>
+                            <p className="text-base font-semibold text-gray-900">
+                              {formatInterviewDateTime(currentInterview?.scheduled_at)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          <p className="font-medium text-gray-800">
+                            Mode: {formatInterviewModeLabel(currentInterview?.mode)}
+                          </p>
+                          <p>Status: {formatInterviewStatus(currentInterview?.status)}</p>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Personal Information */}
                     <div className="bg-white border border-gray-200 rounded-xl p-6">
@@ -659,9 +866,169 @@ export function ApplicationDetailModal({
                   </div>
                 )}
 
+                {activeTab === 'interview' && (
+                  <div className="space-y-6">
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Calendar className="h-5 w-5 text-blue-600" />
+                        Interview Overview
+                      </h3>
+                      {hasActiveInterview ? (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3">
+                            <Clock className="h-5 w-5 text-blue-500" />
+                            <div>
+                              <p className="text-sm text-gray-500">Scheduled for</p>
+                              <p className="text-base font-medium text-gray-900">
+                                {formatInterviewDateTime(currentInterview?.scheduled_at)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                              <p className="text-sm text-blue-700 uppercase tracking-wide">Mode</p>
+                              <p className="text-lg font-semibold text-blue-900">
+                                {formatInterviewModeLabel(currentInterview?.mode)}
+                              </p>
+                            </div>
+                            <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4">
+                              <p className="text-sm text-indigo-700 uppercase tracking-wide">Status</p>
+                              <p className="text-lg font-semibold text-indigo-900 capitalize">
+                                {formatInterviewStatus(currentInterview?.status)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm font-medium text-gray-600 mb-1">Location / Link</p>
+                              <p className="text-base text-gray-900">
+                                {currentInterview?.location || 'Not provided'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-600 mb-1">Notes</p>
+                              <p className="text-base text-gray-900">
+                                {currentInterview?.notes || 'No additional notes recorded.'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                          <p className="text-base font-medium text-gray-700 mb-1">No interview scheduled yet</p>
+                          <p className="text-sm text-gray-500">
+                            Use the form below to schedule and notify the applicant about their interview.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Users className="h-5 w-5 text-blue-600" />
+                        Manage Interview Schedule
+                      </h3>
+
+                      {interviewNotice && (
+                        <div
+                          className={`p-4 mb-4 rounded-lg border ${
+                            interviewNotice.type === 'success'
+                              ? 'bg-green-50 border-green-200 text-green-800'
+                              : 'bg-red-50 border-red-200 text-red-800'
+                          }`}
+                        >
+                          {interviewNotice.message}
+                        </div>
+                      )}
+
+                      <form onSubmit={event => { void handleInterviewSubmit(event) }} className="space-y-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="interview-scheduled-at">
+                              Interview date &amp; time
+                            </label>
+                            <input
+                              id="interview-scheduled-at"
+                              type="datetime-local"
+                              value={interviewForm.scheduledAt}
+                              onChange={handleInterviewFieldChange('scheduledAt')}
+                              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="interview-mode">
+                              Interview mode
+                            </label>
+                            <select
+                              id="interview-mode"
+                              value={interviewForm.mode}
+                              onChange={handleInterviewFieldChange('mode')}
+                              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                            >
+                              <option value="in_person">In person</option>
+                              <option value="virtual">Virtual</option>
+                              <option value="phone">Phone</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="interview-location">
+                            Location / meeting link
+                          </label>
+                          <input
+                            id="interview-location"
+                            type="text"
+                            value={interviewForm.location}
+                            onChange={handleInterviewFieldChange('location')}
+                            placeholder={interviewForm.mode === 'virtual' ? 'Zoom/Teams link' : 'Campus room or venue'}
+                            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="interview-notes">
+                            Notes for applicant
+                          </label>
+                          <textarea
+                            id="interview-notes"
+                            value={interviewForm.notes}
+                            onChange={handleInterviewFieldChange('notes')}
+                            rows={4}
+                            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                            placeholder="Add preparation details, required documents or virtual meeting instructions"
+                          />
+                        </div>
+
+                        <div className="flex flex-wrap gap-3">
+                          <Button type="submit" loading={isSavingInterview} className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4" />
+                            {hasActiveInterview ? 'Update interview' : 'Schedule interview'}
+                          </Button>
+
+                          {hasActiveInterview && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              loading={isCancellingInterview}
+                              onClick={() => { void handleInterviewCancel() }}
+                              className="text-red-600 border-red-300 hover:bg-red-50"
+                            >
+                              <XCircle className="h-4 w-4 mr-2" />
+                              Cancel interview
+                            </Button>
+                          )}
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
+
                 {activeTab === 'grades' && (
-                  <GradesDisplay 
-                    grades={applicationData?.grades || []} 
+                  <GradesDisplay
+                    grades={applicationData?.grades || []}
                     loading={loading}
                   />
                 )}

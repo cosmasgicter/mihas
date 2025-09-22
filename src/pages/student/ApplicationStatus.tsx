@@ -73,9 +73,22 @@ export default function ApplicationStatus() {
         return <Clock className="h-5 w-5 text-primary" />
       case 'submitted':
         return <AlertCircle className="h-5 w-5 text-yellow-500" />
+      case 'interview_scheduled':
+        return <Calendar className="h-5 w-5 text-blue-500" />
       default:
         return <Clock className="h-5 w-5 text-secondary" />
     }
+  }
+
+  const formatInterviewDateTime = (value?: string | null) => {
+    if (!value) return 'To be confirmed'
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) {
+      return 'To be confirmed'
+    }
+    const datePart = formatDate(date.toISOString())
+    const timePart = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    return `${datePart} at ${timePart}`
   }
 
   const getTimeline = (): ApplicationTimeline[] => {
@@ -89,6 +102,17 @@ export default function ApplicationStatus() {
         completed: true
       }
     ]
+
+    if (application.interview && application.interview.status !== 'cancelled') {
+      timeline.push({
+        status: 'interview_scheduled',
+        date: application.interview.scheduled_at,
+        description: `Interview scheduled for ${formatInterviewDateTime(application.interview.scheduled_at)}`,
+        completed: application.interview.scheduled_at
+          ? new Date(application.interview.scheduled_at) < new Date()
+          : false
+      })
+    }
 
     if (application.status === 'under_review' || application.status === 'approved' || application.status === 'rejected') {
       timeline.push({
@@ -158,6 +182,8 @@ export default function ApplicationStatus() {
   }
 
   const timeline = getTimeline()
+  const interview = application.interview
+  const hasActiveInterview = Boolean(interview && interview.status !== 'cancelled')
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -199,6 +225,62 @@ export default function ApplicationStatus() {
           </motion.div>
         </div>
 
+        {interview && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mb-6"
+          >
+            <div className={`rounded-2xl border ${
+              hasActiveInterview ? 'border-blue-200 bg-blue-50/80' : 'border-gray-200 bg-white'
+            } p-6 shadow-sm`}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Calendar className={`h-10 w-10 ${hasActiveInterview ? 'text-blue-500' : 'text-gray-400'}`} />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700">Admissions interview</p>
+                    <p className="text-base font-medium text-gray-900">
+                      {hasActiveInterview
+                        ? formatInterviewDateTime(interview.scheduled_at)
+                        : 'The previously scheduled interview has been cancelled.'}
+                    </p>
+                  </div>
+                </div>
+                {hasActiveInterview && (
+                  <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                    {interview.mode?.replace('_', ' ') || 'Interview'}
+                  </span>
+                )}
+              </div>
+
+              {hasActiveInterview && (
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-blue-700">Location / Link</p>
+                    <p className="text-sm text-gray-900">
+                      {interview.location || 'You will receive the meeting details shortly.'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-blue-700">Important notes</p>
+                    <p className="text-sm text-gray-900">
+                      {interview.notes || 'Please arrive 10 minutes early and bring your identification.'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {!hasActiveInterview && (
+                <p className="mt-4 text-sm text-gray-600">
+                  Our admissions team will contact you if a new interview is required. If you have questions, please reach out to admissions support.
+                </p>
+              )}
+            </div>
+          </motion.div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Main Content - Mobile First */}
           <div className="lg:col-span-2 space-y-6 sm:space-y-8">
@@ -214,23 +296,19 @@ export default function ApplicationStatus() {
               </h2>
               <div className="space-y-6">
                 {timeline.map((step, index) => (
-                  <motion.div 
-                    key={index} 
+                  <motion.div
+                    key={index}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 + index * 0.1 }}
                     className="flex items-start space-x-4"
                   >
                     <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${
-                      step.completed 
-                        ? 'bg-gradient-to-br from-green-400 to-green-600 text-white' 
+                      step.completed
+                        ? 'bg-gradient-to-br from-green-400 to-green-600 text-white'
                         : 'bg-gray-100 text-gray-500'
                     }`}>
-                      {step.completed ? (
-                        <CheckCircle className="h-5 w-5" />
-                      ) : (
-                        <Clock className="h-5 w-5" />
-                      )}
+                      {step.completed ? <CheckCircle className="h-5 w-5" /> : getStatusIcon(step.status)}
                     </div>
                     <div className="flex-grow">
                       <div className={`font-semibold ${

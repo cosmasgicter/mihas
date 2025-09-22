@@ -21,6 +21,7 @@ import {
 import { useRoleQuery } from '@/hooks/auth/useRoleQuery'
 import { isReportManagerRole } from '@/lib/auth/roles'
 import { AnalyticsService } from '@/lib/analytics'
+import { applicationService } from '@/services/applications'
 
 interface ReportConfig {
   type: 'daily' | 'weekly' | 'monthly' | 'regulatory'
@@ -156,6 +157,9 @@ export function ReportsGenerator() {
   })
   const [selectedTemplate, setSelectedTemplate] = useState<DocumentTemplateId>('offerLetter')
   const [documentForm, setDocumentForm] = useState<DocumentFormState>(initialDocumentForm)
+  const [prefillApplicationId, setPrefillApplicationId] = useState('')
+  const [prefillStatus, setPrefillStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [prefillLoading, setPrefillLoading] = useState(false)
   const [documentGenerating, setDocumentGenerating] = useState(false)
   const [documentPreview, setDocumentPreview] = useState<{
     templateId: DocumentTemplateId
@@ -184,6 +188,83 @@ export function ReportsGenerator() {
   ) => {
     const { value } = event.target
     setDocumentForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  const toDateInput = (value?: string | null) => {
+    if (!value) return ''
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return ''
+    return date.toISOString().slice(0, 10)
+  }
+
+  const toTimeInput = (value?: string | null) => {
+    if (!value) return ''
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return ''
+    return date.toISOString().slice(11, 16)
+  }
+
+  const handlePrefillFromApplication = async () => {
+    const trimmedId = prefillApplicationId.trim()
+    if (!trimmedId) {
+      setPrefillStatus({ type: 'error', message: 'Enter an application ID to prefill the template.' })
+      return
+    }
+
+    try {
+      setPrefillLoading(true)
+      setPrefillStatus(null)
+
+      const response = await applicationService.getById(trimmedId)
+      if (!response || !response.application) {
+        throw new Error('Application not found or inaccessible.')
+      }
+
+      const app = response.application
+      const interview = response.interview || app.interview || null
+
+      setDocumentForm(prev => ({
+        ...prev,
+        studentName: app.full_name || '',
+        studentPreferredName: prev.studentPreferredName || app.full_name?.split(' ')[0] || '',
+        studentEmail: app.email || '',
+        studentPhone: app.phone || '',
+        programName: app.program || '',
+        intake: app.intake || '',
+        startDate: prev.startDate,
+        responseDeadline: prev.responseDeadline,
+        orientationDate: prev.orientationDate,
+        referenceNumber: app.application_number || '',
+        decisionDate: toDateInput(app.decision_date),
+        interviewDate: toDateInput(interview?.scheduled_at),
+        interviewTime: toTimeInput(interview?.scheduled_at),
+        interviewLocation: interview?.location || '',
+        interviewMode: interview?.mode || '',
+        feedbackSummary: prev.feedbackSummary,
+        feedbackStrengths: prev.feedbackStrengths,
+        feedbackImprovements: prev.feedbackImprovements,
+        feedbackRecommendation: app.review_notes || prev.feedbackRecommendation,
+        staffName: prev.staffName,
+        staffTitle: prev.staffTitle,
+        staffDepartment: prev.staffDepartment,
+        staffEmail: prev.staffEmail,
+        staffPhone: prev.staffPhone,
+        paymentAmountDue: app.application_fee ? String(app.application_fee) : prev.paymentAmountDue,
+        paymentAmountPaid: app.amount ? String(app.amount) : prev.paymentAmountPaid,
+        paymentBalance: prev.paymentBalance,
+        paymentDueDate: prev.paymentDueDate,
+        paymentReference: app.momo_ref || prev.paymentReference,
+        paymentLastPaymentDate: prev.paymentLastPaymentDate,
+        paymentBreakdown: prev.paymentBreakdown
+      }))
+
+      setPrefillStatus({ type: 'success', message: 'Application details loaded successfully.' })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to load application details.'
+      setPrefillStatus({ type: 'error', message })
+    } finally {
+      setPrefillLoading(false)
+    }
   }
 
   const buildDocumentContext = (): DocumentTemplateContext => {
@@ -669,6 +750,36 @@ export function ReportsGenerator() {
                   Fill in the relevant sections below. Optional placeholders will be skipped automatically when left blank.
                 </p>
               </div>
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+              <h5 className="text-sm font-semibold text-gray-700">Prefill from an application</h5>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  value={prefillApplicationId}
+                  onChange={(event) => setPrefillApplicationId(event.target.value)}
+                  placeholder="Enter application ID (UUID)"
+                  className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <Button
+                  type="button"
+                  onClick={() => { void handlePrefillFromApplication() }}
+                  loading={prefillLoading}
+                  className="sm:w-auto"
+                >
+                  Load application
+                </Button>
+              </div>
+              {prefillStatus && (
+                <p
+                  className={`text-sm ${
+                    prefillStatus.type === 'success' ? 'text-green-600' : 'text-red-600'
+                  }`}
+                >
+                  {prefillStatus.message}
+                </p>
+              )}
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
