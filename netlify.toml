@@ -40,6 +40,18 @@
   force = true
 
 [[redirects]]
+  from = "/api/admin/applications/update-status"
+  to = "/.netlify/functions/admin-applications-update-status"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/admin/applications/verify-payment"
+  to = "/.netlify/functions/admin-applications-verify-payment"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/analytics/telemetry"
   to = "/.netlify/functions/analytics-telemetry"
   status = 200
